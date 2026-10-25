@@ -32,7 +32,8 @@ on the P-System a .TEXT file (made with the Editor), on Linux a .bas file.
 
   A label belongs to the procedure (or the module's body) it is in.
 - `#INCLUDE "FILE"` puts the text of FILE.TEXT in place of the line
-  (looked for on the prefix volume, then on the volume of the source).
+  (looked for beside the source first -- on its volume, in its
+  sub-volume -- then as named, on the prefix volume).
   Include files may be nested 3 deep.
 - `?` is short for PRINT.
 
@@ -341,6 +342,17 @@ work area (1.5K) and given back after each statement.
 
 - File numbers are 1..15.  A name is a P-System file name, with a volume
   if wanted: "#5:DATA.TEXT", "WORK:NOTES.TEXT".
+- A path names a file in a sub-volume (a data file that holds a volume of
+  its own, as Tiny-C's shell's MKDIR makes them): "BASIC:/DEMO/HELLO.TEXT"
+  or "BASIC:DEMO/HELLO.TEXT" (HELLO.TEXT in the sub-volume DEMO of the
+  volume BASIC:), "#5:/A/B/X.TEXT" (B inside A), "/A/X.TEXT" or
+  "A/X.TEXT" (on the prefix volume); \ may be written for /.  Every OPEN
+  mode and KILL work there.  A file written in a sub-volume takes its
+  largest free area (two written at once share it); it gets its
+  directory entry, today's date and its kind (.TEXT text, .CODE code,
+  anything else data) when it is closed -- a sub-volume that is too full
+  gives run-time error 61 when a file no longer fits (a new file that did
+  not fit is not kept).
 - A name ending in .TEXT is a UCSD text file (the Editor's format: a
   2-block header, 1K pages, blank compression); PRINT # and LINE INPUT #
   read and write it by lines.  Any other file is its bytes; lines in it
@@ -390,7 +402,8 @@ reported by the operating system as usual.
 
 ## 13. Using the compiler
 
-On the P-System: `X(ecute BASIC:BC`, then at "Compile what file?":
+On the P-System: `X(ecute BASIC:BC`, then at "Compile what file?" (a
+NAME may be a path into sub-volumes: BASIC:/DEMO/HELLO):
 
     NAME              compile NAME.TEXT, link NAME.CODE
     -C NAME           compile only: NAME.OBJ
@@ -408,10 +421,33 @@ the rest.  From Tiny-C's shell the same commands are BC's command line:
 `BC -C MYPROG`.
 
 Files: the source is NAME.TEXT (or NAME.BAS); the object NAME.OBJ is put
-beside it; the code file NAME.CODE too.  The library BASLIB.OBJ is looked
-for beside the objects, then on the prefix volume, BASIC:, and the boot
+beside it (on its volume, in its sub-volume); the code file NAME.CODE
+too, and the listing.  The library BASLIB.OBJ is looked for beside the
+first object, then on the prefix volume, in BASIC:/LIB, and on the boot
 volume.  BC writes its temporary files BCTEMP.TOK, BCTEMP.LST and
-BCTEMP.DAT on the prefix volume.
+BCTEMP.DAT on the prefix volume.  The names in a batch file are as they
+would be typed (BASIC:'s batch files name every file with its path).
+
+A code file in a sub-volume runs with X(ecute BASIC:/DEMO/HELLO (BIGGY's
+SYSTEM.PASCAL and SYSTEM.C), or from Tiny-C's shell.
+
+The volume BASIC: holds:
+
+    BC.CODE                     the compiler
+    README.TEXT LANGUAGE.TEXT DESIGN.TEXT
+    ALL.TEXT                    @BASIC:ALL: the four batch files below
+    FILES.TEXT                  every file, the sub-volumes' too
+    SRC/   BC*.TEXT             the compiler's sources;
+           BUILD.TEXT           @BASIC:/SRC/BUILD: BASIC:BC2.CODE
+    LIB/   BASLIB.OBJ           the run-time library, RT*.TEXT its sources;
+           LIBS.TEXT            @BASIC:/LIB/LIBS: BASIC:/LIB/BASLIB2.OBJ
+    DEMO/  HELLO PRIMES HANOI MANDEL GUESS, STATS + STATLIB (two modules);
+           DEMOS.TEXT           @BASIC:/DEMO/DEMOS compiles them
+    TEST/  the compiler's tests; TESTS.TEXT compiles them,
+           EXPECT/NAME.TEXT     what each prints
+
+The sub-volumes have room for what their batch files make; Tiny-C's GROW
+(TOOLS:) makes one bigger.
 
 The listing (-S) shows, for every procedure, each BASIC statement
 followed by the P-code made for it: offsets within the procedure, calls

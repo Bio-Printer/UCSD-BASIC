@@ -9,11 +9,55 @@ the program's start to the Command: prompt after it.
 """
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import psys
+import psys, ucsdvol
 
 
-def run(code, files=(), keys='', timeout=120):
+def read_dirs(path):
+    """a test's sub-volumes: lines DIR PATH BLOCKS, TEXT PATH LINE"""
+    out = []
+    for l in open(path):
+        w = l.split(None, 2)
+        if w and not w[0].startswith('#'):
+            out.append((w[0], w[1].upper(), w[2].rstrip('\n') if len(w) > 2 else ''))
+    return out
+
+
+def make_dirs(v, dirs, pre=''):
+    """the sub-volumes and files under pre (A/) of dirs, written into the Volume v"""
+    for kind, path, arg in dirs:
+        if not path.startswith(pre) or '/' in path[len(pre):]:
+            continue
+        name = path[len(pre):]
+        if kind == 'DIR':
+            sub = ucsdvol.Volume.new(name, int(arg))
+            make_dirs(sub, dirs, path + '/')
+            v.write(name, sub.image(), 5)
+        else:
+            v.write(name, ucsdvol.text_to_ucsd(arg + '\n'), 3)
+
+
+def list_dirs(ps, dirs):
+    """after the run: each sub-volume's files, NAME BLOCKS KIND, and the text files' lines"""
+    v = ucsdvol.Volume(os.path.join(ps.out, 'VERIFY_SOURCE.BLK'))
+    out = []
+
+    def walk(v, pre):
+        for first, last, kind, name, lastbyte, date in sorted(v.entries, key=lambda e: e[3]):
+            if pre + name in [p for k, p, a in dirs if k == 'DIR']:
+                out.append('-- %s%s/ %d' % (pre, name, v.eov if False else last - first))
+                walk(v.sub(name), pre + name + '/')
+            elif pre:
+                out.append('-- %s%s %d %d' % (pre, name, last - first, kind & 15))
+    walk(v, '')
+    return '\n'.join(out) + '\n'
+
+
+def run(code, files=(), keys='', timeout=120, dirs=None):
     ps = psys.PSystem()
+    if dirs:
+        v = ucsdvol.Volume(ps.src)
+        make_dirs(v, dirs)
+        v.save()
     name = os.path.basename(code).upper()
     ps.put(name, open(code, 'rb').read())
     for f in files:

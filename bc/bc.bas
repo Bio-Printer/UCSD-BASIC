@@ -381,7 +381,8 @@ FUNCTION FileExists (f$)
     ON ERROR GOTO 0
 END FUNCTION
 
-' NAME with the suffix suf$ unless it has one (a dot after its volume)
+' NAME with the suffix suf$ unless it has one (a dot after its volume and
+' sub-volumes)
 FUNCTION WithSuffix$ (f$, suf$)
     DIM i, c
     FOR i = LEN(f$) TO 1 STEP -1
@@ -390,22 +391,28 @@ FUNCTION WithSuffix$ (f$, suf$)
             WithSuffix$ = f$
             EXIT FUNCTION
         END IF
-        IF c = 58 THEN EXIT FOR
+        IF c = 58 OR c = 47 OR c = 92 THEN EXIT FOR
     NEXT i
     WithSuffix$ = f$ + suf$
 END FUNCTION
 
-' the volume part of a file name ("#5:" of "#5:FOO.TEXT"), "" for none
-FUNCTION VolOf$ (f$)
-    DIM i
-    i = INSTR(f$, ":")
-    IF i > 0 THEN VolOf$ = LEFT$(f$, i)
+' where a file is: its volume and sub-volumes ("#5:" of "#5:FOO.TEXT",
+' "BASIC:/SRC/" of "BASIC:/SRC/BC.TEXT"), "" for none
+FUNCTION DirOf$ (f$)
+    DIM i, c
+    FOR i = LEN(f$) TO 1 STEP -1
+        c = ASC(f$, i)
+        IF c = 58 OR c = 47 OR c = 92 THEN
+            DirOf$ = LEFT$(f$, i)
+            EXIT FUNCTION
+        END IF
+    NEXT i
 END FUNCTION
 
-' FOO of VOL:FOO.TEXT
+' FOO of VOL:FOO.TEXT (and of VOL:/A/FOO.TEXT)
 FUNCTION ModOf$ (f$)
     DIM s$, i
-    s$ = MID$(f$, LEN(VolOf$(f$)) + 1)
+    s$ = MID$(f$, LEN(DirOf$(f$)) + 1)
     i = INSTR(s$, ".")
     IF i > 0 THEN s$ = LEFT$(s$, i - 1)
     ModOf$ = UCASE$(s$)
@@ -426,7 +433,7 @@ FUNCTION ListOf$ (n$)
     DIM m$
     m$ = ModOf$(n$)
     IF LEN(m$) > 6 THEN m$ = LEFT$(m$, 6)
-    ListOf$ = VolOf$(n$) + m$ + ".LST.TEXT"
+    ListOf$ = DirOf$(n$) + m$ + ".LST.TEXT"
 END FUNCTION
 
 ' ---- compiling one file
@@ -438,7 +445,7 @@ END SUB
 FUNCTION Compile (n$, lst)
     SrcName$ = SourceOf$(n$)
     ModName$ = ModOf$(n$)
-    ObjName$ = VolOf$(n$) + ModName$ + ".OBJ"
+    ObjName$ = DirOf$(n$) + ModName$ + ".OBJ"
     OptList = lst
     IF lst THEN LstName$ = ListOf$(n$) ELSE LstName$ = ""
     ErrCount = 0
@@ -584,7 +591,7 @@ FUNCTION RunCmds (l$)
             ok = 0
         ELSE
             ok = Compile(w$, lst)
-            IF ok AND conly = 0 THEN ok = DoLink(VolOf$(w$) + ModOf$(w$))
+            IF ok AND conly = 0 THEN ok = DoLink(DirOf$(w$) + ModOf$(w$))
             lst = 0
             conly = 0
         END IF

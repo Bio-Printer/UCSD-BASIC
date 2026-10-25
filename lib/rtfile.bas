@@ -5,7 +5,8 @@
 ' never crosses a page, DLE blank compression read); any other file is its
 ' bytes (lines end with CR).  The operating system's FINIT, FOPEN, FCLOSE
 ' and FBLOCKIO (CXP 0,3 / 5 / 6 / 28) do the disk work; the buffering is
-' here.  CONSOLE: is the console.
+' here.  CONSOLE: is the console.  A file in a sub-volume (VOL:/A/NAME) is
+' RTSUBV's.
 #INCLUDE "RTCOM"
 
 ' the entry of channel ch (1..15)
@@ -36,6 +37,10 @@ END FUNCTION
 ' FBLOCKIO: n blocks from block b into / out of the buffer
 FUNCTION _BLOCKIO (e, nblocks, b, rd)
     DIM n
+    IF PEEK(e + FSVU) THEN
+        _BLOCKIO = _SVIO(e, nblocks, b, rd)
+        EXIT FUNCTION
+    END IF
     n = OSCALL%(28, PEEK(e + FFIB), PEEK(e + FBUF), 0, nblocks, b, rd, 0, 0)
     IF CSP%(34) <> 0 THEN POKE e + FFL, PEEK(e + FFL) OR FERR
     _BLOCKIO = n
@@ -90,18 +95,29 @@ FUNCTION _ISTEXT (name)
     _ISTEXT = -1
 END FUNCTION
 
-' the title FOPEN takes: upper case, at most 30 characters
+' the title FOPEN takes: upper case, at most 30 characters; a / after the
+' volume (VOL:/NAME, /NAME) left out
 FUNCTION _TITLE (name)
-    DIM n, i, c, t
+    DIM n, i, c, t, k
     t = _SCRATCH
     n = PEEKB(name)
-    IF n > 30 THEN n = 30
+    k = 0
     FOR i = 1 TO n
         c = PEEKB(name + i)
         IF c >= 97 AND c <= 122 THEN c = c - 32
-        POKEB t + i, c
+        IF c = 47 OR c = 92 THEN
+            IF k = 0 THEN
+                c = -1
+            ELSEIF PEEKB(t + k) = 58 THEN
+                c = -1
+            END IF
+        END IF
+        IF c >= 0 AND k < 30 THEN
+            k = k + 1
+            POKEB t + k, c
+        END IF
     NEXT i
-    POKEB t, n
+    POKEB t, k
     _TITLE = t
 END FUNCTION
 
@@ -149,15 +165,26 @@ SUB _OPEN (name, mode, ch, reclen)
     IF (fl AND FTEXT) <> 0 AND (fl AND FWRITE) <> 0 THEN bsz = 1024
     POKE e + FBSZ, bsz
     buf = _MALLOC(bsz)
-    fib = _MALLOC(80)
     POKE e + FBUF, buf
+    ' in a sub-volume?
+    fib = _MALLOC(24)
     POKE e + FFIB, fib
-    ' (a Pascal boolean: 1, not BASIC's -1 -- SYSTEM.C takes only 1 as true)
-    IF mode <> 2 THEN old = 1 ELSE old = 0
-    OSCALL 3, fib, 0, -1
-    OSCALL 5, fib, _TITLE(name), old, 0
-    ok = CSP%(34) = 0
-    IF NOT ok AND mode >= 4 THEN
+    n = _SVOPEN(e, name, mode)
+    IF n = 0 THEN
+        _MFREE fib
+        fib = _MALLOC(80)
+        POKE e + FFIB, fib
+        ' (a Pascal boolean: 1, not BASIC's -1 -- SYSTEM.C takes only 1 as
+        ' true)
+        IF mode <> 2 THEN old = 1 ELSE old = 0
+        OSCALL 3, fib, 0, -1
+        OSCALL 5, fib, _TITLE(name), old, 0
+        ok = CSP%(34) = 0
+    ELSE
+        IF n = 1 THEN old = 1 ELSE old = 0
+        ok = n > 0
+    END IF
+    IF NOT ok AND mode >= 4 AND n = 0 THEN
         ' BINARY, RANDOM: a new file
         old = 0
         OSCALL 3, fib, 0, -1
@@ -223,8 +250,12 @@ SUB _CLOSE1 (ch)
     IF fl = 0 THEN EXIT SUB
     IF (fl AND FCON) = 0 THEN
         r = _FLUSHBUF(e)
-        IF fl AND FNEW THEN OSCALL 6, PEEK(e + FFIB), 1 ELSE OSCALL 6, PEEK(e + FFIB), 0
-        IF CSP%(34) <> 0 THEN r = -1
+        IF PEEK(e + FSVU) THEN
+            IF _SVCLOSE(e) THEN r = -1
+        ELSE
+            IF fl AND FNEW THEN OSCALL 6, PEEK(e + FFIB), 1 ELSE OSCALL 6, PEEK(e + FFIB), 0
+            IF CSP%(34) <> 0 THEN r = -1
+        END IF
         _MFREE PEEK(e + FBUF)
         _MFREE PEEK(e + FFIB)
         IF r THEN _IOERR 61
@@ -496,8 +527,11 @@ END FUNCTION
 
 ' KILL name
 SUB _KILL (name)
-    DIM fib
+    DIM fib, r
     _ERRCODE = 0
+    r = _SVKILL(name)
+    IF r < 0 THEN _IOERR 53
+    IF r THEN EXIT SUB
     fib = _MALLOC(80)
     OSCALL 3, fib, 0, -1
     OSCALL 5, fib, _TITLE(name), 1, 0

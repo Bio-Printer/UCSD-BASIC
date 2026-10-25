@@ -132,12 +132,17 @@ FUNCTION _INFS ()
 END FUNCTION
 
 FUNCTION _INFD# ()
+    DIM t
+    t = _TTOP
     _INFD# = _VAL#(_INFS)
+    _TTOP = t
 END FUNCTION
 
 FUNCTION _INFI ()
-    DIM d#
+    DIM d#, t
+    t = _TTOP
     d# = _VAL#(_INFS)
+    _TTOP = t
     _INFI = d#
 END FUNCTION
 

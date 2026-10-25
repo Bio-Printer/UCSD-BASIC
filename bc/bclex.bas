@@ -388,11 +388,9 @@ SUB LexInclude (f$)
         EXIT SUB
     END IF
     g$ = WithSuffix$(UCASE$(f$), ".TEXT")
-    IF NOT FileExists(g$) THEN
-        ' beside the source: the source's volume
-        IF INSTR(g$, ":") = 0 AND INSTR(SrcName$, ":") > 0 THEN
-            g$ = LEFT$(SrcName$, INSTR(SrcName$, ":")) + g$
-        END IF
+    ' beside the source first (its volume and sub-volume), then as named
+    IF INSTR(g$, ":") = 0 AND LEFT$(g$, 1) <> "/" AND DirOf$(SrcName$) <> "" THEN
+        IF FileExists(DirOf$(SrcName$) + g$) THEN g$ = DirOf$(SrcName$) + g$
     END IF
     IF NOT FileExists(g$) THEN
         LexErr "no file " + g$

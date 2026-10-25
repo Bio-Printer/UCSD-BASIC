@@ -15,3 +15,10 @@
   the extracted files (`tools/extract_all.py BLK_format .`), the manifest and a
   README.txt entry.
 - Pascal booleans passed to the OS must be 1, not BASIC's -1 (SYSTEM.C).
+- A library procedure that makes a temporary string it does not return
+  (e.g. prints `_ISTR`'s text) must give it back itself: `t = _TTOP` ...
+  `_TTOP = t`; the compiler only resets after string expressions it sees.
+- Sub-volumes: lib/rtsubv.bas (tests/subvol, runtests makes the
+  sub-volumes from tests/subvol.dirs).  The volume's layout and batch files
+  are made by tools/mkvolume.py; run voltest.py and voltest.py --pascal
+  after changing it.

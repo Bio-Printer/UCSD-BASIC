@@ -13,16 +13,28 @@ as the host build** (`tools/selfcompile.py`).
 |---|---|
 | `bc/` | the compiler: `bc` driver, `bclex` pass 1 (tokens, comments dropped), `bcdecl` pass 2 (declarations), `bcgen`/`bcexpr`/`bcemit` pass 3 (code, object file), `bclist` listing (each BASIC statement with its P-code), `bclink` linker |
 | `lib/` | the run-time library BASLIB, in BASIC (heap, strings, arrays, PRINT/INPUT, UCSD text and byte files, DATA) |
-| `tests/` | test programs and their expected output |
+| `tests/` | test programs and their expected output (`subvol.dirs`: the sub-volumes that test needs) |
+| `demos/` | the example programs of the volume's DEMO/ |
 | `tools/` | `bas2c.py` + `hostrt.h` (the bootstrap: BC's BASIC translated to C), `buildhost.sh`, `mklib.sh`, `mkself.sh`, `runtests.py`, `selfcompile.py`, `brun.py`, `objdump.py`, `pdis.py` |
 
 ## The volume BASIC:
 
 `tools/mkvolume.py` makes `build/BASIC.BLK` (also in UCSD-Pascal-Volumes'
-BLK_format): BC.CODE, BASLIB.OBJ, every source, BUILD.TEXT (`@BASIC:BUILD`
-rebuilds the compiler as BASIC:BC2.CODE), LIBS.TEXT (`@BASIC:LIBS` rebuilds
-the library as BASIC:BASLIB2.OBJ), the example programs, and the manuals
-LANGUAGE.TEXT, DESIGN.TEXT and README.TEXT.  `tools/voltest.py` checks it.
+BLK_format), laid out in sub-volumes (Tiny-C's: data files holding a volume,
+`BASIC:/SRC/BC.TEXT`):
+
+| File | What |
+|---|---|
+| `BC.CODE` | the compiler |
+| `README.TEXT`, `LANGUAGE.TEXT`, `DESIGN.TEXT` | the manuals |
+| `ALL.TEXT` | `@BASIC:ALL`: the four batch files below |
+| `FILES.TEXT` | every file, the sub-volumes' too |
+| `SRC/` | the compiler's sources; `BUILD.TEXT`: `@BASIC:/SRC/BUILD` rebuilds the compiler as BASIC:BC2.CODE |
+| `LIB/` | `BASLIB.OBJ`, the run-time library, and its sources; `LIBS.TEXT`: `@BASIC:/LIB/LIBS` rebuilds it as BASIC:/LIB/BASLIB2.OBJ |
+| `DEMO/` | HELLO, PRIMES, HANOI, MANDEL, GUESS and STATS (two modules: STATS + STATLIB); `DEMOS.TEXT` compiles them |
+| `TEST/` | the compiler's tests; `TESTS.TEXT` compiles them; `EXPECT/` what each prints |
+
+`tools/voltest.py` checks it (`--pascal`: under SYSTEM.PASCAL).
 
 Documentation: [docs/LANGUAGE.md](docs/LANGUAGE.md) (the language and the
 compiler's use) and [docs/DESIGN.md](docs/DESIGN.md) (how BC works).
@@ -31,7 +43,8 @@ compiler's use) and [docs/DESIGN.md](docs/DESIGN.md) (how BC works).
 
 `X(ecute BC`, then at "Compile what file?" (or as the command line from Tiny-C's shell):
 
-* `NAME` — compile NAME.TEXT and link NAME.CODE
+* `NAME` — compile NAME.TEXT and link NAME.CODE (NAME may be a path: `BASIC:/DEMO/HELLO`;
+  the object and code file go beside the source)
 * `-C NAME` — compile only (NAME.OBJ); `-S NAME` — also a listing NAME.LST.TEXT
 * `-L OUT=A,B,C` — link several modules (and BASLIB.OBJ) into OUT.CODE
 * `-J LIB=A,B` — join object files into a library
@@ -41,7 +54,9 @@ Modules share variables with `COMMON SHARED`, call each other's procedures
 after `DECLARE`; `SEGMENT name` puts the following procedures in a code
 segment of their own.  BC needs the emulator's Harvard layout (its default);
 it works under SYSTEM.PASCAL and SYSTEM.C, and from Tiny-C's shell
-(`BASIC:BC -C PROG`: COMMAND$, exit status 0 or 1).
+(`BASIC:BC -C PROG`: COMMAND$, exit status 0 or 1).  Programs open files in
+sub-volumes by their paths (`OPEN "BASIC:/DEMO/X.TEXT" ...`), and a code file
+in one runs with `X(ecute BASIC:/DEMO/HELLO`.
 
 ## Building and testing (Linux)
 
@@ -52,5 +67,5 @@ tools/mklib.sh          # build/BASLIB.OBJ
 tools/mkself.sh         # build/BC.CODE
 python3 tools/runtests.py
 python3 tools/selfcompile.py   # BC and BASLIB rebuilt on the P-System: IDENTICAL
-python3 tools/mkvolume.py && python3 tools/voltest.py   # build/BASIC.BLK, checked
+python3 tools/mkvolume.py && python3 tools/voltest.py   # build/BASIC.BLK, checked (also --pascal)
 ```

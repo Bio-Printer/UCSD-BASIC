@@ -536,10 +536,11 @@ SUB ObjFiles (objs$, addlib)
         i = j + 1
     LOOP
     IF addlib THEN
-        ' beside the program's objects, on the prefix, BASIC:, the boot disk
-        lib$ = VolOf$(LFile$(1)) + "BASLIB.OBJ"
+        ' beside the program's objects, on the prefix, BASIC:/LIB, the boot
+        ' disk
+        lib$ = DirOf$(LFile$(1)) + "BASLIB.OBJ"
         IF NOT FileExists(lib$) THEN lib$ = "BASLIB.OBJ"
-        IF NOT FileExists(lib$) THEN lib$ = "BASIC:BASLIB.OBJ"
+        IF NOT FileExists(lib$) THEN lib$ = "BASIC:/LIB/BASLIB.OBJ"
         IF NOT FileExists(lib$) THEN lib$ = "*BASLIB.OBJ"
         NLF = NLF + 1
         LFile$(NLF) = lib$

@@ -43,12 +43,18 @@ FUNCTION _STRD (x#)
 END FUNCTION
 
 SUB _PSNG (ch, x!)
+    DIM t
+    t = _TTOP
     _PSTR ch, _FMTD(x!, 7)
+    _TTOP = t
     _PSPC ch, 1
 END SUB
 
 SUB _PDBL (ch, x#)
+    DIM t
+    t = _TTOP
     _PSTR ch, _FMTD(x#, 15)
+    _TTOP = t
     _PSPC ch, 1
 END SUB
 

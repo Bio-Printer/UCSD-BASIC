@@ -1,0 +1,21 @@
+hello from a sub-volume
+X 1  400 lines 0 wrong
+X 2  400 lines 0 wrong
+#5:/A/T1.TEXT: second
+#5:/A/T1.TEXT: appended
+#5:A/B/T2.TEXT: in B
+#5:T0.TEXT: on the volume
+words read back 700 
+killed: err 53 
+no sub-volume: err 53 
+no file: err 53 
+kill: err 53 
+full: err 61 after line 146 
+done
+-- A/ 120
+-- A/B/ 30
+-- A/B/DATA.BIN 3 5
+-- A/B/HELLO.TEXT 4 3
+-- A/B/T2.TEXT 4 3
+-- A/T1.TEXT 4 3
+-- A/X1.TEXT 14 3

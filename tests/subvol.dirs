@@ -1,0 +1,5 @@
+# sub-volumes made on WORK: (#5) before the test runs: DIR PATH BLOCKS,
+# TEXT PATH LINE (a text file of one line); listed after the run
+DIR A 120
+DIR A/B 30
+TEXT A/B/HELLO.TEXT hello from a sub-volume

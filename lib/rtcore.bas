@@ -461,8 +461,13 @@ SUB _PNL (ch)
     IF ch = 0 THEN _CONPUT 13 ELSE _FPUTC ch, 13
 END SUB
 
+' (the number's text is a temporary the caller does not know of: given back
+' here, as in _PSNG, _PDBL, _INFI, _INFD#)
 SUB _PINT (ch, v)
+    DIM t
+    t = _TTOP
     _PSTR ch, _ISTR(v, 1)
+    _TTOP = t
     IF ch = 0 THEN _CONPUT 32 ELSE _FPUTC ch, 32
 END SUB
 

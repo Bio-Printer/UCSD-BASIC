@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """runtests.py -- the regression tests: each tests/NAME.bas compiled by the
 host BC (build/bc, build/BASLIB.OBJ), run on the P-System, its output
-compared with tests/NAME.expect (NAME.keys: what is typed, one line each).
+compared with tests/NAME.expect (NAME.keys: what is typed, one line each;
+NAME.dirs: sub-volumes made on WORK: first, their files listed after it).
 
   runtests.py [NAME ...]        (-v: show the differences)
 """
@@ -35,7 +36,11 @@ def run_test(name, verbose=False):
     if os.path.exists(kf):
         keys = open(kf).read().rstrip('\n')
     files = [f for f in glob.glob(os.path.join(ROOT, 'tests', name + '.*')) if f.endswith('.dat')]
-    ok, out, info, ps = brun.run(code, files, keys)
+    df = os.path.join(ROOT, 'tests', name + '.dirs')
+    dirs = brun.read_dirs(df) if os.path.exists(df) else None
+    ok, out, info, ps = brun.run(code, files, keys, dirs=dirs)
+    if dirs:
+        out += brun.list_dirs(ps, dirs)
     exp = open(os.path.join(ROOT, 'tests', name + '.expect')).read()
     if out == exp:
         print('PASS  %s' % name)
