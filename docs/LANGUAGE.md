@@ -377,6 +377,10 @@ work area (1.5K) and given back after each statement.
   LEN(var$) bytes into var$).  pos (from 1) sets the position first.
   BINARY opens a file to read and write (made if missing); GET and PUT
   also work on INPUT and OUTPUT files of bytes.
+- A size may end a name, as the P-System's programs take it: "X.TEXT[20]"
+  (20 blocks) or "X.TEXT[*]" (half the largest free area, or the second
+  largest if that is more; a new file otherwise takes the largest).  It
+  is not part of the name, and in a sub-volume it is not needed.
 - "CONSOLE:" opens the console as a file.
 - A missing file stops the program (run-time error 53) unless
   ON ERROR RESUME NEXT is in force; then ERR says 53.
@@ -438,8 +442,8 @@ Files: the source is NAME.BAS (or NAME.TEXT); the object NAME.OBJ is put
 beside it (on its volume, in its sub-volume); the code file NAME.CODE
 too, and the listing.  The library BASLIB.OBJ is looked for beside the
 first object, then on the prefix volume, in BASIC:/LIB, and on the boot
-volume.  BC writes its temporary files BCTEMP.TOK, BCTEMP.LST and
-BCTEMP.DAT on the prefix volume.  The names in a batch file are as they
+volume.  BC writes its temporary files BCTEMP.TOK, BCTEMP.LST, BCTEMP.LCD and
+BCTEMP.DAT on the prefix volume (:), also when it was started after a CD.  The names in a batch file are as they
 would be typed (BASIC:'s batch files name every file with its path).
 
 A code file in a sub-volume runs with X(ecute BASIC:/DEMO/HELLO (BIGGY's

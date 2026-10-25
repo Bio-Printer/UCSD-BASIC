@@ -19,9 +19,10 @@ COMMON SHARED _ERRTRAP, _ERRCODE
 COMMON SHARED _CONBUF, _CONLEN, _CONCOL, _INBUF, _INPOS
 ' ---- the files: 16 entries of 16 words (channel 1..15)
 COMMON SHARED _FTAB
-' ---- the command line and the shell's path (CD) Tiny-C's shell gave, and a
-' name on that path (Pascal strings; 0: none)
-COMMON SHARED _CMDLINE, _SVPWD, _PATHBUF
+' ---- the command line and the shell's path (CD) Tiny-C's shell gave (Pascal
+' strings; 0: none); a file name as opened (on that path) and its size, [n]
+' or [*], which only the operating system sees
+COMMON SHARED _CMDLINE, _SVPWD, _PATHBUF, _SIZESPEC
 ' ---- arrays: DIM's bounds, an element's indexes
 COMMON SHARED _ABUF, _NABND, _AIXB, _NAIX
 ' ---- scratch (number formatting), the random seed

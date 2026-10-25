@@ -38,6 +38,8 @@ SUB _RTINIT ()
     _AIXB = _NEWBLK(9)
     _SCRATCH = _NEWBLK(41)
     _SEED# = 327680
+    _PATHBUF = _NEWBLK(64)
+    _SIZESPEC = _NEWBLK(4)
     _ARGS
     ' everything above this is the heap of the program's strings and arrays
     i = _NEWBLK(1)
@@ -69,7 +71,6 @@ SUB _ARGS ()
                 _SVPWD = _NEWBLK(41)
                 CSP 2, pl + i + 1, 0, _SVPWD + 1, 0, k
                 POKEB _SVPWD, k
-                _PATHBUF = _NEWBLK(64)
             END IF
             n = i - 1
             EXIT FOR
@@ -136,6 +137,10 @@ SUB _ERRTEXT (code)
 END SUB
 
 SUB _RTERR (code)
+    STATIC inerr
+    ' (an error while the files are closed after one: out at once)
+    IF inerr THEN CSP 4, 1, 1
+    inerr = 1
     _CONFLUSH
     _CONPUT 13
     _PSTR 0, SADD("Run-time error ")

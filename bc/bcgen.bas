@@ -1723,13 +1723,16 @@ SUB GenPass ()
     NNode = 0
     NConst = 0
     MemNote "gen arrays"
-    OPEN ObjName$ FOR OUTPUT AS #CHOBJ
+    ' a new file takes the largest free area: with the listing's records
+    ' written at the same time, the object takes half of it ([*]), the
+    ' statements half of the rest
+    IF OptList THEN OPEN ObjName$ + "[*]" FOR OUTPUT AS #CHOBJ ELSE OPEN ObjName$ FOR OUTPUT AS #CHOBJ
     PUT #CHOBJ, , "BCOB"
     ObjByte 77
     ObjStr ModName$
     IF OptList THEN
-        OPEN LstName$ FOR OUTPUT AS #CHLST
-        PRINT #CHLST, "BC listing of "; SrcName$
+        OPEN LTmpName$ + "[*]" FOR OUTPUT AS #CHLREC
+        OPEN LCodName$ FOR OUTPUT AS #CHLCOD
         LstOpen = 1
     END IF
     ' the module's body
@@ -1784,9 +1787,9 @@ SUB GenPass ()
     ObjByte 69
     CLOSE #CHOBJ
     IF OptList THEN
-        CLOSE #CHLST
+        CLOSE #CHLREC
+        CLOSE #CHLCOD
         LstOpen = 0
-        KILL LTmpName$
     END IF
     IF OptMem THEN SayLn "  [high: code " + IStr$(HiPC) + ", jumps " + IStr$(HiFix) + ", labels " + IStr$(HiLab) + ", calls " + IStr$(HiRel) + ", nodes " + IStr$(HiNode) + ", names " + IStr$(HiSym) + "]"
     ERASE Code, LabPos, FixPos, FixLab, RelPos, RelType, RelSym

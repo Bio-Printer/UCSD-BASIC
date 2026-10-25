@@ -495,6 +495,9 @@ FUNCTION Compile (n$, lst)
     END IF
     MemNote "declared"
     IF ErrCount = 0 THEN GenPass
+    ' the listing, after pass 3 (LIST and GEN do not fit into the code space
+    ' together)
+    IF ErrCount = 0 AND OptList <> 0 THEN ListModule
     ERASE SName$, SKind, SType, SCls, SOff, SFlags, SScope, SNext, SAux, SAux2, SSeg
     ERASE HashHead, PType, PFlg
     KILL TokName$
@@ -629,9 +632,11 @@ END FUNCTION
 DIM SegName$(MAXSEG), DefType(25), ParName$(30), ParFlags(30)
 
 DIM cmd$, l$, r
-TokName$ = "BCTEMP.TOK"
-LTmpName$ = "BCTEMP.LST"
-DatName$ = "BCTEMP.DAT"
+' the temporary files: on the prefix volume (:), not on the shell's path
+TokName$ = ":BCTEMP.TOK"
+LTmpName$ = ":BCTEMP.LST"
+LCodName$ = ":BCTEMP.LCD"
+DatName$ = ":BCTEMP.DAT"
 ' BC needs the emulator's Harvard layout: its code is too big for the
 ' memory of the others.  Unit 64 is the code space there (a bad unit in
 ' every other layout).

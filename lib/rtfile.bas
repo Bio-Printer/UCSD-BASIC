@@ -124,6 +124,11 @@ FUNCTION _TITLE (name)
             POKEB t + k, c
         END IF
     NEXT i
+    ' the size, [n] or [*] (_FNAME took it off the name)
+    IF PEEKB(_SIZESPEC) THEN
+        CSP 2, _SIZESPEC + 1, 0, t + k + 1, 0, PEEKB(_SIZESPEC)
+        k = k + PEEKB(_SIZESPEC)
+    END IF
     POKEB t, k
     _TITLE = t
 END FUNCTION
@@ -140,29 +145,49 @@ FUNCTION _SAMEAS (name, w)
     _SAMEAS = -1
 END FUNCTION
 
-' a name without a volume on the shell's path (CD, Tiny-C's shell): that
-' path, a /, the name (in _PATHBUF); any other name as it is
+' the name a file is opened by, in _PATHBUF: a name without a volume on
+' the shell's path (CD, Tiny-C's shell) has that path and a / before it;
+' a size at its end, [n] or [*] (the operating system's: n blocks, half the
+' largest free area), goes to _SIZESPEC
 FUNCTION _FNAME (name)
-    DIM n, k, c, b
-    _FNAME = name
-    IF _SVPWD = 0 OR name = 0 THEN EXIT FUNCTION
-    n = PEEKB(name)
-    IF n = 0 THEN EXIT FUNCTION
-    c = PEEKB(name + 1)
-    IF c = 47 OR c = 92 OR c = 35 OR c = 42 THEN EXIT FUNCTION
-    FOR k = 1 TO n
-        IF PEEKB(name + k) = 58 THEN EXIT FUNCTION
-    NEXT k
+    DIM n, k, c, b, i
+    POKEB _SIZESPEC, 0
+    IF name = 0 THEN EXIT FUNCTION
     b = _PATHBUF
-    k = PEEKB(_SVPWD)
-    CSP 2, _SVPWD + 1, 0, b + 1, 0, k
-    c = PEEKB(b + k)
-    IF c <> 47 AND c <> 58 THEN
-        k = k + 1
-        POKEB b + k, 47
+    k = 0
+    n = PEEKB(name)
+    IF n > 0 AND _SVPWD <> 0 THEN
+        c = PEEKB(name + 1)
+        IF c <> 47 AND c <> 92 AND c <> 35 AND c <> 42 THEN
+            FOR i = 1 TO n
+                IF PEEKB(name + i) = 58 THEN EXIT FOR
+            NEXT i
+            IF i > n THEN
+                k = PEEKB(_SVPWD)
+                CSP 2, _SVPWD + 1, 0, b + 1, 0, k
+                c = PEEKB(b + k)
+                IF c <> 47 AND c <> 58 THEN
+                    k = k + 1
+                    POKEB b + k, 47
+                END IF
+            END IF
+        END IF
+    END IF
+    ' the size
+    IF n > 2 THEN
+        IF PEEKB(name + n) = 93 THEN
+            FOR i = n - 1 TO 1 STEP -1
+                IF PEEKB(name + i) = 91 THEN EXIT FOR
+            NEXT i
+            IF i >= 1 AND n - i + 1 <= 7 THEN
+                CSP 2, name + i, 0, _SIZESPEC + 1, 0, n - i + 1
+                POKEB _SIZESPEC, n - i + 1
+                n = i - 1
+            END IF
+        END IF
     END IF
     IF k + n > 126 THEN n = 126 - k
-    CSP 2, name + 1, 0, b + k + 1, 0, n
+    IF n > 0 THEN CSP 2, name + 1, 0, b + k + 1, 0, n
     POKEB b, k + n
     _FNAME = b
 END FUNCTION
@@ -296,6 +321,8 @@ SUB _CLOSE1 (ch)
         END IF
         _MFREE PEEK(e + FBUF)
         _MFREE PEEK(e + FFIB)
+        ' (closed before the error: _RTERR closes every file)
+        POKE e + FFL, 0
         IF r THEN _IOERR 61
     END IF
     POKE e + FFL, 0
@@ -568,6 +595,7 @@ SUB _KILL (name)
     DIM fib, r
     _ERRCODE = 0
     name = _FNAME(name)
+    POKEB _SIZESPEC, 0
     r = _SVKILL(name)
     IF r < 0 THEN _IOERR 53
     IF r THEN EXIT SUB

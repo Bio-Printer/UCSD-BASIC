@@ -10,6 +10,8 @@ CONST MAXSEG = 12, MAXCTL = 40
 
 ' ---- file numbers
 CONST CHSRC = 1, CHTOK = 2, CHOBJ = 3, CHLST = 4, CHLTMP = 5, CHBAT = 6, CHINC = 7
+' (the listing's two temporary files, written by pass 3, read by LIST)
+CONST CHLREC = 11, CHLCOD = 12
 
 ' ---- token codes: keywords 1..99, operators 100..127, others 128..
 CONST KPRINT = 1, KINPUT = 2, KLET = 3, KIF = 4, KTHEN = 5, KELSE = 6
@@ -51,7 +53,7 @@ CONST PFBYREF = 1, PFARRAY = 2
 
 ' ---- the driver and its options
 COMMON SHARED ErrCount, OptList, OptQuiet, OptExplicit, OptMem
-COMMON SHARED SrcName$, ModName$, ObjName$, LstName$, TokName$, LTmpName$
+COMMON SHARED SrcName$, ModName$, ObjName$, LstName$, TokName$, LTmpName$, LCodName$
 COMMON SHARED BcVol$
 
 ' ---- the token reader (passes 2 and 3)

@@ -1,11 +1,13 @@
 ' BCLIST -- the listing: each BASIC statement and the P-code made for it
 '
 ' Pass 3 writes, for each statement of a procedure, where its code starts
-' and its line (the temporary file LTmpName$).  When the procedure is
-' finished (its jumps resolved, its entry code in front), ListProc reads
-' them back and writes the statements with the code between them
+' and its line (the temporary file LTmpName$), and when the procedure is
+' finished (its jumps resolved, its entry code in front) its code and
+' relocations (LCodName$: ListSave).  After pass 3, ListModule reads them
+' back and writes each procedure's statements with the code between them
 ' disassembled: offsets within the procedure, calls and global variables
-' by name (the linker fills in the numbers).
+' by name (the linker fills in the numbers).  (After, not during, pass 3:
+' the GEN segment and this one do not fit into the code space together.)
 #INCLUDE "BCCOM"
 #INCLUDE "BCGENCOM"
 SEGMENT LIST
@@ -46,7 +48,7 @@ FUNCTION RelAt$ (a)
             IF RelType(i) = RGSTAT THEN
                 RelAt$ = "(static)"
             ELSE
-                RelAt$ = LinkName$(RelSym(i))
+                RelAt$ = RelName$(i)
             END IF
             EXIT FUNCTION
         END IF
@@ -233,23 +235,23 @@ SUB ListProc (nm$, delta)
         PRINT #CHLST, "      (entry)"
         ListCode 0, delta, jtab
     END IF
-    OPEN LTmpName$ FOR INPUT AS #CHLTMP
+    ' its statements' records, up to the * after them
     more = 0
-    IF NOT EOF(CHLTMP) THEN
-        LINE INPUT #CHLTMP, l$
-        LINE INPUT #CHLTMP, t$
+    LINE INPUT #CHLREC, l$
+    IF l$ <> "*" THEN
+        LINE INPUT #CHLREC, t$
         sp = INSTR(l$, " ")
         p0 = VAL(LEFT$(l$, sp - 1)) + delta
         ln = VAL(MID$(l$, sp + 1))
         more = 1
     END IF
     DO WHILE more
-        IF EOF(CHLTMP) THEN
+        LINE INPUT #CHLREC, l$
+        IF l$ = "*" THEN
             p1 = CodeEndPos
             more = 0
         ELSE
-            LINE INPUT #CHLTMP, l$
-            LINE INPUT #CHLTMP, t1$
+            LINE INPUT #CHLREC, t1$
             sp = INSTR(l$, " ")
             p1 = VAL(LEFT$(l$, sp - 1)) + delta
             ln1 = VAL(MID$(l$, sp + 1))
@@ -266,6 +268,56 @@ SUB ListProc (nm$, delta)
             t$ = t1$
         END IF
     LOOP
-    CLOSE #CHLTMP
     IF NLong > 0 THEN PRINT #CHLST, "      jump table: "; IStr$(NLong); " entries"
+END SUB
+
+' the next number of l$ from position p on (p moves past it)
+FUNCTION NextNum (l$, BYREF p)
+    DIM q
+    q = INSTR(p, l$ + " ", " ")
+    NextNum = VAL(MID$(l$, p, q - p))
+    p = q + 1
+END FUNCTION
+
+' the listing LstName$ of the module pass 3 compiled, from its two
+' temporary files (which go)
+SUB ListModule ()
+    DIM nm$, l$, i, p, k, n, delta
+    REDIM Code(MAXCODE) AS BYTE, RelPos(MAXREL), RelType(MAXREL) AS BYTE, RelName$(MAXREL)
+    OPEN LstName$ FOR OUTPUT AS #CHLST
+    PRINT #CHLST, "BC listing of "; SrcName$
+    OPEN LTmpName$ FOR INPUT AS #CHLREC
+    OPEN LCodName$ FOR INPUT AS #CHLCOD
+    DO WHILE NOT EOF(CHLCOD)
+        LINE INPUT #CHLCOD, nm$
+        LINE INPUT #CHLCOD, l$
+        p = 1
+        PC = NextNum(l$, p)
+        delta = NextNum(l$, p)
+        NLong = NextNum(l$, p)
+        CodeEndPos = NextNum(l$, p)
+        NRel = NextNum(l$, p)
+        i = 0
+        DO WHILE i < PC
+            LINE INPUT #CHLCOD, l$
+            FOR k = 1 TO LEN(l$) - 1 STEP 2
+                Code(i) = VAL("&H" + MID$(l$, k, 2))
+                i = i + 1
+            NEXT k
+        LOOP
+        FOR i = 0 TO NRel - 1
+            LINE INPUT #CHLCOD, l$
+            p = 1
+            RelPos(i) = NextNum(l$, p)
+            RelType(i) = NextNum(l$, p)
+            RelName$(i) = MID$(l$, p)
+        NEXT i
+        ListProc nm$, delta
+    LOOP
+    CLOSE #CHLCOD
+    CLOSE #CHLREC
+    CLOSE #CHLST
+    KILL LCodName$
+    KILL LTmpName$
+    ERASE Code, RelPos, RelType, RelName$
 END SUB

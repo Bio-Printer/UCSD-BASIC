@@ -257,10 +257,33 @@ END SUB
 
 SUB ListFlush ()
     IF PendSet THEN
-        PRINT #CHLTMP, IStr$(PendPC); " "; IStr$(PendLine)
-        PRINT #CHLTMP, PendText$
+        PRINT #CHLREC, IStr$(PendPC); " "; IStr$(PendLine)
+        PRINT #CHLREC, PendText$
         PendSet = 0
     END IF
+END SUB
+
+' the listing of a procedure, for LIST (after pass 3, the GEN segment
+' gone: it and LIST do not fit into the code space together): its
+' statements' records end with a *; its code goes to LCodName$ -- its name,
+' "PC entry-bytes jump-table-entries code-end relocations", its bytes in hex
+' (32 a line), each relocation "position kind name"
+SUB ListSave (nm$)
+    DIM i, s$
+    PRINT #CHLREC, "*"
+    PRINT #CHLCOD, nm$
+    PRINT #CHLCOD, IStr$(PC); " "; IStr$(EntryBytes); " "; IStr$(NLong); " "; IStr$(CodeEndPos); " "; IStr$(NRel)
+    FOR i = 0 TO PC - 1
+        s$ = s$ + RIGHT$("0" + HEX$(Code(i)), 2)
+        IF LEN(s$) = 64 OR i = PC - 1 THEN
+            PRINT #CHLCOD, s$
+            s$ = ""
+        END IF
+    NEXT i
+    FOR i = 0 TO NRel - 1
+        IF RelType(i) = RGSTAT THEN s$ = "" ELSE s$ = LinkName$(RelSym(i))
+        PRINT #CHLCOD, IStr$(RelPos(i)); " "; IStr$(RelType(i)); " "; s$
+    NEXT i
 END SUB
 
 ' the pending record dropped (a procedure skipped: no code of its own)
@@ -309,7 +332,6 @@ SUB BeginProc (s)
             NeedZero = 1
         END IF
     END IF
-    IF OptList THEN OPEN LTmpName$ FOR OUTPUT AS #CHLTMP
 END SUB
 
 ' a GOSUB's return point: its number (RETURN goes back through a table)
@@ -548,9 +570,6 @@ SUB EndProc ()
             ObjStr LinkName$(RelSym(i))
         NEXT i
     END IF
-    IF OptList THEN
-        CLOSE #CHLTMP
-        ListProc nm$, EntryBytes
-    END IF
+    IF OptList THEN ListSave nm$
     IF ProcSym > 0 THEN PopSyms ProcKeep
 END SUB

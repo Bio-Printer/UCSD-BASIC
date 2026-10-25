@@ -31,3 +31,8 @@
 - The tests boot build/psys/data/Big_Disk.BLK (setup.sh copies BOOT_DISK);
   BIGGY 1.29 is the first whose systems make a new NAME.BAS a text file;
   1.30's shell (and Tiny-C's library: __istext) reads NAME.BAS as text.
+- Code space (Harvard): OS segment 0 + BC's resident part + GEN fill most
+  of the 64K; LIST runs after GEN (ListModule from the driver), never from
+  inside it, and nothing nests another segment inside GEN that is not
+  already there (SUBVOL just fits).  voltest compares the P-System's
+  listing (-S) with the host's.

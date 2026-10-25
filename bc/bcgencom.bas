@@ -28,7 +28,7 @@ CONST CFOR = 1, CDO = 2, CWHILE = 3, CSELECT = 4
 ' ---- the emitter: one procedure's code
 COMMON SHARED Code() AS BYTE, PC
 COMMON SHARED LabPos(), NLab, FixPos(), FixLab(), NFix
-COMMON SHARED RelPos(), RelType() AS BYTE, RelSym(), NRel
+COMMON SHARED RelPos(), RelType() AS BYTE, RelSym(), NRel, RelName$()
 COMMON SHARED CurLocal, MaxLocal, NParamWords, ResWords, NeedZero
 COMMON SHARED ProcSym, ExitLab, RetLab, MarkOff, UsedMark, TempUsed
 COMMON SHARED NGosub, GosubOff, ResultOff, InProc, EntryBytes, CodeEndPos, NLong

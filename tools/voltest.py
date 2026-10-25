@@ -3,13 +3,14 @@
 @BASIC:ALL, which rebuilds the compiler from BASIC:/SRC (BUILD -> BASIC:BC2.CODE,
 the same as BC.CODE but for segment 1's name) and the library in BASIC:/LIB
 (LIBS -> BASLIB2.OBJ, the same as BASLIB.OBJ), and compiles every demo and
-test in their sub-volumes; then the demos STATS and PI and the test PROCS run
-from there (X(ecute BASIC:/DEMO/STATS).  The volume's directories are checked on
-the host afterwards.
+test in their sub-volumes, and then PI again with a listing (-S: DEMO/PI.LST.TEXT,
+the host's listing but for the source's name); then the demos STATS and PI and
+the test PROCS run from there (X(ecute BASIC:/DEMO/STATS).  The volume's
+directories are checked on the host afterwards.
 
   voltest.py [--pascal]     (--pascal: BIGGY boots SYSTEM.PASCAL, not SYSTEM.C)
 """
-import os, shutil, sys
+import os, shutil, subprocess, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
@@ -23,7 +24,7 @@ def main(a):
     # (a key at the boot's question: SYSTEM.PASCAL)
     script = 'WAIT "instead of SYSTEM.C"\nTYPE " "\n' if '--pascal' in a else ''
     script += ('WAIT "Command:"\nTYPE "X"\nWAIT "Execute what file?"\nTYPE "BASIC:BC\\r"\n'
-              'WAIT "Compile what file?"\nTYPE "-Q @BASIC:ALL\\r"\n'
+              'WAIT "Compile what file?"\nTYPE "-Q @BASIC:ALL -S BASIC:/DEMO/PI\\r"\n'
               'WAIT "Compile what file?"\nTYPE "\\r"\nWAIT "Command:"\n'
               'TYPE "X"\nWAIT "Execute what file?"\nTYPE "BASIC:/DEMO/STATS\\r"\nWAIT "Command:"\n'
               'TYPE "X"\nWAIT "Execute what file?"\nTYPE "BASIC:/DEMO/PI\\r"\nWAIT "Command:"\n'
@@ -63,6 +64,20 @@ def main(a):
         print('%s: %d code files%s%s' % (d, len(names) - len(missing), ', missing ' + ' '.join(missing) if missing else '',
                                          ', FILES OVERLAP' if overlap else ''))
         bad += bool(missing) + bool(overlap)
+    # the listing: the host's (BC on Linux) but for the source's name
+    work = tempfile.mkdtemp(prefix='bcvl_')
+    shutil.copy(os.path.join(ROOT, 'demos', 'pi.bas'), work)
+    shutil.copy(os.path.join(ROOT, 'build', 'BASLIB.OBJ'), work)
+    subprocess.run([os.path.join(ROOT, 'build', 'bc'), '-Q', '-S', '-C', 'PI'], cwd=work, capture_output=True)
+    host = open(os.path.join(work, 'PI.LST.TEXT'), encoding='latin1').read()
+    shutil.rmtree(work, True)
+    try:
+        got = ucsdvol.ucsd_to_text(v.sub('DEMO').read('PI.LST.TEXT')[0]).replace('BASIC:/DEMO/PI.BAS', 'PI.BAS')
+    except BaseException:
+        got = ''
+    same = got == host
+    print('DEMO/PI.LST.TEXT: %s' % ('the host\'s listing' if same else 'DIFFERENT'))
+    bad += not same
     for name, exp in [('STATS', 'std. dev. 4.73840690527945'),
                       ('PI', '  24   100663296  3.141592653589792  3.141592653589794  15 15'),
                       ('PROCS', open(os.path.join(ROOT, 'tests', 'procs.expect')).read())]:

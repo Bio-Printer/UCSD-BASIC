@@ -26,8 +26,8 @@ sources is byte for byte the one the host build makes (tools/selfcompile
                     RTARR RTINPUT RTDATA RTSUBV; RTCOM is their shared header)
     demos/*.bas     the example programs of the volume's DEMO/
 
-A compile is: pass 1 (LEX), pass 2 (DECL), pass 3 (GEN, which calls LIST
-for listings).  The passes are code segments, so only one is in memory
+A compile is: pass 1 (LEX), pass 2 (DECL), pass 3 (GEN), then LIST for a
+listing.  The passes are code segments, so only one is in memory
 with the resident part.  Their tables are arrays made at the start of the
 pass (REDIM) and given back at its end (ERASE), so the linker gets the
 memory the compiler had.
@@ -134,8 +134,17 @@ The P-machine as BC uses it:
   DOUBLE the emulator's CSP 100..137.
 
 The listing: for each statement the offset its code starts at and its
-text go to BCTEMP.LST; when the procedure is finished, LIST reads them
-back and disassembles the code between them.
+text go to :BCTEMP.LST, and when a procedure is finished its code (in hex),
+its sizes and its relocations (with their names) to :BCTEMP.LCD
+(ListSave).  After pass 3 the driver calls LIST (ListModule), which reads
+both and disassembles the code between the statements.  Not during pass 3:
+in the Harvard layout the code segments are stacked in the 64K code space,
+and the operating system's segment 0 (7.6K), BC's resident part (21.9K),
+GEN (31.8K), LIST (4K) and the library's SUBVOL (2.3K) are more than it
+holds -- the emulator says *STK OFLOW*.  While the object, the statements
+and the code are written, three new files at once, the object is opened
+with [*] (half the largest free area, the operating system's rule) and
+the statements' file so too, or the first file would take all the room.
 
 ## 6. Strings
 
@@ -228,6 +237,8 @@ and OSCALL (FINIT, FOPEN, FCLOSE, FBLOCKIO).
   the shell's path (CD) after them (a byte 30 before it).  _OPEN and
   _KILL put that path before a name without a volume (_FNAME, as Tiny-C's
   library does), so a program run after CD BASIC:/DEMO finds PI.BAS there.
+  _FNAME also takes a size off the end of a name, [n] or [*], which only
+  the operating system's FOPEN is given (a file in a sub-volume has none).
 - Text files: a name ending in .TEXT or .BAS.  A new one is entered with
   the kind text whatever the operating system makes of its name: before
   FCLOSE the library sets the FIB's FHEADER.DFKIND to 3 (FCLOSE copies
@@ -256,6 +267,10 @@ the bootstrap, takes the CSP statement as nothing and CSP%() as 0.)
 
 ## 11. Testing
 
+- Errors: _RTERR closes every file; an error while it does (a CLOSE that
+  cannot write) ends the program at once, and _CLOSE1 marks a file closed
+  before it reports, so the two do not call each other until the stack
+  overflows.
 - tools/runtests.py: tests/NAME.bas compiled by the host build, run on
   the emulator, compared with NAME.expect (NAME.keys: what is typed;
   NAME.dirs: sub-volumes made on the work disk first and listed by the
@@ -266,7 +281,8 @@ the bootstrap, takes the CSP statement as nothing and CSP%() as 0.)
   TEST with TEST/EXPECT, each made on the host as a volume written into
   the volume as a data file, with room for twice what its batch file
   writes, measured with the host build, and 40 blocks); tools/voltest.py
-  runs @BASIC:ALL on it (BC2.CODE and LIB/BASLIB2.OBJ must be the host's,
+  runs @BASIC:ALL and -S BASIC:/DEMO/PI on it (BC2.CODE, LIB/BASLIB2.OBJ and
+  the listing must be the host's,
   every demo and test gets its code file, the directories must hold
   together) and runs a demo and a test from their sub-volumes;
   --pascal boots BIGGY's SYSTEM.PASCAL instead of SYSTEM.C.

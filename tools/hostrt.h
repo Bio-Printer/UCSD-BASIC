@@ -310,6 +310,9 @@ static void brt_hostname(bstr n, char *out, int forwrite)
     struct dirent *e;
     memcpy(b, n.s, n.len);
     b[n.len] = 0;
+    /* a size, [n] or [*], is the P-System's: not part of the name */
+    if (n.len > 2 && b[n.len - 1] == ']' && (p = strrchr(b, '[')) != 0)
+        *p = 0;
     p = strrchr(b, ':');
     base = p ? p + 1 : b;
     if (*base == '*') base++;
