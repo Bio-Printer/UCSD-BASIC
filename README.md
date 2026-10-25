@@ -31,7 +31,7 @@ BLK_format), laid out in sub-volumes (Tiny-C's: data files holding a volume,
 | `FILES.TEXT` | every file, the sub-volumes' too |
 | `SRC/` | the compiler's sources; `BUILD.TEXT`: `@BASIC:/SRC/BUILD` rebuilds the compiler as BASIC:BC2.CODE |
 | `LIB/` | `BASLIB.OBJ`, the run-time library, and its sources; `LIBS.TEXT`: `@BASIC:/LIB/LIBS` rebuilds it as BASIC:/LIB/BASLIB2.OBJ |
-| `DEMO/` | HELLO, PRIMES, HANOI, MANDEL, GUESS and STATS (two modules: STATS + STATLIB); `DEMOS.TEXT` compiles them |
+| `DEMO/` | HELLO, PRIMES, HANOI, MANDEL, PI (Archimedes' method, from Tiny-C's PI.C), GUESS and STATS (two modules: STATS + STATLIB); `DEMOS.TEXT` compiles them |
 | `TEST/` | the compiler's tests; `TESTS.TEXT` compiles them; `EXPECT/` what each prints |
 
 `tools/voltest.py` checks it (`--pascal`: under SYSTEM.PASCAL).

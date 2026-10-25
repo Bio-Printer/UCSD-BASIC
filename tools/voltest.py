@@ -3,8 +3,8 @@
 @BASIC:ALL, which rebuilds the compiler from BASIC:/SRC (BUILD -> BASIC:BC2.CODE,
 the same as BC.CODE but for segment 1's name) and the library in BASIC:/LIB
 (LIBS -> BASLIB2.OBJ, the same as BASLIB.OBJ), and compiles every demo and
-test in their sub-volumes; then the demo STATS and the test PROCS run from
-there (X(ecute BASIC:/DEMO/STATS).  The volume's directories are checked on
+test in their sub-volumes; then the demos STATS and PI and the test PROCS run
+from there (X(ecute BASIC:/DEMO/STATS).  The volume's directories are checked on
 the host afterwards.
 
   voltest.py [--pascal]     (--pascal: BIGGY boots SYSTEM.PASCAL, not SYSTEM.C)
@@ -26,6 +26,7 @@ def main(a):
               'WAIT "Compile what file?"\nTYPE "-Q @BASIC:ALL\\r"\n'
               'WAIT "Compile what file?"\nTYPE "\\r"\nWAIT "Command:"\n'
               'TYPE "X"\nWAIT "Execute what file?"\nTYPE "BASIC:/DEMO/STATS\\r"\nWAIT "Command:"\n'
+              'TYPE "X"\nWAIT "Execute what file?"\nTYPE "BASIC:/DEMO/PI\\r"\nWAIT "Command:"\n'
               'TYPE "X"\nWAIT "Execute what file?"\nTYPE "BASIC:/TEST/PROCS\\r"\nWAIT "Command:"\n')
     ok, tr, info = ps.run_script(script, 3000)
     tr = tr.replace('\n\n', '\n')
@@ -63,6 +64,7 @@ def main(a):
                                          ', FILES OVERLAP' if overlap else ''))
         bad += bool(missing) + bool(overlap)
     for name, exp in [('STATS', 'std. dev. 4.73840690527945'),
+                      ('PI', '  24   100663296  3.141592653589792  3.141592653589794  15 15'),
                       ('PROCS', open(os.path.join(ROOT, 'tests', 'procs.expect')).read())]:
         same = exp in tr
         print('%s: %s' % (name, 'ran as expected' if same else 'WRONG OUTPUT'))
