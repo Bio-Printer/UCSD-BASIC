@@ -182,7 +182,7 @@ def lex_line(t, path, ln, out):
         if c in '=<>+-*/\\^(),;#&:':
             add('OP', c)
             p += 1
-            first = 1 if c == ':' else 0
+            first = 3 if c == ':' else 0
             continue
         if c == '?':
             add('KW', 'PRINT')

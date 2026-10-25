@@ -807,14 +807,18 @@ SUB GenInput (isline)
         StorePre lv
         SELECT CASE ty
         CASE TYSTR
+            OB 0
             CallRt "_INFS"
             TempUsed = 1
         CASE TYINT, TYBYTE
+            OB 0
             CallRt "_INFI"
         CASE TYSNG
+            DropPad 4
             CallRt "_INFD"
             Csp 107
         CASE TYDBL
+            DropPad 4
             CallRt "_INFD"
         END SELECT
         GenStore lv
@@ -1493,7 +1497,7 @@ FUNCTION GenBlock ()
             GenStmt
             TempReset
             ResetNodes
-            StmtEnd
+            IF PendNext = 0 THEN StmtEnd
         END SELECT
         IF PendNext THEN
             GenBlock = KNEXT

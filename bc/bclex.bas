@@ -312,8 +312,9 @@ SUB LexTokens ()
             CASE 38: TB TAMP
             CASE 63: TB KPRINT
             CASE 58
+                ' (a label is only at the start of a line)
                 TB TCOLON
-                first = 1
+                first = 3
             CASE ELSE
                 LexErr "unexpected character " + CHR$(c)
             END SELECT

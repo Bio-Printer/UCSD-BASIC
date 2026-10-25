@@ -1293,6 +1293,14 @@ SUB GenBin (n)
     END SELECT
 END SUB
 
+' words pushed as the room of a result bigger than the arguments
+SUB DropPad (n)
+    DIM i
+    FOR i = 1 TO n
+        OB 0
+    NEXT i
+END SUB
+
 ' the run-time procedure of a built-in, by the type of its argument
 SUB GenBuiltin (n)
     DIM id, a, t1, x, nm$
@@ -1336,6 +1344,13 @@ SUB GenBuiltin (n)
         GenValue x
         x = NN(x)
     LOOP
+    ' a real result from the library: its words in the parameters' place
+    SELECT CASE id
+    CASE BVAL, BCVD: DropPad 3
+    CASE BCVS: DropPad 1
+    CASE BRND, BTIMER: IF NX(n) = 0 THEN DropPad 2
+    CASE BINKEY, BCOMMAND, BERR, BFREEFILE: DropPad 1
+    END SELECT
     SELECT CASE id
     CASE BLEN: CallRt "_SLEN"
     CASE BASC
@@ -1400,7 +1415,10 @@ SUB GenBuiltin (n)
     CASE BLOG
         IF t1 = TYDBL THEN Csp 121 ELSE Csp 29
     CASE BRND
-        IF NX(n) = 1 THEN DropWords NodeWords(a)
+        IF NX(n) = 1 THEN
+            DropWords NodeWords(a)
+            DropPad 2
+        END IF
         CallRt "_RND"
     CASE BTIMER: CallRt "_TIMER"
     CASE BEOF: CallRt "_EOF"
@@ -1416,6 +1434,7 @@ SUB GenBuiltin (n)
     CASE BCVD: CallRt "_CVD"
     CASE BFRE
         DropWords 1
+        DropPad 1
         CallRt "_FRE"
     CASE BPEEK: Ind0
     CASE BPEEKB

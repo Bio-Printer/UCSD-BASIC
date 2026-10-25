@@ -332,6 +332,17 @@ SUB GenExit ()
         TempUsed = 1
         TempReset
     END IF
+    ' the strings and arrays given back first: the result's words are
+    ' the parameters' place
+    FOR s = ProcKeep + 1 TO NSym
+        IF SKind(s) = SKVAR AND SType(s) = TYSTR AND (SCls(s) = SCLOCAL OR SCls(s) = SCPARAM) AND SOff(s) <> ResultOff THEN
+            Lla SOff(s)
+            CallRt "_SFREE"
+        ELSEIF SKind(s) = SKARRAY AND SCls(s) = SCLOCAL THEN
+            Lla SOff(s)
+            CallRt "_AFREE"
+        END IF
+    NEXT s
     IF ResultOff > 0 THEN
         ty = SType(ProcSym)
         IF ty = TYSTR THEN
@@ -350,15 +361,6 @@ SUB GenExit ()
             OB ResWords
         END IF
     END IF
-    FOR s = ProcKeep + 1 TO NSym
-        IF SKind(s) = SKVAR AND SType(s) = TYSTR AND (SCls(s) = SCLOCAL OR SCls(s) = SCPARAM) THEN
-            Lla SOff(s)
-            CallRt "_SFREE"
-        ELSEIF SKind(s) = SKARRAY AND SCls(s) = SCLOCAL THEN
-            Lla SOff(s)
-            CallRt "_AFREE"
-        END IF
-    NEXT s
     IF NGosub > 0 THEN
         Ldl GosubOff
         GlobOp OSRO, RtVar("_GSSP"), 0
@@ -368,6 +370,7 @@ SUB GenExit ()
     ' RETURN (from a GOSUB): the return point's number, then a case table
     IF NGosub > 0 THEN
         SetLabel RetLab
+        OB 0
         CallRt "_GSPOP"
         OB OXJP
         IF PC AND 1 THEN OB 0

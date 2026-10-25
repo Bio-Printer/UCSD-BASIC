@@ -1,0 +1,45 @@
+' files: text (UCSD .TEXT), byte files with GET/PUT, APPEND, EOF, KILL, ERR
+DEFINT A-Z
+OPEN "TEST1.TEXT" FOR OUTPUT AS #1
+FOR i = 1 TO 3: PRINT #1, "line"; i: NEXT
+PRINT #1, "        indented"
+CLOSE #1
+OPEN "TEST1.TEXT" FOR APPEND AS #1
+PRINT #1, "appended"
+CLOSE
+OPEN "TEST1.TEXT" FOR INPUT AS #2
+DO WHILE NOT EOF(2)
+  LINE INPUT #2, l$
+  PRINT "["; l$; "]"
+LOOP
+CLOSE #2
+OPEN "DATA.BIN" FOR OUTPUT AS #3
+DIM b AS BYTE
+FOR i = 0 TO 600
+  b = i AND 255: PUT #3, , b
+NEXT
+w = -2: PUT #3, , w
+PUT #3, , "abc"
+CLOSE #3
+OPEN "DATA.BIN" FOR BINARY AS #3
+sum = 0
+FOR i = 0 TO 600: GET #3, , b: sum = sum + b: NEXT
+GET #3, , w
+s$ = SPACE$(3): GET #3, , s$
+CLOSE #3
+PRINT sum; w; s$
+KILL "DATA.BIN"
+ON ERROR RESUME NEXT
+OPEN "NOSUCH.TEXT" FOR INPUT AS #1
+PRINT "err"; ERR
+KILL "DATA.BIN"
+PRINT "err"; ERR
+ON ERROR GOTO 0
+n = 0
+OPEN "BIG.TEXT" FOR OUTPUT AS #1
+FOR i = 1 TO 200: PRINT #1, "This is line number"; i; "of the big file": NEXT
+CLOSE #1
+OPEN "BIG.TEXT" FOR INPUT AS #1
+DO WHILE NOT EOF(1): LINE INPUT #1, l$: n = n + 1: LOOP
+CLOSE #1
+PRINT n; l$

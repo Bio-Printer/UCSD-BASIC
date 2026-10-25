@@ -1,0 +1,9 @@
+[line 1 ]
+[line 2 ]
+[line 3 ]
+[        indented]
+[appended]
+ 3660 -2 abc
+err 53 
+err 53 
+ 200 This is line number 200 of the big file
