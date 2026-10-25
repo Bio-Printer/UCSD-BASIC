@@ -1152,6 +1152,123 @@ SUB GenConst ()
     LOOP
 END SUB
 
+' ---- DATA, READ, RESTORE
+
+' the module's DATA statements (the declaration pass kept them in a file):
+' given to the library's list when the body starts
+SUB GenDataList ()
+    DIM l$, n, i
+    OB 0
+    CallRt "_DMARK"
+    GlobOp OSRO, FindSym("$DB"), 0
+    OPEN DatName$ FOR INPUT AS #CHLTMP
+    FOR i = 1 TO NData
+        LINE INPUT #CHLTMP, l$
+        OB OLSA
+        OB LEN(l$)
+        FOR n = 1 TO LEN(l$)
+            OB ASC(l$, n)
+        NEXT n
+        CallRt "_DATA"
+    NEXT i
+    CLOSE #CHLTMP
+    KILL DatName$
+END SUB
+
+SUB GenRead ()
+    DIM lv, ty
+    GetTok
+    DO
+        lv = LValue
+        IF lv = 0 THEN EXIT SUB
+        ty = StoreType(lv)
+        StorePre lv
+        OB 0
+        CallRt "_READ"
+        IF ty <> TYSTR THEN
+            DropPad 3
+            CallRt "_VAL"
+            IF ty = TYSNG THEN
+                Csp 107
+            ELSEIF ty <> TYDBL THEN
+                CallRt "_DCINT"
+            END IF
+        END IF
+        TempUsed = 1
+        GenStore lv
+        TempReset
+        ResetNodes
+        IF Tok <> TCOMMA THEN EXIT DO
+        GetTok
+    LOOP
+END SUB
+
+SUB GenRestore ()
+    DIM s, db
+    GetTok
+    db = FindSym("$DB")
+    IF db = 0 THEN
+        ErrMsg "RESTORE without DATA"
+        SkipStmt
+        EXIT SUB
+    END IF
+    GlobOp OLDO, db, 0
+    IF NOT AtEnd THEN
+        s = FindSym("%" + LabelText$)
+        IF s = 0 THEN ErrMsg "no such label" ELSE Ldc SAux(s): OB OADI
+    END IF
+    CallRt "_RESTORE"
+END SUB
+
+' WRITE [#n,] items: strings in quotes, numbers without blanks, commas
+SUB GenWrite ()
+    DIM ch, e, ty, first
+    GetTok
+    ch = 0
+    IF Tok = THASH THEN
+        GetTok
+        ch = FileNum
+        Expect TCOMMA, ","
+    END IF
+    first = 1
+    DO WHILE NOT AtEnd
+        IF first = 0 THEN
+            PushCh ch
+            OB OLSA
+            OB 1
+            OB 44
+            CallRt "_PSTR"
+        END IF
+        first = 0
+        e = Expr
+        ty = NTy(e)
+        IF NIsBool(e) THEN ty = TYINT
+        PushCh ch
+        GenValueAs e, ty
+        SELECT CASE ty
+        CASE TYSTR: CallRt "_WQSTR"
+        CASE TYINT
+            CallRt "_STRI"
+            CallRt "_LTRIM"
+            CallRt "_PSTR"
+        CASE TYSNG
+            CallRt "_STRS"
+            CallRt "_LTRIM"
+            CallRt "_PSTR"
+        CASE TYDBL
+            CallRt "_STRD"
+            CallRt "_LTRIM"
+            CallRt "_PSTR"
+        END SELECT
+        TempUsed = 1
+        TempReset
+        ResetNodes
+        IF Tok = TCOMMA OR Tok = TSEMI THEN GetTok
+    LOOP
+    PushCh ch
+    CallRt "_PNL"
+END SUB
+
 ' ---- other statements
 
 SUB GenSwap ()
@@ -1428,8 +1545,14 @@ SUB GenStmt ()
     CASE KDEFINT, KDEFSNG, KDEFDBL, KDEFSTR
         GetTok
         DefLetters DefKw(k)
-    CASE KOPTION, KDECLARE, KCOMMON, KSEGMENT
+    CASE KOPTION, KDECLARE, KCOMMON, KSEGMENT, KDATA
         SkipStmt
+    CASE KREAD
+        GenRead
+    CASE KRESTORE
+        GenRestore
+    CASE KWRITE
+        GenWrite
     CASE ELSE
         ErrMsg "a statement expected, not " + KwName$(Tok)
         SkipStmt
@@ -1616,6 +1739,7 @@ SUB GenPass ()
     ResWords = 0
     OpenTok
     BeginProc 0
+    IF NData > 0 THEN GenDataList
     DO
         t = GenBlock
         IF t = TEOF THEN EXIT DO

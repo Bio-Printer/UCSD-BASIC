@@ -246,6 +246,12 @@ SUB LexTokens ()
                     TS w$
                     first = 0
                 END IF
+            ELSEIF k = KDATA THEN
+                ' DATA: the rest of the line as it is
+                TB k
+                TB TSTR
+                TS LTRIM$(MID$(LxLine$, LxPos))
+                LxPos = LxLen + 1
             ELSE
                 TB k
                 first = 0

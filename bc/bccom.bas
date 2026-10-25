@@ -66,6 +66,7 @@ COMMON SHARED PType() AS BYTE, PFlg() AS BYTE, SegName$()
 COMMON SHARED DefType()
 COMMON SHARED StaticWords
 COMMON SHARED DeclName$, DeclFlags, ParName$(), ParFlags()
+COMMON SHARED NData, DatName$
 
 ' ---- the procedures one module calls in another (generated: tools/mkdecls.py)
 #INCLUDE "BCPROCS"

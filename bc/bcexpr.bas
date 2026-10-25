@@ -576,7 +576,7 @@ FUNCTION BuiltTable$ (part)
         tb$ = "RND     TIMER   EOF     INKEY$  COMMAND$ERR     MKI$    CVI     MKS$    "
         tb$ = tb$ + "CVS     MKD$    CVD     LBOUND  UBOUND  FRE     VARPTR  PEEK    PEEKB   "
         tb$ = tb$ + "CSP%    CSP!    CSP#    OSCALL% OSVAR   POS     FREEFILELOF     DVI%    "
-        tb$ = tb$ + "MDI%    SADD    "
+        tb$ = tb$ + "MDI%    SADD    OSADDR  "
     END SELECT
     BuiltTable$ = tb$
 END FUNCTION
@@ -590,7 +590,7 @@ CONST BRND = 32, BTIMER = 33, BEOF = 34, BINKEY = 35, BCOMMAND = 36, BERR = 37
 CONST BMKI = 38, BCVI = 39, BMKS = 40, BCVS = 41, BMKD = 42, BCVD = 43
 CONST BLBOUND = 44, BUBOUND = 45, BFRE = 46, BVARPTR = 47, BPEEK = 48
 CONST BPEEKB = 49, BCSPI = 50, BCSPS = 51, BCSPD = 52, BOSCALLI = 53
-CONST BOSVAR = 54, BPOS = 55, BFREEFILE = 56, BLOF = 57, BDVI = 58, BMDI = 59, BSADD = 60
+CONST BOSVAR = 54, BPOS = 55, BFREEFILE = 56, BLOF = 57, BDVI = 58, BMDI = 59, BSADD = 60, BOSADDR = 61
 
 FUNCTION BuiltinId (n$)
     DIM part, p, t$, pad$
@@ -715,6 +715,9 @@ FUNCTION Builtin (id, nm$)
         IF nargs <> 1 THEN ErrMsg nm$ + ": one argument expected" ELSE a = ConvKeep(a, TYINT)
         IF id = BOSVAR AND NOp(a) <> NICON THEN ErrMsg "OSVAR: a constant expected"
         IF id = BCHR OR id = BSPACE OR id = BHEX OR id = BMKI THEN ty = TYSTR
+    CASE BOSADDR
+        IF nargs <> 1 THEN ErrMsg nm$ + ": one argument expected"
+        IF NOp(a) <> NICON THEN ErrMsg "OSADDR: a constant expected"
     CASE BSTRING
         ty = TYSTR
         IF nargs <> 2 THEN
@@ -1344,6 +1347,11 @@ SUB GenBuiltin (n)
         EXIT SUB
     CASE BOSVAR
         OB OLOD
+        OB 2
+        OBig NV(a)
+        EXIT SUB
+    CASE BOSADDR
+        OB &HB2
         OB 2
         OBig NV(a)
         EXIT SUB

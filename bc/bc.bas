@@ -602,6 +602,7 @@ DIM SegName$(MAXSEG), DefType(25), ParName$(30), ParFlags(30)
 DIM cmd$, l$, r
 TokName$ = "BCTEMP.TOK"
 LTmpName$ = "BCTEMP.LST"
+DatName$ = "BCTEMP.DAT"
 cmd$ = COMMAND$
 IF cmd$ <> "" THEN
     IF NOT RunCmds(cmd$) THEN SYSTEM 1

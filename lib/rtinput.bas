@@ -167,13 +167,43 @@ SUB _LOCATE (r, c)
     _CONCOL = c - 1
 END SUB
 
-' COMMAND$: the command line Tiny-C's shell gave (pexec): kept by the
-' operating system in its prompt line PL while SYSCOM's expansion words
+' COMMAND$: the command cline Tiny-C's shell gave (pexec): kept by the
+' operating system in its prompt cline PL while SYSCOM's expansion words
 ' say so; else ""
 FUNCTION _CMD ()
-    DIM sys, pl, n, sum, i, t
-    sys = OSVAR(1)
-    pl = OSVAR(70)
-    ' expansion[0] = PX_CHILD (2), [6] = PX_ARGS
-    _CMD = 0
+    STATIC got, cline
+    DIM e, pl, n, sum, i, t
+    IF got = 0 THEN
+        ' the first time: taken while this is the program pexec started
+        ' (EXPANSION[0] = PX_CHILD) and PL holds its cline (EXPANSION[6] =
+        ' PX_ARGS, [7] its checksum)
+        got = 1
+        e = OSVAR(1) + 36
+        pl = OSADDR(70)
+        n = PEEKB(pl)
+        IF PEEK(e) = 25602 AND PEEK(e + 12) = 25604 AND n <= 80 THEN
+            sum = n
+            FOR i = 1 TO n
+                sum = sum * 3 + PEEKB(pl + i)
+            NEXT i
+            IF PEEK(e + 14) = _XOR(sum, &H5A5A) THEN
+                POKE e + 12, 0
+                ' the shell's path after the arguments: not wanted here
+                FOR i = 1 TO n
+                    IF PEEKB(pl + i) = 30 THEN
+                        n = i - 1
+                        EXIT FOR
+                    END IF
+                NEXT i
+                IF n > 0 THEN
+                    cline = _MALLOC(n + 1)
+                    CSP 2, pl, 0, cline, 0, n + 1
+                    POKEB cline, n
+                END IF
+            END IF
+        END IF
+    END IF
+    _CMD = _STMP(cline)
 END FUNCTION
+
+DECLARE FUNCTION _XOR (a, b)

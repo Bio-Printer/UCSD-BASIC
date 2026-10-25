@@ -48,6 +48,8 @@ END SUB
 SUB _HALT (code)
     _CLOSE 0
     _CONFLUSH
+    ' the exit status (Tiny-C's pexec_status, SYSCOM^.EXPANSION[5])
+    POKE OSVAR(1) + 46, code
     CSP 4, 1, 1
 END SUB
 
@@ -56,6 +58,7 @@ SUB _ERRTEXT (code)
     DIM m
     SELECT CASE code
     CASE 3: m = SADD("RETURN without GOSUB")
+    CASE 4: m = SADD("Out of DATA")
     CASE 5: m = SADD("Illegal function call")
     CASE 6: m = SADD("Overflow")
     CASE 7: m = SADD("Out of memory")

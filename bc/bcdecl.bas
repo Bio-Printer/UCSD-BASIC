@@ -286,6 +286,7 @@ SUB DeclPass ()
     ResetDefs
     OptExplicit = 0
     CurSeg = 1
+    NData = 0
     OpenTok
     DO WHILE Tok <> TEOF
         priv = 0
@@ -296,9 +297,21 @@ SUB DeclPass ()
             priv = 1
         END IF
         SELECT CASE k
-        CASE TLINE, TCOLON, TLABEL
+        CASE TLABEL
+            ' RESTORE label: the DATA statements before it
+            s = AddSym("%" + TokS$, SKLABEL, 0)
+            SAux(s) = NData
             GetTok
             CONTINUE DO
+        CASE TLINE, TCOLON
+            GetTok
+            CONTINUE DO
+        CASE KDATA
+            GetTok
+            IF NData = 0 THEN OPEN DatName$ FOR OUTPUT AS #CHLTMP
+            PRINT #CHLTMP, TokS$
+            NData = NData + 1
+            GetTok
         CASE KDEFINT, KDEFSNG, KDEFDBL, KDEFSTR
             GetTok
             DefLetters DefKw(k)
@@ -340,5 +353,14 @@ SUB DeclPass ()
         IF Tok <> TLINE AND Tok <> TEOF THEN SkipStmt
     LOOP
     CLOSE #CHTOK
+    IF NData > 0 THEN
+        CLOSE #CHLTMP
+        ' the module's first DATA statement's number in the program's list
+        s = AddSym("$DB", SKVAR, TYINT)
+        SFlags(s) = SFSHARED
+        SCls(s) = SCSTATIC
+        SOff(s) = StaticWords
+        StaticWords = StaticWords + 1
+    END IF
     NModSym = NSym
 END SUB
