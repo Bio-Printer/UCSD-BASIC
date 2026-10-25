@@ -1,6 +1,6 @@
 ' DOUBLE: 15-16 digits, functions, conversion
 DEFDBL A-Z
-x = 1 / 3: PRINT x
+x = 1# / 3: PRINT x
 y# = 2: PRINT SQR(y#), y# ^ 0.5
 PRINT 1D300 * 10, -1.5D-200 / 3
 PRINT SIN(1#), COS(1#), ATN(1#) * 4

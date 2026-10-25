@@ -24,8 +24,9 @@ def run(code, files=(), keys='', timeout=120):
         ps.put(n, data.decode('latin1') if n.endswith('.TEXT') else data)
     base = name[:-5]
     script = 'WAIT "Command:"\nTYPE "X"\nWAIT "Execute what file?"\nTYPE "#5:%s\\r"\n' % base
-    for k in keys.split('\n') if keys else []:
-        script += 'WAIT "?"\nTYPE "%s\\r"\n' % psys.esc(k)
+    if keys:
+        # (the runner types only while the program waits for a key)
+        script += 'TYPE "%s"\n' % psys.esc(keys.replace('\n', '\r') + '\r')
     script += 'WAIT "Command:"\n'
     ok, tr, info = ps.run_script(script, timeout)
     i = tr.find('#5:%s' % base)
