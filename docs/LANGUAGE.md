@@ -20,6 +20,10 @@ unless it ends with a dot: E(dit PI.BAS. (and the same name with the dot to
 save it).  BIGGY 1.29's systems, SYSTEM.PASCAL and SYSTEM.C, make every new
 NAME.BAS a text file, as NAME.TEXT; with an older system a .BAS file the
 Editor writes is a data file in the directory, which BC reads all the same.
+Tiny-C's library takes NAME.BAS for a text file too (since BIGGY 1.30 and
+the TINY-C: and TOOLS: volumes of the same day): the shell's TYPE, vi, cat,
+grep, wc, less and the other tools read and write it as text.  An older
+one shows its header and blank-compression codes, and vi refuses it.
 
 - Lines.  One or more statements a line, separated by colons.  A line
   ending in " _" (blank, underscore) goes on in the next line.  A source

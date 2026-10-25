@@ -62,7 +62,8 @@ code file in one runs with `X(ecute BASIC:/DEMO/HELLO`.
 
 BASIC sources are NAME.BAS, text files.  The Editor adds .TEXT unless the name
 ends with a dot: `E(dit` `BASIC:/DEMO/PI.BAS.`.  BIGGY 1.29 (SYSTEM.PASCAL of the
-OS source v1.15, and SYSTEM.C) makes every new NAME.BAS a text file.
+OS source v1.15, and SYSTEM.C) makes every new NAME.BAS a text file, and BIGGY 1.30's
+shell and the TOOLS: of that day (vi, cat, grep, ...) read NAME.BAS as text.
 
 ## Building and testing (Linux)
 
