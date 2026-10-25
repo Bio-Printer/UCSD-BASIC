@@ -43,12 +43,12 @@ compiler's use) and [docs/DESIGN.md](docs/DESIGN.md) (how BC works).
 
 `X(ecute BC`, then at "Compile what file?" (or as the command line from Tiny-C's shell):
 
-* `NAME` — compile NAME.TEXT and link NAME.CODE (NAME may be a path: `BASIC:/DEMO/HELLO`;
+* `NAME` -- compile NAME.TEXT and link NAME.CODE (NAME may be a path: `BASIC:/DEMO/HELLO`;
   the object and code file go beside the source)
-* `-C NAME` — compile only (NAME.OBJ); `-S NAME` — also a listing NAME.LST.TEXT
-* `-L OUT=A,B,C` — link several modules (and BASLIB.OBJ) into OUT.CODE
-* `-J LIB=A,B` — join object files into a library
-* `@FILE` — the commands in FILE.TEXT; `-M` — memory report
+* `-C NAME` -- compile only (NAME.OBJ); `-S NAME` -- also a listing NAME.LST.TEXT
+* `-L OUT=A,B,C` -- link several modules (and BASLIB.OBJ) into OUT.CODE
+* `-J LIB=A,B` -- join object files into a library
+* `@FILE` -- the commands in FILE.TEXT; `-M` -- memory report
 
 Modules share variables with `COMMON SHARED`, call each other's procedures
 after `DECLARE`; `SEGMENT name` puts the following procedures in a code
