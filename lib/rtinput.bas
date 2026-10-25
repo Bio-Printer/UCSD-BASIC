@@ -167,15 +167,15 @@ SUB _LOCATE (r, c)
     _CONCOL = c - 1
 END SUB
 
-' COMMAND$: the command cline Tiny-C's shell gave (pexec): kept by the
-' operating system in its prompt cline PL while SYSCOM's expansion words
+' COMMAND$: the command line Tiny-C's shell gave (pexec), without the
+' program's name: kept by the operating system in its prompt line PL while SYSCOM's expansion words
 ' say so; else ""
 FUNCTION _CMD ()
     STATIC got, cline
     DIM e, pl, n, sum, i, t
     IF got = 0 THEN
         ' the first time: taken while this is the program pexec started
-        ' (EXPANSION[0] = PX_CHILD) and PL holds its cline (EXPANSION[6] =
+        ' (EXPANSION[0] = PX_CHILD) and PL holds its line (EXPANSION[6] =
         ' PX_ARGS, [7] its checksum)
         got = 1
         e = OSVAR(1) + 36
@@ -195,9 +195,24 @@ FUNCTION _CMD ()
                         EXIT FOR
                     END IF
                 NEXT i
+                ' the first word is the program's name: not part of COMMAND$
+                i = 1
+                DO WHILE i <= n
+                    IF PEEKB(pl + i) <> 32 THEN EXIT DO
+                    i = i + 1
+                LOOP
+                DO WHILE i <= n
+                    IF PEEKB(pl + i) = 32 THEN EXIT DO
+                    i = i + 1
+                LOOP
+                DO WHILE i <= n
+                    IF PEEKB(pl + i) <> 32 THEN EXIT DO
+                    i = i + 1
+                LOOP
+                n = n - i + 1
                 IF n > 0 THEN
                     cline = _MALLOC(n + 1)
-                    CSP 2, pl, 0, cline, 0, n + 1
+                    CSP 2, pl + i, 0, cline + 1, 0, n
                     POKEB cline, n
                 END IF
             END IF

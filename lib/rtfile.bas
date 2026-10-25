@@ -152,7 +152,8 @@ SUB _OPEN (name, mode, ch, reclen)
     fib = _MALLOC(80)
     POKE e + FBUF, buf
     POKE e + FFIB, fib
-    old = mode <> 2
+    ' (a Pascal boolean: 1, not BASIC's -1 -- SYSTEM.C takes only 1 as true)
+    IF mode <> 2 THEN old = 1 ELSE old = 0
     OSCALL 3, fib, 0, -1
     OSCALL 5, fib, _TITLE(name), old, 0
     ok = CSP%(34) = 0
@@ -170,10 +171,10 @@ SUB _OPEN (name, mode, ch, reclen)
         _IOERR 53
         EXIT SUB
     END IF
-    IF NOT old THEN fl = fl OR FNEW
+    IF old = 0 THEN fl = fl OR FNEW
     POKE e + FFL, fl
     IF fl AND FTEXT THEN
-        IF NOT old THEN
+        IF old = 0 THEN
             CSP 10, buf, 0, 1024, 0
             n = _BLOCKIO(e, 2, 0, 0)
         END IF

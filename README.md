@@ -16,6 +16,17 @@ as the host build** (`tools/selfcompile.py`).
 | `tests/` | test programs and their expected output |
 | `tools/` | `bas2c.py` + `hostrt.h` (the bootstrap: BC's BASIC translated to C), `buildhost.sh`, `mklib.sh`, `mkself.sh`, `runtests.py`, `selfcompile.py`, `brun.py`, `objdump.py`, `pdis.py` |
 
+## The volume BASIC:
+
+`tools/mkvolume.py` makes `build/BASIC.BLK` (also in UCSD-Pascal-Volumes'
+BLK_format): BC.CODE, BASLIB.OBJ, every source, BUILD.TEXT (`@BASIC:BUILD`
+rebuilds the compiler as BASIC:BC2.CODE), LIBS.TEXT (`@BASIC:LIBS` rebuilds
+the library as BASIC:BASLIB2.OBJ), the example programs, and the manuals
+LANGUAGE.TEXT, DESIGN.TEXT and README.TEXT.  `tools/voltest.py` checks it.
+
+Documentation: [docs/LANGUAGE.md](docs/LANGUAGE.md) (the language and the
+compiler's use) and [docs/DESIGN.md](docs/DESIGN.md) (how BC works).
+
 ## Using BC on the P-System
 
 `X(ecute BC`, then at "Compile what file?" (or as the command line from Tiny-C's shell):
@@ -28,7 +39,9 @@ as the host build** (`tools/selfcompile.py`).
 
 Modules share variables with `COMMON SHARED`, call each other's procedures
 after `DECLARE`; `SEGMENT name` puts the following procedures in a code
-segment of their own.  BC needs the emulator's Harvard layout (its default).
+segment of their own.  BC needs the emulator's Harvard layout (its default);
+it works under SYSTEM.PASCAL and SYSTEM.C, and from Tiny-C's shell
+(`BASIC:BC -C PROG`: COMMAND$, exit status 0 or 1).
 
 ## Building and testing (Linux)
 
@@ -39,4 +52,5 @@ tools/mklib.sh          # build/BASLIB.OBJ
 tools/mkself.sh         # build/BC.CODE
 python3 tools/runtests.py
 python3 tools/selfcompile.py   # BC and BASLIB rebuilt on the P-System: IDENTICAL
+python3 tools/mkvolume.py && python3 tools/voltest.py   # build/BASIC.BLK, checked
 ```

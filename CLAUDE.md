@@ -1,0 +1,17 @@
+# Notes for Claude
+
+- Build: `tools/setup.sh` (emulator runner, boot disk), `tools/buildhost.sh`
+  (host BC), `tools/mklib.sh`, `tools/mkself.sh`, `tools/mkvolume.py`.
+  The sibling checkouts are expected in `../bio-printer/` (the emulator,
+  UCSD-TinyC, UCSD-Pascal-Volumes); see setup.sh's variables.
+- After a change to the compiler or the library run `tools/runtests.py`,
+  `tools/selfcompile.py` (must say IDENTICAL twice) and, for the volume,
+  `tools/voltest.py`.  New cross-module calls need `tools/mkdecls.py`
+  (buildhost.sh runs it).
+- BC's sources must stay within the part of the language tools/bas2c.py
+  translates, and their lines under 250 characters.
+- Keep docs/LANGUAGE.md and docs/DESIGN.md current; they are on the volume.
+- When the volume changes, update UCSD-Pascal-Volumes too: BLK_format/BASIC.BLK,
+  the extracted files (`tools/extract_all.py BLK_format .`), the manifest and a
+  README.txt entry.
+- Pascal booleans passed to the OS must be 1, not BASIC's -1 (SYSTEM.C).
