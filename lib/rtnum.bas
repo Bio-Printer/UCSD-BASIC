@@ -153,6 +153,10 @@ FUNCTION _TIMER! ()
     _TIMER! = d# / 60
 END FUNCTION
 
-FUNCTION _FRE ()
-    _FRE = CSP%(40)
+' FRE(x): the words free; FRE(-1): the fewest there have been
+FUNCTION _FRE (x)
+    DIM m
+    m = CSP%(40)
+    IF m < _MINFREE OR _MINFREE = 0 THEN _MINFREE = m
+    IF x = -1 THEN _FRE = _MINFREE ELSE _FRE = m
 END FUNCTION

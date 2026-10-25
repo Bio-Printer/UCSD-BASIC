@@ -4,8 +4,8 @@
 DEFINT A-Z
 
 ' ---- limits
-CONST MAXSYM = 900, HSIZE = 128, MAXPAR = 700
-CONST MAXNODE = 300, MAXCODE = 5000, MAXLAB = 500, MAXFIX = 900, MAXREL = 400
+CONST MAXSYM = 640, HSIZE = 128, MAXPAR = 600
+CONST MAXNODE = 120, MAXCODE = 3200, MAXLAB = 260, MAXFIX = 320, MAXREL = 360
 CONST MAXSEG = 12, MAXCTL = 40
 
 ' ---- file numbers
@@ -50,7 +50,7 @@ CONST SFRUNTIME = 32, SFSETLAB = 64, SFGOSUB = 128
 CONST PFBYREF = 1, PFARRAY = 2
 
 ' ---- the driver and its options
-COMMON SHARED ErrCount, OptList, OptQuiet, OptExplicit
+COMMON SHARED ErrCount, OptList, OptQuiet, OptExplicit, OptMem
 COMMON SHARED SrcName$, ModName$, ObjName$, LstName$, TokName$, LTmpName$
 COMMON SHARED BcVol$
 

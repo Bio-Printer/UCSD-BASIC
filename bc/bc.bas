@@ -51,16 +51,27 @@ END SUB
 ' ---- keywords (the lexer's table: codes 1..NKEYWORD, 9 characters each)
 
 FUNCTION KwTable$ (part)
+    DIM tb$
     SELECT CASE part
     CASE 0
-        KwTable$ = "PRINT    INPUT    LET      IF       THEN     ELSE     ELSEIF   END      FOR      TO       STEP     NEXT     WHILE    WEND     DO       LOOP     UNTIL    EXIT     GOTO     GOSUB    RETURN   ON       SUB      FUNCTION CALL     DIM      REDIM    "
+        tb$ = "PRINT    INPUT    LET      IF       THEN     ELSE     ELSEIF   END      "
+        tb$ = tb$ + "FOR      TO       STEP     NEXT     WHILE    WEND     DO       LOOP     "
+        tb$ = tb$ + "UNTIL    EXIT     GOTO     GOSUB    RETURN   ON       SUB      FUNCTION "
+        tb$ = tb$ + "CALL     DIM      REDIM    "
     CASE 1
-        KwTable$ = "SHARED   COMMON   AS       INTEGER  SINGLE   DOUBLE   STRING   BYTE     CONST    DECLARE  DEFINT   DEFSNG   DEFDBL   DEFSTR   SELECT   CASE     IS       OPEN     CLOSE    OUTPUT   APPEND   BINARY   RANDOM   LINE     GET      PUT      KILL     "
+        tb$ = "SHARED   COMMON   AS       INTEGER  SINGLE   DOUBLE   STRING   BYTE     "
+        tb$ = tb$ + "CONST    DECLARE  DEFINT   DEFSNG   DEFDBL   DEFSTR   SELECT   CASE     "
+        tb$ = tb$ + "IS       OPEN     CLOSE    OUTPUT   APPEND   BINARY   RANDOM   LINE     "
+        tb$ = tb$ + "GET      PUT      KILL     "
     CASE 2
-        KwTable$ = "STOP     SYSTEM   AND      OR       XOR      NOT      MOD      BYREF    BYVAL    STATIC   SEGMENT  PRIVATE  SWAP     ERASE    DATA     READ     RESTORE  CONTINUE RANDOMIZEOPTION   EXPLICIT REAL     CLS      LOCATE   WRITE    PRESERVE ERROR    "
+        tb$ = "STOP     SYSTEM   AND      OR       XOR      NOT      MOD      BYREF    "
+        tb$ = tb$ + "BYVAL    STATIC   SEGMENT  PRIVATE  SWAP     ERASE    DATA     READ     "
+        tb$ = tb$ + "RESTORE  CONTINUE RANDOMIZEOPTION   EXPLICIT REAL     CLS      LOCATE   "
+        tb$ = tb$ + "WRITE    PRESERVE ERROR    "
     CASE ELSE
-        KwTable$ = "RESUME   SEEK     USING    "
+        tb$ = "RESUME   SEEK     USING    "
     END SELECT
+    KwTable$ = tb$
 END FUNCTION
 
 FUNCTION KwName$ (k)
@@ -420,6 +431,10 @@ END FUNCTION
 
 ' ---- compiling one file
 
+SUB MemNote (w$)
+    IF OptMem THEN SayLn "  [" + w$ + ": " + IStr$(FRE(0)) + " free, least " + IStr$(FRE(-1)) + "]"
+END SUB
+
 FUNCTION Compile (n$, lst)
     SrcName$ = SourceOf$(n$)
     ModName$ = ModOf$(n$)
@@ -435,17 +450,21 @@ FUNCTION Compile (n$, lst)
     TokFile$ = SrcName$
     TokLine = 0
     TokText$ = ""
+    MemNote "start"
     LexFile SrcName$
+    MemNote "lexed"
     ' the symbol table: only while the module is compiled (the linker
     ' gets its memory)
     REDIM SName$(MAXSYM), SKind(MAXSYM) AS BYTE, SType(MAXSYM) AS BYTE, SCls(MAXSYM) AS BYTE
     REDIM SOff(MAXSYM), SFlags(MAXSYM) AS BYTE, SScope(MAXSYM) AS BYTE, SNext(MAXSYM)
     REDIM SAux(MAXSYM), SAux2(MAXSYM), SSeg(MAXSYM) AS BYTE, HashHead(HSIZE)
     REDIM PType(MAXPAR) AS BYTE, PFlg(MAXPAR) AS BYTE
+    MemNote "symbols"
     IF ErrCount = 0 THEN
         InitSyms
         DeclPass
     END IF
+    MemNote "declared"
     IF ErrCount = 0 THEN GenPass
     ERASE SName$, SKind, SType, SCls, SOff, SFlags, SScope, SNext, SAux, SAux2, SSeg
     ERASE HashHead, PType, PFlg
@@ -456,6 +475,7 @@ FUNCTION Compile (n$, lst)
         EXIT FUNCTION
     END IF
     IF OptQuiet = 0 THEN SayLn "  " + ObjName$
+    IF OptMem THEN SayLn "  least free memory: " + IStr$(FRE(-1)) + " words"
     Compile = -1
 END FUNCTION
 
@@ -551,6 +571,8 @@ FUNCTION RunCmds (l$)
             conly = 1
         ELSEIF w$ = "-Q" THEN
             OptQuiet = 1
+        ELSEIF w$ = "-M" THEN
+            OptMem = 1
         ELSEIF w$ = "-L" THEN
             ok = DoLink(UCASE$(NextWord$))
         ELSEIF w$ = "-J" THEN

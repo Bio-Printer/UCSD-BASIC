@@ -829,6 +829,9 @@ class Trans:
             if a[0][1] == T_INT:
                 return ('((bint)abs(%s))' % a[0][0], T_INT, a[0][2])
             return ('fabs(%s)' % a[0][0], a[0][1], a[0][2])
+        if n == 'FRE':
+            self.args()
+            return ('((bint)0)', T_INT, False)
         if n == 'COMMAND$':
             return ('b_command()', T_STR, False)
         if n == 'ERR':

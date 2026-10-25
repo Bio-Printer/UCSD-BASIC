@@ -12,14 +12,22 @@ SEGMENT LIST
 
 ' opcodes 128..215: a name (4) and an operand format (1), then a blank
 FUNCTION OpTable$ (part)
+    DIM tb$
     SELECT CASE part
     CASE 0
-        OpTable$ = "ABI   ABR   ADI   ADR   LAND  DIF   DVI   DVR   CHK   FLO   FLT   INN   INT   LOR   MODI  MPI   MPR   NGI   NGR   NOT   SRS   SBI   SBR   SGS   SQI   SQR   STO   IXS   UNI   S2P   CSP U LDCN  ADJ U FJP S INC B IND B IXA B LAO B LSA A LAE E MOV B LDO B "
+        tb$ = "ABI   ABR   ADI   ADR   LAND  DIF   DVI   DVR   CHK   FLO   FLT   INN   "
+        tb$ = tb$ + "INT   LOR   MODI  MPI   MPR   NGI   NGR   NOT   SRS   SBI   SBR   SGS   "
+        tb$ = tb$ + "SQI   SQR   STO   IXS   UNI   S2P   CSP U LDCN  ADJ U FJP S INC B IND B "
+        tb$ = tb$ + "IXA B LAO B LSA A LAE E MOV B LDO B "
     CASE 1
-        OpTable$ = "SAS U SRO B XJP X RNP U CIP U EQU T GEQ T GRT T LDA D LDC C LEQ T LES T LOD D NEQ T STR D UJP S LDP   STP   LDM U STM U LDB   STB   IXP P RBP U CBP U EQUI  GEQI  GRTI  LLA B LDCIW LEQI  LESI  LDL B NEQI  STL B CXP 2 CLP U CGP U LPA A STE E NOP   EFJ S "
+        tb$ = "SAS U SRO B XJP X RNP U CIP U EQU T GEQ T GRT T LDA D LDC C LEQ T LES T "
+        tb$ = tb$ + "LOD D NEQ T STR D UJP S LDP   STP   LDM U STM U LDB   STB   IXP P RBP U "
+        tb$ = tb$ + "CBP U EQUI  GEQI  GRTI  LLA B LDCIW LEQI  LESI  LDL B NEQI  STL B CXP 2 "
+        tb$ = tb$ + "CLP U CGP U LPA A STE E NOP   EFJ S "
     CASE ELSE
-        OpTable$ = "NFJ S BPT B XIT   NOP   "
+        tb$ = "NFJ S BPT B XIT   NOP   "
     END SELECT
+    OpTable$ = tb$
 END FUNCTION
 
 FUNCTION Hex4$ (v)

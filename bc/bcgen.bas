@@ -1208,7 +1208,7 @@ END SUB
 SUB GenIdentStmt ()
     DIM nm$, s, lv, e, a, n, k
     nm$ = TokS$
-    IF nm$ = "MID$" THEN
+    IF nm$ = "MID$" AND FindProc(nm$) = 0 THEN
         GetTok
         Expect TLPAR, "("
         lv = LValue
@@ -1229,6 +1229,8 @@ SUB GenIdentStmt ()
         CallRt "_MIDSET"
         EXIT SUB
     END IF
+    ' (a procedure of the program by such a name is called instead)
+    IF FindProc(nm$) > 0 THEN nm$ = ""
     IF nm$ = "POKE" OR nm$ = "POKEB" THEN
         GetTok
         GenValueAs Expr, TYINT
@@ -1257,6 +1259,7 @@ SUB GenIdentStmt ()
         END IF
         EXIT SUB
     END IF
+    nm$ = TokS$
     ' the function's own name: its result
     IF InProc AND ResultOff > 0 THEN
         IF FindProc(nm$) = ProcSym THEN
@@ -1596,6 +1599,7 @@ SUB GenPass ()
     REDIM CtlKind(MAXCTL), CtlExit(MAXCTL), CtlCont(MAXCTL), ConstText$(300)
     NNode = 0
     NConst = 0
+    MemNote "gen arrays"
     OPEN ObjName$ FOR OUTPUT AS #CHOBJ
     PUT #CHOBJ, , "BCOB"
     ObjByte 77
@@ -1619,6 +1623,7 @@ SUB GenPass ()
     LOOP
     EndProc
     CLOSE #CHTOK
+    MemNote "body"
     ' the procedures
     ResetDefs
     OpenTok
@@ -1659,6 +1664,7 @@ SUB GenPass ()
         LstOpen = 0
         KILL LTmpName$
     END IF
+    IF OptMem THEN SayLn "  [high: code " + IStr$(HiPC) + ", jumps " + IStr$(HiFix) + ", labels " + IStr$(HiLab) + ", calls " + IStr$(HiRel) + ", nodes " + IStr$(HiNode) + ", names " + IStr$(HiSym) + "]"
     ERASE Code, LabPos, FixPos, FixLab, RelPos, RelType, RelSym
     ERASE NOp, NTy, NA, NB, NV, NX, NN, NS$, NIsBool, CtlKind, CtlExit, CtlCont, ConstText$
 END SUB

@@ -536,7 +536,9 @@ SUB ObjFiles (objs$, addlib)
         i = j + 1
     LOOP
     IF addlib THEN
-        lib$ = "BASLIB.OBJ"
+        ' beside the program's objects, on the prefix, BASIC:, the boot disk
+        lib$ = VolOf$(LFile$(1)) + "BASLIB.OBJ"
+        IF NOT FileExists(lib$) THEN lib$ = "BASLIB.OBJ"
         IF NOT FileExists(lib$) THEN lib$ = "BASIC:BASLIB.OBJ"
         IF NOT FileExists(lib$) THEN lib$ = "*BASLIB.OBJ"
         NLF = NLF + 1
@@ -658,6 +660,7 @@ FUNCTION LinkProg (out$, objs$)
     NEXT k
     CLOSE #CHOUT
     IF OptQuiet = 0 THEN SayLn "  globals " + IStr$(GlobWords - 3) + " words"
+    IF OptMem THEN SayLn "  least free memory: " + IStr$(FRE(-1)) + " words"
     ERASE LBuf, Entry
     IF LErr = 0 THEN LinkProg = -1
 done:

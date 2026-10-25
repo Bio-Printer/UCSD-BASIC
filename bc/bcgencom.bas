@@ -44,5 +44,5 @@ COMMON SHARED NCtl, CtlKind(), CtlExit(), CtlCont(), NFor, PendNext
 COMMON SHARED ConstText$(), NConst
 
 ' ---- the listing
-COMMON SHARED LstOpen
+COMMON SHARED LstOpen, HiNode, HiPC, HiFix, HiLab, HiRel, HiSym
 

@@ -22,7 +22,7 @@ COMMON SHARED _FTAB
 ' ---- arrays: DIM's bounds, an element's indexes
 COMMON SHARED _ABUF, _NABND, _AIXB, _NAIX
 ' ---- scratch (number formatting), the random seed
-COMMON SHARED _SCRATCH, _SEED#
+COMMON SHARED _SCRATCH, _SEED#, _MINFREE
 
 CONST FFL = 0, FFIB = 2, FBUF = 4, FBLK = 6, FPOS = 8, FLEN = 10, FBSZ = 12
 CONST FDLE = 14, FLST = 16, FCOL = 18, FUNG = 20

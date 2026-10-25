@@ -460,6 +460,11 @@ SUB EndProc ()
     EntryBytes = 0
     GenEntry
     exitpos = LabPos(ExitLab)
+    IF PC > HiPC THEN HiPC = PC
+    IF NFix > HiFix THEN HiFix = NFix
+    IF NLab > HiLab THEN HiLab = NLab
+    IF NRel > HiRel THEN HiRel = NRel
+    IF NSym > HiSym THEN HiSym = NSym
     NLong = 0
     FOR i = 0 TO NFix - 1
         IF FixLab(i) >= 0 THEN

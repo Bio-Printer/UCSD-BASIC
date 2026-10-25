@@ -3,7 +3,7 @@
 ' integer division, GOSUB
 #INCLUDE "RTCOM"
 
-CONST ARENA = 2048, GSMAX = 50, RESERVE = 500
+CONST ARENA = 1536, GSMAX = 50, RESERVE = 500
 
 ' ---- unsigned comparison: a < b as 0..65535
 FUNCTION _ULT (a, b)
@@ -12,8 +12,10 @@ END FUNCTION
 
 ' a block straight from the P-machine's heap (NEW), not to be given back
 FUNCTION _NEWBLK (words)
-    DIM np
-    IF CSP%(40) < words + RESERVE THEN _RTERR 7
+    DIM np, m
+    m = CSP%(40) - words
+    IF m < _MINFREE OR _MINFREE = 0 THEN _MINFREE = m
+    IF m < RESERVE THEN _RTERR 7
     CSP 1, VARPTR(np), words
     _NEWBLK = np
 END FUNCTION
@@ -26,8 +28,8 @@ SUB _RTINIT ()
     _TEND = _TBASE + ARENA
     _GSBASE = _NEWBLK(GSMAX)
     _GSSP = 0
-    _FREETAB = _NEWBLK(34)
-    CSP 10, _FREETAB, 0, 68, 0
+    _FREETAB = _NEWBLK(10)
+    CSP 10, _FREETAB, 0, 20, 0
     _CONBUF = _NEWBLK(41)
     _INBUF = _NEWBLK(129)
     _FTAB = _NEWBLK(256)
@@ -108,14 +110,19 @@ FUNCTION _ERRNO ()
     _ERRNO = _ERRCODE
 END FUNCTION
 
-' ---- the heap: blocks of up to 132 words in lists by size (multiples of 4
-' words), bigger ones in one list (best fit).  The word before a block
-' holds its size in words (with that word); a free block's first word links.
+' ---- the heap: blocks of up to 32 words in lists by size (multiples of 4
+' words); bigger ones in one list in the order of their addresses, a free
+' block joined with a free neighbour, cut when it is much bigger than asked,
+' and given back to the P-machine (RELEASE) when it is the heap's last.
+' The word before a block holds its size in words (with that word); a free
+' block's first word links.
+
+CONST SMALL = 32
 
 FUNCTION _MALLOC (nbytes)
-    DIM w, c, p, prev, best, bprev, np
+    DIM w, c, p, prev, best, bprev, np, sz, rest
     w = (nbytes + 1) \ 2 + 1
-    IF w <= 132 THEN
+    IF w <= SMALL THEN
         w = ((w + 3) \ 4) * 4
         c = _FREETAB + (w \ 4) * 2
         p = PEEK(c)
@@ -127,11 +134,12 @@ FUNCTION _MALLOC (nbytes)
     ELSE
         p = _BIGFREE
         DO WHILE p
-            IF PEEK(p - 2) >= w THEN
+            sz = PEEK(p - 2)
+            IF sz >= w THEN
                 IF best = 0 THEN
                     best = p
                     bprev = prev
-                ELSEIF PEEK(p - 2) < PEEK(best - 2) THEN
+                ELSEIF sz < PEEK(best - 2) THEN
                     best = p
                     bprev = prev
                 END IF
@@ -140,6 +148,16 @@ FUNCTION _MALLOC (nbytes)
             p = PEEK(p)
         LOOP
         IF best THEN
+            sz = PEEK(best - 2)
+            rest = sz - w
+            IF rest > SMALL THEN
+                ' the block cut: its end is the new one, the rest stays free
+                POKE best - 2, rest
+                np = best - 2 + rest * 2
+                POKE np, w
+                _MALLOC = np + 2
+                EXIT FUNCTION
+            END IF
             IF bprev THEN POKE bprev, PEEK(best) ELSE _BIGFREE = PEEK(best)
             _MALLOC = best
             EXIT FUNCTION
@@ -152,16 +170,49 @@ FUNCTION _MALLOC (nbytes)
 END FUNCTION
 
 SUB _MFREE (p)
-    DIM w, c
+    DIM w, c, q, prev, np
     IF p = 0 THEN EXIT SUB
     w = PEEK(p - 2)
-    IF w <= 132 THEN
+    IF w <= SMALL THEN
         c = _FREETAB + (w \ 4) * 2
         POKE p, PEEK(c)
         POKE c, p
-    ELSE
-        POKE p, _BIGFREE
-        _BIGFREE = p
+        EXIT SUB
+    END IF
+    ' into the list by address
+    q = _BIGFREE
+    prev = 0
+    DO WHILE q
+        IF _ULT(p, q) THEN EXIT DO
+        prev = q
+        q = PEEK(q)
+    LOOP
+    POKE p, q
+    IF prev THEN POKE prev, p ELSE _BIGFREE = p
+    ' joined with the next one, and with the one before
+    IF q <> 0 AND p - 2 + w * 2 = q - 2 THEN
+        POKE p - 2, w + PEEK(q - 2)
+        POKE p, PEEK(q)
+    END IF
+    IF prev THEN
+        IF prev - 2 + PEEK(prev - 2) * 2 = p - 2 THEN
+            POKE prev - 2, PEEK(prev - 2) + PEEK(p - 2)
+            POKE prev, PEEK(p)
+            p = prev
+        END IF
+    END IF
+    ' the heap's last block: given back
+    IF p - 2 + PEEK(p - 2) * 2 = _HEAPTOP AND PEEK(p) = 0 THEN
+        q = _BIGFREE
+        prev = 0
+        DO WHILE q <> p
+            prev = q
+            q = PEEK(q)
+        LOOP
+        IF prev THEN POKE prev, 0 ELSE _BIGFREE = 0
+        np = p - 2
+        _HEAPTOP = np
+        CSP 33, VARPTR(np)
     END IF
 END SUB
 

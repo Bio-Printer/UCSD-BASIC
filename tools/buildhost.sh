@@ -7,3 +7,5 @@ python3 tools/mkdecls.py $M > bc/bcprocs.bas
 mkdir -p build
 python3 tools/bas2c.py -o build/bc.c $M
 gcc -O1 -w -I tools -o build/bc build/bc.c -lm
+# a source line must fit LINE INPUT (255 characters): the P-System's BC reads them so
+awk 'length > 250 { print FILENAME ":" FNR ": line too long"; bad = 1 } END { exit bad }' bc/*.bas lib/*.bas

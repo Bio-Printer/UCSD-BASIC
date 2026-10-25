@@ -24,6 +24,7 @@ FUNCTION NewNode (op, ty)
         NNode = 1
     END IF
     NNode = NNode + 1
+    IF NNode > HiNode THEN HiNode = NNode
     NOp(NNode) = op
     NTy(NNode) = ty
     NA(NNode) = 0
@@ -564,12 +565,20 @@ END FUNCTION
 ' ---- built-in functions
 
 FUNCTION BuiltTable$ (part)
+    DIM tb$
     SELECT CASE part
     CASE 0
-        BuiltTable$ = "LEN     ASC     CHR$    MID$    LEFT$   RIGHT$  INSTR   UCASE$  LCASE$  LTRIM$  RTRIM$  TRIM$   SPACE$  STRING$ STR$    VAL     HEX$    CINT    FIX     INT     CSNG    CDBL    ABS     SGN     SQR     SIN     COS     TAN     ATN     EXP     LOG     "
+        tb$ = "LEN     ASC     CHR$    MID$    LEFT$   RIGHT$  INSTR   UCASE$  LCASE$  "
+        tb$ = tb$ + "LTRIM$  RTRIM$  TRIM$   SPACE$  STRING$ STR$    VAL     HEX$    CINT    "
+        tb$ = tb$ + "FIX     INT     CSNG    CDBL    ABS     SGN     SQR     SIN     COS     "
+        tb$ = tb$ + "TAN     ATN     EXP     LOG     "
     CASE ELSE
-        BuiltTable$ = "RND     TIMER   EOF     INKEY$  COMMAND$ERR     MKI$    CVI     MKS$    CVS     MKD$    CVD     LBOUND  UBOUND  FRE     VARPTR  PEEK    PEEKB   CSP%    CSP!    CSP#    OSCALL% OSVAR   POS     FREEFILELOF     DVI%    MDI%    SADD    "
+        tb$ = "RND     TIMER   EOF     INKEY$  COMMAND$ERR     MKI$    CVI     MKS$    "
+        tb$ = tb$ + "CVS     MKD$    CVD     LBOUND  UBOUND  FRE     VARPTR  PEEK    PEEKB   "
+        tb$ = tb$ + "CSP%    CSP!    CSP#    OSCALL% OSVAR   POS     FREEFILELOF     DVI%    "
+        tb$ = tb$ + "MDI%    SADD    "
     END SELECT
+    BuiltTable$ = tb$
 END FUNCTION
 
 CONST BLEN = 1, BASC = 2, BCHR = 3, BMID = 4, BLEFT = 5, BRIGHT = 6, BINSTR = 7
@@ -700,7 +709,9 @@ FUNCTION Builtin (id, nm$)
             NN(a) = ConvKeep(NN(a), TYINT)
             IF nargs = 3 THEN NN(NN(a)) = ConvKeep(NN(NN(a)), TYINT)
         END IF
-    CASE BCHR, BSPACE, BHEX, BMKI, BEOF, BFRE, BPEEK, BPEEKB, BOSVAR, BPOS, BLOF
+    CASE BFRE
+        IF nargs <> 1 THEN ErrMsg "FRE: one argument expected"
+    CASE BCHR, BSPACE, BHEX, BMKI, BEOF, BPEEK, BPEEKB, BOSVAR, BPOS, BLOF
         IF nargs <> 1 THEN ErrMsg nm$ + ": one argument expected" ELSE a = ConvKeep(a, TYINT)
         IF id = BOSVAR AND NOp(a) <> NICON THEN ErrMsg "OSVAR: a constant expected"
         IF id = BCHR OR id = BSPACE OR id = BHEX OR id = BMKI THEN ty = TYSTR
@@ -1433,8 +1444,10 @@ SUB GenBuiltin (n)
     CASE BMKD: CallRt "_MKD"
     CASE BCVD: CallRt "_CVD"
     CASE BFRE
-        DropWords 1
-        DropPad 1
+        IF NTy(a) = TYSTR THEN
+            DropWords 1
+            Ldc 0
+        END IF
         CallRt "_FRE"
     CASE BPEEK: Ind0
     CASE BPEEKB
