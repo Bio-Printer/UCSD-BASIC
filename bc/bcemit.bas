@@ -67,7 +67,7 @@ SUB Lla (off)
     OpBig OLLA, off
 END SUB
 
-SUB Csp (n)
+SUB EmitCsp (n)
     OB OCSP
     OB n
 END SUB
@@ -398,7 +398,7 @@ SUB GenEntry ()
         OB 0
         Ldc bytes
         OB 0
-        Csp 10
+        EmitCsp 10
     END IF
     IF UsedMark THEN
         GlobOp OLDO, RtVar("_TTOP"), 0

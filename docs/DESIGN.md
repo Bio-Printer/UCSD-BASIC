@@ -223,7 +223,17 @@ and OSCALL (FINIT, FOPEN, FCLOSE, FBLOCKIO).
 - The console: a line buffer written with UNITWRITE; input read a key at
   a time with UNITREAD and echoed.
 - COMMAND$ follows Tiny-C's pexec protocol (SYSCOM^.EXPANSION, the OS's
-  prompt line PL); the exit status goes to EXPANSION[5].
+  prompt line PL); the exit status goes to EXPANSION[5].  _RTINIT takes
+  the line once, at the start (_ARGS): the arguments for COMMAND$, and
+  the shell's path (CD) after them (a byte 30 before it).  _OPEN and
+  _KILL put that path before a name without a volume (_FNAME, as Tiny-C's
+  library does), so a program run after CD BASIC:/DEMO finds PI.BAS there.
+- Text files: a name ending in .TEXT or .BAS.  A new one is entered with
+  the kind text whatever the operating system makes of its name: before
+  FCLOSE the library sets the FIB's FHEADER.DFKIND to 3 (FCLOSE copies
+  FHEADER into the directory); in a sub-volume the entry is the library's
+  own.  An old file is read as text by its name, whatever its kind (a
+  NAME.BAS the Editor wrote under an older system is a data file).
 
 The library's procedures pass strings as INTEGER pointers, so the
 compiler cannot know when one makes a temporary it does not hand back
@@ -237,8 +247,12 @@ BC needs the Harvard layout (code in its own 64K instruction space): with
 it BC has about 30000 words of data space, and compiling itself it has
 about 5000 left at its lowest.  The largest tables were sized from what
 compiling BC needs (tools: -M prints the high-water marks).  In the
-normal layout BC's code (about 64K with all its segments) would take
-memory from the stack and the heap.
+normal layout BC's code (about 72K with all its segments) would take
+memory from the stack and the heap, and the first big segment overruns
+it.  So BC's first statement reads 2 bytes of unit 64, the emulator's
+I-space in the Harvard layout and a bad unit (IORESULT 2) in every other
+one, Z80 mode too, and stops with a message when that fails.  (bas2c,
+the bootstrap, takes the CSP statement as nothing and CSP%() as 0.)
 
 ## 11. Testing
 

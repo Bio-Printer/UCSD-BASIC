@@ -26,7 +26,7 @@ def main(a):
     ps.put('BC.CODE', host)
     ps.put('BASLIB.OBJ', open(os.path.join(ROOT, 'build', 'BASLIB.OBJ'), 'rb').read())
     for f in glob.glob(os.path.join(ROOT, 'bc', '*.bas')) + glob.glob(os.path.join(ROOT, 'lib', '*.bas')):
-        ps.put(os.path.basename(f)[:-4].upper() + '.TEXT', open(f).read())
+        ps.put(os.path.basename(f)[:-4].upper() + '.BAS', open(f).read())
     batch = ''.join('-C #5:%s\n' % m for m in MODS) + '-L #9:BC=' + ','.join('#5:' + m for m in MODS) + '\n'
     batch += ''.join('-C #5:%s\n' % m for m in LIBS) + '-J #9:BASLIB=' + ','.join('#5:' + m for m in LIBS) + '\n'
     ps.put('BUILD.TEXT', batch)

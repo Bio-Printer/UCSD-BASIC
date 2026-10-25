@@ -11,11 +11,15 @@ no sub-volume: err 53
 no file: err 53 
 kill: err 53 
 full: err 61 after line 146 
+PRINT in a sub-volume
+        PRINT on the volume
 done
 -- A/ 120
 -- A/B/ 30
 -- A/B/DATA.BIN 3 5
 -- A/B/HELLO.TEXT 4 3
 -- A/B/T2.TEXT 4 3
+-- A/P.BAS 4 3
 -- A/T1.TEXT 4 3
 -- A/X1.TEXT 14 3
+-- Q.BAS 4 3

@@ -832,6 +832,10 @@ class Trans:
         if n == 'FRE':
             self.args()
             return ('((bint)0)', T_INT, False)
+        if n == 'CSP%':
+            # (CSP%(34), IORESULT: 0 on the host)
+            self.args()
+            return ('((bint)0)', T_INT, False)
         if n == 'COMMAND$':
             return ('b_command()', T_STR, False)
         if n == 'ERR':
@@ -1093,6 +1097,10 @@ class Trans:
             self.next()
             e = self.conv(self.expr(), self.curproc.ret)
             self.emit('_r = %s;' % e[0])
+            return
+        if n == 'CSP' and self.find_var(n) is None and self.find_proc(n) is None:
+            # (the P-machine's standard procedures: nothing on the host)
+            self.skip_stmt()
             return
         v = self.find_var(n)
         if v is None:

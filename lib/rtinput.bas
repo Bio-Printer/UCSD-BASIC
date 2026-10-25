@@ -172,58 +172,9 @@ SUB _LOCATE (r, c)
     _CONCOL = c - 1
 END SUB
 
-' COMMAND$: the command line Tiny-C's shell gave (pexec), without the
-' program's name: kept by the operating system in its prompt line PL while SYSCOM's expansion words
-' say so; else ""
+' COMMAND$: the command line Tiny-C's shell gave, without the program's
+' name (RTCORE's _ARGS took it at the start); else ""
 FUNCTION _CMD ()
-    STATIC got, cline
-    DIM e, pl, n, sum, i, t
-    IF got = 0 THEN
-        ' the first time: taken while this is the program pexec started
-        ' (EXPANSION[0] = PX_CHILD) and PL holds its line (EXPANSION[6] =
-        ' PX_ARGS, [7] its checksum)
-        got = 1
-        e = OSVAR(1) + 36
-        pl = OSADDR(70)
-        n = PEEKB(pl)
-        IF PEEK(e) = 25602 AND PEEK(e + 12) = 25604 AND n <= 80 THEN
-            sum = n
-            FOR i = 1 TO n
-                sum = sum * 3 + PEEKB(pl + i)
-            NEXT i
-            IF PEEK(e + 14) = _XOR(sum, &H5A5A) THEN
-                POKE e + 12, 0
-                ' the shell's path after the arguments: not wanted here
-                FOR i = 1 TO n
-                    IF PEEKB(pl + i) = 30 THEN
-                        n = i - 1
-                        EXIT FOR
-                    END IF
-                NEXT i
-                ' the first word is the program's name: not part of COMMAND$
-                i = 1
-                DO WHILE i <= n
-                    IF PEEKB(pl + i) <> 32 THEN EXIT DO
-                    i = i + 1
-                LOOP
-                DO WHILE i <= n
-                    IF PEEKB(pl + i) = 32 THEN EXIT DO
-                    i = i + 1
-                LOOP
-                DO WHILE i <= n
-                    IF PEEKB(pl + i) <> 32 THEN EXIT DO
-                    i = i + 1
-                LOOP
-                n = n - i + 1
-                IF n > 0 THEN
-                    cline = _MALLOC(n + 1)
-                    CSP 2, pl + i, 0, cline + 1, 0, n
-                    POKEB cline, n
-                END IF
-            END IF
-        END IF
-    END IF
-    _CMD = _STMP(cline)
+    _CMD = _STMP(_CMDLINE)
 END FUNCTION
 
-DECLARE FUNCTION _XOR (a, b)

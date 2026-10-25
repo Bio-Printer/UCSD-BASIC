@@ -14,7 +14,12 @@ Contents:
 ## 1. Program text
 
 A program is one or more modules (source files).  A module is plain text:
-on the P-System a .TEXT file (made with the Editor), on Linux a .bas file.
+on the P-System NAME.BAS, a text file (the kind the Editor makes), on Linux
+a .bas file.  NAME.TEXT is taken as well.  The Editor adds .TEXT to a name
+unless it ends with a dot: E(dit PI.BAS. (and the same name with the dot to
+save it).  BIGGY 1.29's systems, SYSTEM.PASCAL and SYSTEM.C, make every new
+NAME.BAS a text file, as NAME.TEXT; with an older system a .BAS file the
+Editor writes is a data file in the directory, which BC reads all the same.
 
 - Lines.  One or more statements a line, separated by colons.  A line
   ending in " _" (blank, underscore) goes on in the next line.  A source
@@ -31,7 +36,7 @@ on the P-System a .TEXT file (made with the Editor), on Linux a .bas file.
       again: PRINT "a named label"
 
   A label belongs to the procedure (or the module's body) it is in.
-- `#INCLUDE "FILE"` puts the text of FILE.TEXT in place of the line
+- `#INCLUDE "FILE"` puts the text of FILE.BAS (or FILE.TEXT) in place of the line
   (looked for beside the source first -- on its volume, in its
   sub-volume -- then as named, on the prefix volume).
   Include files may be nested 3 deep.
@@ -318,7 +323,7 @@ Other
   console's column)
 - INKEY$ (a key that was typed, or "")
 - COMMAND$: the command line, when the program was started by Tiny-C's
-  shell (e.g. `BC @BUILD`); "" otherwise
+  shell (e.g. `BC @BUILD`), without the program's name; "" otherwise
 - ERR: the error of the last failing file operation under ON ERROR
   RESUME NEXT (0: none)
 - FRE(0): the words of memory free; FRE(-1): the fewest there have been
@@ -353,9 +358,14 @@ work area (1.5K) and given back after each statement.
   anything else data) when it is closed -- a sub-volume that is too full
   gives run-time error 61 when a file no longer fits (a new file that did
   not fit is not kept).
-- A name ending in .TEXT is a UCSD text file (the Editor's format: a
+- A name without a volume, in a program started by Tiny-C's shell after
+  a CD into a sub-volume (CD BASIC:/DEMO), is on that path: "PI.BAS" is
+  BASIC:/DEMO/PI.BAS, as for the shell's own commands.  Otherwise it is
+  on the prefix volume.
+- A name ending in .TEXT or .BAS is a UCSD text file (the Editor's format: a
   2-block header, 1K pages, blank compression); PRINT # and LINE INPUT #
-  read and write it by lines.  Any other file is its bytes; lines in it
+  read and write it by lines.  A new one is of the kind text in the
+  directory whatever system runs.  Any other file is its bytes; lines in it
   end with CR, and the zero bytes that fill a file's last block end it
   when it is read with INPUT.
 - GET and PUT move bytes: a BYTE 1, an INTEGER 2 (low byte first), a
@@ -405,7 +415,7 @@ reported by the operating system as usual.
 On the P-System: `X(ecute BASIC:BC`, then at "Compile what file?" (a
 NAME may be a path into sub-volumes: BASIC:/DEMO/HELLO):
 
-    NAME              compile NAME.TEXT, link NAME.CODE
+    NAME              compile NAME.BAS (or NAME.TEXT), link NAME.CODE
     -C NAME           compile only: NAME.OBJ
     -S NAME           compile with a listing: NAME.LST.TEXT
     -S -C NAME        both
@@ -420,7 +430,7 @@ Several commands may be given on one line; the first that fails stops
 the rest.  From Tiny-C's shell the same commands are BC's command line:
 `BC -C MYPROG`.
 
-Files: the source is NAME.TEXT (or NAME.BAS); the object NAME.OBJ is put
+Files: the source is NAME.BAS (or NAME.TEXT); the object NAME.OBJ is put
 beside it (on its volume, in its sub-volume); the code file NAME.CODE
 too, and the listing.  The library BASLIB.OBJ is looked for beside the
 first object, then on the prefix volume, in BASIC:/LIB, and on the boot
@@ -437,9 +447,9 @@ The volume BASIC: holds:
     README.TEXT LANGUAGE.TEXT DESIGN.TEXT
     ALL.TEXT                    @BASIC:ALL: the four batch files below
     FILES.TEXT                  every file, the sub-volumes' too
-    SRC/   BC*.TEXT             the compiler's sources;
+    SRC/   BC*.BAS              the compiler's sources;
            BUILD.TEXT           @BASIC:/SRC/BUILD: BASIC:BC2.CODE
-    LIB/   BASLIB.OBJ           the run-time library, RT*.TEXT its sources;
+    LIB/   BASLIB.OBJ           the run-time library, RT*.BAS its sources;
            LIBS.TEXT            @BASIC:/LIB/LIBS: BASIC:/LIB/BASLIB2.OBJ
     DEMO/  HELLO PRIMES HANOI MANDEL PI GUESS, STATS + STATLIB (two modules);
            DEMOS.TEXT           @BASIC:/DEMO/DEMOS compiles them
@@ -463,7 +473,10 @@ The body (module-level statements) of every module runs when the program
 starts, the main program's (the first module's) last.
 
 BC needs the emulator's Harvard layout (Options > Harvard Mode, the
-default); the programs it makes run in any P-Code mode layout.
+default, in P-Code mode with Reclaim Z80 Interpreter Memory on): its code
+does not fit in the memory of the other layouts.  Started in another one
+it says so and stops (exit status 1).  The programs it makes run in any
+layout.
 
 ## 14. Limits
 

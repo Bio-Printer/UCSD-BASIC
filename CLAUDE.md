@@ -22,3 +22,11 @@
   sub-volumes from tests/subvol.dirs).  The volume's layout and batch files
   are made by tools/mkvolume.py; run voltest.py and voltest.py --pascal
   after changing it.
+- BASIC sources are NAME.BAS (text files) on the P-System and in the
+  volume; BC still takes NAME.TEXT.  The library writes a new .BAS or
+  .TEXT file as text and sets its kind (the FIB's DFKIND) itself.
+- BC's emitter procedure is EmitCsp: a SUB named Csp would take the CSP
+  statement's place.  bas2c turns the CSP statement into nothing and
+  CSP%() into 0 (BC's Harvard check at its start).
+- The tests boot build/psys/data/Big_Disk.BLK (setup.sh copies BOOT_DISK);
+  BIGGY 1.29 is the first whose systems make a new NAME.BAS a text file.

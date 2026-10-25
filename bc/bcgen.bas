@@ -420,7 +420,7 @@ SUB GenFor ()
     ELSEIF ty = TYSNG THEN
         OB OADR
     ELSE
-        Csp 100
+        EmitCsp 100
     END IF
     GenStore lv
     Jump OUJP, ltop
@@ -816,7 +816,7 @@ SUB GenInput (isline)
         CASE TYSNG
             DropPad 4
             CallRt "_INFD"
-            Csp 107
+            EmitCsp 107
         CASE TYDBL
             DropPad 4
             CallRt "_INFD"
@@ -1189,7 +1189,7 @@ SUB GenRead ()
             DropPad 3
             CallRt "_VAL"
             IF ty = TYSNG THEN
-                Csp 107
+                EmitCsp 107
             ELSEIF ty <> TYDBL THEN
                 CallRt "_DCINT"
             END IF
@@ -1368,7 +1368,7 @@ SUB GenIdentStmt ()
             GenValue a
         LOOP
         IF nm$ = "CSP" THEN
-            Csp k
+            EmitCsp k
         ELSE
             OB OCXP
             OB 0

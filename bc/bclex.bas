@@ -387,10 +387,13 @@ SUB LexInclude (f$)
         LexErr "#INCLUDE files nest too deep"
         EXIT SUB
     END IF
-    g$ = WithSuffix$(UCASE$(f$), ".TEXT")
-    ' beside the source first (its volume and sub-volume), then as named
-    IF INSTR(g$, ":") = 0 AND LEFT$(g$, 1) <> "/" AND DirOf$(SrcName$) <> "" THEN
-        IF FileExists(DirOf$(SrcName$) + g$) THEN g$ = DirOf$(SrcName$) + g$
+    ' FILE.BAS or FILE.TEXT, beside the source first (its volume and
+    ' sub-volume), then as named
+    g$ = UCASE$(f$)
+    IF INSTR(g$, ":") = 0 AND LEFT$(g$, 1) <> "/" THEN
+        g$ = FindSource$(g$, DirOf$(SrcName$))
+    ELSE
+        g$ = FindSource$(g$, "")
     END IF
     IF NOT FileExists(g$) THEN
         LexErr "no file " + g$

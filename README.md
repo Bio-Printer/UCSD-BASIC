@@ -21,7 +21,7 @@ as the host build** (`tools/selfcompile.py`).
 
 `tools/mkvolume.py` makes `build/BASIC.BLK` (also in UCSD-Pascal-Volumes'
 BLK_format), laid out in sub-volumes (Tiny-C's: data files holding a volume,
-`BASIC:/SRC/BC.TEXT`):
+`BASIC:/SRC/BC.BAS`; the BASIC sources are NAME.BAS, text files):
 
 | File | What |
 |---|---|
@@ -43,7 +43,7 @@ compiler's use) and [docs/DESIGN.md](docs/DESIGN.md) (how BC works).
 
 `X(ecute BC`, then at "Compile what file?" (or as the command line from Tiny-C's shell):
 
-* `NAME` -- compile NAME.TEXT and link NAME.CODE (NAME may be a path: `BASIC:/DEMO/HELLO`;
+* `NAME` -- compile NAME.BAS (or NAME.TEXT) and link NAME.CODE (NAME may be a path: `BASIC:/DEMO/HELLO`;
   the object and code file go beside the source)
 * `-C NAME` -- compile only (NAME.OBJ); `-S NAME` -- also a listing NAME.LST.TEXT
 * `-L OUT=A,B,C` -- link several modules (and BASLIB.OBJ) into OUT.CODE
@@ -52,11 +52,17 @@ compiler's use) and [docs/DESIGN.md](docs/DESIGN.md) (how BC works).
 
 Modules share variables with `COMMON SHARED`, call each other's procedures
 after `DECLARE`; `SEGMENT name` puts the following procedures in a code
-segment of their own.  BC needs the emulator's Harvard layout (its default);
-it works under SYSTEM.PASCAL and SYSTEM.C, and from Tiny-C's shell
-(`BASIC:BC -C PROG`: COMMAND$, exit status 0 or 1).  Programs open files in
-sub-volumes by their paths (`OPEN "BASIC:/DEMO/X.TEXT" ...`), and a code file
-in one runs with `X(ecute BASIC:/DEMO/HELLO`.
+segment of their own.  BC needs the emulator's Harvard layout (its default:
+Options > Harvard Mode, in P-Code mode with Reclaim Z80 Interpreter Memory on);
+in any other it says so and stops.  It works under SYSTEM.PASCAL and SYSTEM.C,
+and from Tiny-C's shell (`BASIC:BC -C PROG`: COMMAND$, exit status 0 or 1;
+after `CD BASIC:/DEMO`, `BC PI` compiles BASIC:/DEMO/PI.BAS).  Programs open
+files in sub-volumes by their paths (`OPEN "BASIC:/DEMO/X.TXT" ...`), and a
+code file in one runs with `X(ecute BASIC:/DEMO/HELLO`.
+
+BASIC sources are NAME.BAS, text files.  The Editor adds .TEXT unless the name
+ends with a dot: `E(dit` `BASIC:/DEMO/PI.BAS.`.  BIGGY 1.29 (SYSTEM.PASCAL of the
+OS source v1.15, and SYSTEM.C) makes every new NAME.BAS a text file.
 
 ## Building and testing (Linux)
 

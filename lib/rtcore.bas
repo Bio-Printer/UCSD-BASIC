@@ -38,10 +38,63 @@ SUB _RTINIT ()
     _AIXB = _NEWBLK(9)
     _SCRATCH = _NEWBLK(41)
     _SEED# = 327680
+    _ARGS
     ' everything above this is the heap of the program's strings and arrays
     i = _NEWBLK(1)
     _HEAPLO = i
     _HEAPTOP = i + 2
+END SUB
+
+' The command line Tiny-C's shell gave (pexec), kept for COMMAND$ without
+' the program's name, and the shell's path (CD) after it: in the operating
+' system's prompt line PL while SYSCOM's expansion words say so (EXPANSION[0]
+' = PX_CHILD, [6] = PX_ARGS, [7] its checksum), taken once, at the start
+SUB _ARGS ()
+    DIM e, pl, n, sum, i, k
+    e = OSVAR(1) + 36
+    pl = OSADDR(70)
+    n = PEEKB(pl)
+    IF PEEK(e) <> 25602 OR PEEK(e + 12) <> 25604 OR n > 80 THEN EXIT SUB
+    sum = n
+    FOR i = 1 TO n
+        sum = sum * 3 + PEEKB(pl + i)
+    NEXT i
+    IF PEEK(e + 14) <> _XOR(sum, &H5A5A) THEN EXIT SUB
+    POKE e + 12, 0
+    ' the shell's path after the arguments (a 30 before it)
+    FOR i = 1 TO n
+        IF PEEKB(pl + i) = 30 THEN
+            k = n - i
+            IF k > 0 THEN
+                _SVPWD = _NEWBLK(41)
+                CSP 2, pl + i + 1, 0, _SVPWD + 1, 0, k
+                POKEB _SVPWD, k
+                _PATHBUF = _NEWBLK(64)
+            END IF
+            n = i - 1
+            EXIT FOR
+        END IF
+    NEXT i
+    ' the first word is the program's name: not part of COMMAND$
+    i = 1
+    DO WHILE i <= n
+        IF PEEKB(pl + i) <> 32 THEN EXIT DO
+        i = i + 1
+    LOOP
+    DO WHILE i <= n
+        IF PEEKB(pl + i) = 32 THEN EXIT DO
+        i = i + 1
+    LOOP
+    DO WHILE i <= n
+        IF PEEKB(pl + i) <> 32 THEN EXIT DO
+        i = i + 1
+    LOOP
+    n = n - i + 1
+    IF n > 0 THEN
+        _CMDLINE = _NEWBLK(41)
+        CSP 2, pl + i, 0, _CMDLINE + 1, 0, n
+        POKEB _CMDLINE, n
+    END IF
 END SUB
 
 ' ---- the end

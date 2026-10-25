@@ -81,18 +81,25 @@ FUNCTION _LOADBLK (e, b)
     IF PEEK(e + FLEN) = 0 THEN CSP 10, PEEK(e + FBUF), 0, 512, 0
 END FUNCTION
 
-' "x.TEXT"?
+' a UCSD text file: "x.TEXT", or "x.BAS" (a BASIC source)?
 FUNCTION _ISTEXT (name)
-    DIM n, i, c, t
+    DIM n, i, c, t, k, m
     n = PEEKB(name)
-    IF n < 5 THEN EXIT FUNCTION
-    t = SADD(".TEXT")
-    FOR i = 1 TO 5
-        c = PEEKB(name + n - 5 + i)
-        IF c >= 97 AND c <= 122 THEN c = c - 32
-        IF c <> PEEKB(t + i) THEN EXIT FUNCTION
-    NEXT i
-    _ISTEXT = -1
+    FOR k = 1 TO 2
+        IF k = 1 THEN t = SADD(".TEXT") ELSE t = SADD(".BAS")
+        m = PEEKB(t)
+        IF n > m THEN
+            FOR i = 1 TO m
+                c = PEEKB(name + n - m + i)
+                IF c >= 97 AND c <= 122 THEN c = c - 32
+                IF c <> PEEKB(t + i) THEN EXIT FOR
+            NEXT i
+            IF i > m THEN
+                _ISTEXT = -1
+                EXIT FUNCTION
+            END IF
+        END IF
+    NEXT k
 END FUNCTION
 
 ' the title FOPEN takes: upper case, at most 30 characters; a / after the
@@ -133,6 +140,33 @@ FUNCTION _SAMEAS (name, w)
     _SAMEAS = -1
 END FUNCTION
 
+' a name without a volume on the shell's path (CD, Tiny-C's shell): that
+' path, a /, the name (in _PATHBUF); any other name as it is
+FUNCTION _FNAME (name)
+    DIM n, k, c, b
+    _FNAME = name
+    IF _SVPWD = 0 OR name = 0 THEN EXIT FUNCTION
+    n = PEEKB(name)
+    IF n = 0 THEN EXIT FUNCTION
+    c = PEEKB(name + 1)
+    IF c = 47 OR c = 92 OR c = 35 OR c = 42 THEN EXIT FUNCTION
+    FOR k = 1 TO n
+        IF PEEKB(name + k) = 58 THEN EXIT FUNCTION
+    NEXT k
+    b = _PATHBUF
+    k = PEEKB(_SVPWD)
+    CSP 2, _SVPWD + 1, 0, b + 1, 0, k
+    c = PEEKB(b + k)
+    IF c <> 47 AND c <> 58 THEN
+        k = k + 1
+        POKEB b + k, 47
+    END IF
+    IF k + n > 126 THEN n = 126 - k
+    CSP 2, name + 1, 0, b + k + 1, 0, n
+    POKEB b, k + n
+    _FNAME = b
+END FUNCTION
+
 ' mode 1 INPUT, 2 OUTPUT, 3 APPEND, 4 BINARY, 5 RANDOM
 SUB _OPEN (name, mode, ch, reclen)
     DIM e, fl, old, ok, n, bsz, fib, buf, p
@@ -149,6 +183,7 @@ SUB _OPEN (name, mode, ch, reclen)
     CSP 10, e, 0, 32, 0
     POKE e + FUNG, -1
     POKE e + FBLK, -1
+    name = _FNAME(name)
     IF _SAMEAS(name, SADD("CONSOLE:")) THEN
         POKE e + FFL, FCON OR FREAD OR FWRITE
         EXIT SUB
@@ -253,6 +288,9 @@ SUB _CLOSE1 (ch)
         IF PEEK(e + FSVU) THEN
             IF _SVCLOSE(e) THEN r = -1
         ELSE
+            ' a new text file is of the kind text whatever its name (X.BAS):
+            ' FCLOSE enters the FIB's header, kind and all
+            IF (fl AND FNEW) <> 0 AND (fl AND FTEXT) <> 0 THEN POKE PEEK(e + FFIB) + 36, (PEEK(PEEK(e + FFIB) + 36) AND &HFFF0) OR 3
             IF fl AND FNEW THEN OSCALL 6, PEEK(e + FFIB), 1 ELSE OSCALL 6, PEEK(e + FFIB), 0
             IF CSP%(34) <> 0 THEN r = -1
         END IF
@@ -529,6 +567,7 @@ END FUNCTION
 SUB _KILL (name)
     DIM fib, r
     _ERRCODE = 0
+    name = _FNAME(name)
     r = _SVKILL(name)
     IF r < 0 THEN _IOERR 53
     IF r THEN EXIT SUB

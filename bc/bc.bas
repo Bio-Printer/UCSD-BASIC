@@ -1,10 +1,10 @@
 ' BC -- the BASIC compiler for the UCSD P-System: the driver
 '
-' BC compiles BASIC sources (NAME.TEXT) into object files (NAME.OBJ) and
+' BC compiles BASIC sources (NAME.BAS, text files) into object files (NAME.OBJ) and
 ' links object files and the library BASLIB.OBJ into a code file
 ' (NAME.CODE).  Commands, at the "Compile what file?" prompt or as the
 ' command line:
-'   NAME            compile NAME.TEXT and link NAME.CODE
+'   NAME            compile NAME.BAS (or NAME.TEXT) and link NAME.CODE
 '   -C NAME         compile only: NAME.OBJ
 '   -S NAME         compile with a listing (the BASIC statements and the
 '                   P-code made for them) in NAME.LST.TEXT; -S -C NAME too
@@ -396,8 +396,8 @@ FUNCTION WithSuffix$ (f$, suf$)
     WithSuffix$ = f$ + suf$
 END FUNCTION
 
-' where a file is: its volume and sub-volumes ("#5:" of "#5:FOO.TEXT",
-' "BASIC:/SRC/" of "BASIC:/SRC/BC.TEXT"), "" for none
+' where a file is: its volume and sub-volumes ("#5:" of "#5:FOO.BAS",
+' "BASIC:/SRC/" of "BASIC:/SRC/BC.BAS"), "" for none
 FUNCTION DirOf$ (f$)
     DIM i, c
     FOR i = LEN(f$) TO 1 STEP -1
@@ -409,7 +409,7 @@ FUNCTION DirOf$ (f$)
     NEXT i
 END FUNCTION
 
-' FOO of VOL:FOO.TEXT (and of VOL:/A/FOO.TEXT)
+' FOO of VOL:FOO.BAS (and of VOL:/A/FOO.BAS)
 FUNCTION ModOf$ (f$)
     DIM s$, i
     s$ = MID$(f$, LEN(DirOf$(f$)) + 1)
@@ -418,14 +418,36 @@ FUNCTION ModOf$ (f$)
     ModOf$ = UCASE$(s$)
 END FUNCTION
 
-' the source file of NAME: NAME, NAME.TEXT or NAME.BAS, on its volume
+' the source file of NAME: NAME, NAME.BAS or NAME.TEXT
 FUNCTION SourceOf$ (n$)
-    DIM f$
-    f$ = WithSuffix$(n$, ".TEXT")
-    IF NOT FileExists(f$) AND f$ <> n$ THEN
-        IF FileExists(n$ + ".BAS") THEN f$ = n$ + ".BAS"
-    END IF
-    SourceOf$ = f$
+    SourceOf$ = FindSource$(n$, "")
+END FUNCTION
+
+' a BASIC source file: NAME as named when it has a suffix, else NAME.BAS
+' or NAME.TEXT; in dir$ first when dir$ is not "".  The first name tried
+' when there is none.
+FUNCTION FindSource$ (n$, dir$)
+    DIM i, c$
+    FOR i = 1 TO 2
+        IF WithSuffix$(n$, ".X") = n$ THEN
+            c$ = n$
+        ELSEIF i = 1 THEN
+            c$ = n$ + ".BAS"
+        ELSE
+            c$ = n$ + ".TEXT"
+        END IF
+        IF dir$ <> "" THEN
+            IF FileExists(dir$ + c$) THEN
+                FindSource$ = dir$ + c$
+                EXIT FUNCTION
+            END IF
+        END IF
+        IF FileExists(c$) THEN
+            FindSource$ = c$
+            EXIT FUNCTION
+        END IF
+    NEXT i
+    IF WithSuffix$(n$, ".X") = n$ THEN FindSource$ = n$ ELSE FindSource$ = n$ + ".BAS"
 END FUNCTION
 
 ' the listing file: NAME.LST.TEXT (the name cut so that it fits in 15)
@@ -610,6 +632,16 @@ DIM cmd$, l$, r
 TokName$ = "BCTEMP.TOK"
 LTmpName$ = "BCTEMP.LST"
 DatName$ = "BCTEMP.DAT"
+' BC needs the emulator's Harvard layout: its code is too big for the
+' memory of the others.  Unit 64 is the code space there (a bad unit in
+' every other layout).
+CSP 5, 64, VARPTR(r), 0, 2, 0, 0
+IF CSP%(34) <> 0 THEN
+    PRINT "BC needs the emulator's Harvard layout: Options > Harvard Mode"
+    PRINT "(P-Code mode, Reclaim Z80 Interpreter Memory on), then restart"
+    PRINT "the P-System."
+    SYSTEM 1
+END IF
 cmd$ = COMMAND$
 IF cmd$ <> "" THEN
     IF NOT RunCmds(cmd$) THEN SYSTEM 1

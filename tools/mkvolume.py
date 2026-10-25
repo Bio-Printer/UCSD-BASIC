@@ -5,9 +5,9 @@
     README.TEXT LANGUAGE.TEXT DESIGN.TEXT   the documentation
     ALL.TEXT           @BASIC:ALL runs the four batch files below
     FILES.TEXT         every file, the sub-volumes' too
-    SRC/               the compiler's sources (BC*.TEXT); BUILD.TEXT:
+    SRC/               the compiler's sources (BC*.BAS); BUILD.TEXT:
                        @BASIC:/SRC/BUILD rebuilds the compiler as BASIC:BC2.CODE
-    LIB/               the run-time library BASLIB.OBJ, its sources (RT*.TEXT);
+    LIB/               the run-time library BASLIB.OBJ, its sources (RT*.BAS);
                        LIBS.TEXT: @BASIC:/LIB/LIBS rebuilds it as BASIC:/LIB/BASLIB2.OBJ
     DEMO/              example programs; DEMOS.TEXT compiles them all
     TEST/              the compiler's tests; TESTS.TEXT compiles them all,
@@ -17,7 +17,8 @@ The sub-volumes are data files holding a volume of their own (Tiny-C's
 MKDIR), made here with room for what their batch files write (the objects
 and code files, measured with the host build: twice that and 40 blocks).
 The compiler and library are the host build's (tools/mkself.sh,
-tools/mklib.sh), which BC on the P-System rebuilds byte for byte.
+tools/mklib.sh), which BC on the P-System rebuilds byte for byte.  The BASIC
+sources are NAME.BAS, of the kind text (as the Editor's files are).
 """
 import glob, os, shutil, subprocess, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -85,7 +86,7 @@ def host_sizes(srcs, links):
     work = tempfile.mkdtemp(prefix='bcvol_')
     try:
         for n, p in srcs.items():
-            shutil.copy(p, os.path.join(work, n + '.TEXT'))
+            shutil.copy(p, os.path.join(work, n + '.BAS'))
         shutil.copy(os.path.join(ROOT, 'build', 'BASLIB.OBJ'), work)
         bc = os.path.join(ROOT, 'build', 'bc')
         for n in srcs:
@@ -112,7 +113,7 @@ def main(out=os.path.join(ROOT, 'build', 'BASIC.BLK')):
              ''.join('-C BASIC:/SRC/%s\n' % m for m in MODS) +
              '-L BASIC:BC2=' + ','.join('BASIC:/SRC/' + m for m in MODS) + '\n')
     for f in sorted(glob.glob(os.path.join(ROOT, 'bc', '*.bas'))):
-        src.text(os.path.basename(f)[:-4].upper() + '.TEXT', text(f))
+        src.text(os.path.basename(f)[:-4].upper() + '.BAS', text(f))
     src.extra = sum(blocks(os.path.getsize(os.path.join(ROOT, 'build', 'self', m + '.OBJ'))) for m in MODS)
 
     lib = top.sub('LIB')
@@ -122,7 +123,7 @@ def main(out=os.path.join(ROOT, 'build', 'BASIC.BLK')):
              ''.join('-C BASIC:/LIB/%s\n' % m for m in LIBS) +
              '-J BASIC:/LIB/BASLIB2=' + ','.join('BASIC:/LIB/' + m for m in LIBS) + '\n')
     for f in sorted(glob.glob(os.path.join(ROOT, 'lib', '*.bas'))):
-        lib.text(os.path.basename(f)[:-4].upper() + '.TEXT', text(f))
+        lib.text(os.path.basename(f)[:-4].upper() + '.BAS', text(f))
     lib.extra = blocks(len(baslib)) + sum(blocks(os.path.getsize(os.path.join(ROOT, 'build', 'lib', m + '.OBJ'))) for m in LIBS)
 
     demo = top.sub('DEMO')
@@ -141,7 +142,7 @@ def main(out=os.path.join(ROOT, 'build', 'BASIC.BLK')):
             srcs[m] = os.path.join(ROOT, 'demos', m.lower() + '.bas')
     demo.text('DEMOS.TEXT', "' the demos: each compiled and linked into DEMO/NAME.CODE\n" + '\n'.join(cmds) + '\n')
     for m in sorted(srcs):
-        demo.text(m + '.TEXT', text(srcs[m]))
+        demo.text(m + '.BAS', text(srcs[m]))
     demo.extra = host_sizes(srcs, links)
 
     test = top.sub('TEST')
@@ -151,7 +152,7 @@ def main(out=os.path.join(ROOT, 'build', 'BASIC.BLK')):
               "' prints is in TEST/EXPECT/NAME.TEXT\n" + ''.join('BASIC:/TEST/%s\n' % n for n in names))
     srcs = {n: os.path.join(ROOT, 'tests', n.lower() + '.bas') for n in names}
     for n in names:
-        test.text(n + '.TEXT', text(srcs[n]))
+        test.text(n + '.BAS', text(srcs[n]))
     test.extra = host_sizes(srcs, [(n, [n]) for n in names])
     exp = test.sub('EXPECT')
     for n in names:

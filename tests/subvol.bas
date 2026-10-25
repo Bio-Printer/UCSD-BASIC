@@ -83,4 +83,19 @@ NEXT
 PRINT "full: err"; ERR; "after line"; i
 CLOSE #1
 ON ERROR GOTO 0
+' BASIC sources: NAME.BAS, text files (the kind text)
+OPEN "#5:/A/P.BAS" FOR OUTPUT AS #1
+PRINT #1, "PRINT ""in a sub-volume"""
+CLOSE #1
+OPEN "#5:Q.BAS" FOR OUTPUT AS #1
+PRINT #1, "        PRINT ""on the volume"""
+CLOSE #1
+OPEN "#5:/A/P.BAS" FOR INPUT AS #1
+LINE INPUT #1, l$
+CLOSE #1
+PRINT l$
+OPEN "#5:Q.BAS" FOR INPUT AS #1
+LINE INPUT #1, l$
+CLOSE #1
+PRINT l$
 PRINT "done"

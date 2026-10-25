@@ -249,7 +249,7 @@ FUNCTION _SVOPEN (e, name, mode)
                 POKE e + FSVH, 0
                 POKE rec + 16, 0
                 k = 5
-                IF _SVSUF(rec, SADD(".TEXT")) THEN k = 3
+                IF _SVSUF(rec, SADD(".TEXT")) OR _SVSUF(rec, SADD(".BAS")) THEN k = 3
                 IF _SVSUF(rec, SADD(".CODE")) THEN k = 2
                 POKE rec + 18, k
                 r = 2

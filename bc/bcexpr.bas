@@ -1196,11 +1196,11 @@ SUB GenConv (n)
     f = NTy(NA(n))
     t = NTy(n)
     IF t = TYSNG THEN
-        IF f = TYINT THEN OB OFLT ELSE Csp 107
+        IF f = TYINT THEN OB OFLT ELSE EmitCsp 107
     ELSEIF t = TYDBL THEN
-        IF f = TYINT THEN Csp 108 ELSE Csp 106
+        IF f = TYINT THEN EmitCsp 108 ELSE EmitCsp 106
     ELSE
-        IF f = TYSNG THEN Csp 24 ELSE CallRt "_DCINT"
+        IF f = TYSNG THEN EmitCsp 24 ELSE CallRt "_DCINT"
     END IF
 END SUB
 
@@ -1220,7 +1220,7 @@ SUB GenCompare (op, ty)
     DIM o
     IF ty = TYDBL THEN
         Ldc DRel(op)
-        Csp 105
+        EmitCsp 105
         EXIT SUB
     END IF
     IF ty = TYSTR THEN
@@ -1282,7 +1282,7 @@ SUB GenBin (n)
     CASE KXOR
         CallRt "_XOR"
     CASE TPOW
-        Csp 123
+        EmitCsp 123
     CASE TPLUS
         IF ty = TYSTR THEN
             CallRt "_SCAT"
@@ -1292,14 +1292,14 @@ SUB GenBin (n)
         ELSEIF ty = TYSNG THEN
             OB OADR
         ELSE
-            Csp 100
+            EmitCsp 100
         END IF
     CASE TMINUS
-        IF ty = TYINT THEN OB OSBI ELSE IF ty = TYSNG THEN OB OSBR ELSE Csp 101
+        IF ty = TYINT THEN OB OSBI ELSE IF ty = TYSNG THEN OB OSBR ELSE EmitCsp 101
     CASE TMUL
-        IF ty = TYINT THEN OB OMPI ELSE IF ty = TYSNG THEN OB OMPR ELSE Csp 102
+        IF ty = TYINT THEN OB OMPI ELSE IF ty = TYSNG THEN OB OMPR ELSE EmitCsp 102
     CASE TDIV
-        IF ty = TYSNG THEN OB ODVR ELSE Csp 103
+        IF ty = TYSNG THEN OB ODVR ELSE EmitCsp 103
     CASE TIDIV
         CallRt "_DIVI"
     CASE KMOD
@@ -1342,7 +1342,7 @@ SUB GenBuiltin (n)
             OB 0
             OB NV(a)
         ELSE
-            Csp NV(a)
+            EmitCsp NV(a)
         END IF
         EXIT SUB
     CASE BOSVAR
@@ -1402,14 +1402,14 @@ SUB GenBuiltin (n)
     CASE BFIX
         IF t1 = TYSNG THEN CallRt "_FIXS" ELSE IF t1 = TYDBL THEN CallRt "_FIXD"
     CASE BINT
-        IF t1 = TYSNG THEN CallRt "_INTS" ELSE IF t1 = TYDBL THEN Csp 124
+        IF t1 = TYSNG THEN CallRt "_INTS" ELSE IF t1 = TYDBL THEN EmitCsp 124
     CASE BABS
         IF t1 = TYINT THEN
             OB OABI
         ELSEIF t1 = TYSNG THEN
             OB OABR
         ELSE
-            Csp 126
+            EmitCsp 126
         END IF
     CASE BSGN
         IF t1 = TYINT THEN
@@ -1420,19 +1420,19 @@ SUB GenBuiltin (n)
             CallRt "_SGND"
         END IF
     CASE BSQR
-        IF t1 = TYDBL THEN Csp 112 ELSE Csp 31
+        IF t1 = TYDBL THEN EmitCsp 112 ELSE EmitCsp 31
     CASE BSIN
-        IF t1 = TYDBL THEN Csp 113 ELSE Csp 25
+        IF t1 = TYDBL THEN EmitCsp 113 ELSE EmitCsp 25
     CASE BCOS
-        IF t1 = TYDBL THEN Csp 114 ELSE Csp 26
+        IF t1 = TYDBL THEN EmitCsp 114 ELSE EmitCsp 26
     CASE BTAN
-        IF t1 = TYDBL THEN Csp 115 ELSE CallRt "_TANS"
+        IF t1 = TYDBL THEN EmitCsp 115 ELSE CallRt "_TANS"
     CASE BATN
-        IF t1 = TYDBL THEN Csp 118 ELSE Csp 28
+        IF t1 = TYDBL THEN EmitCsp 118 ELSE EmitCsp 28
     CASE BEXP
-        IF t1 = TYDBL THEN Csp 120 ELSE Csp 30
+        IF t1 = TYDBL THEN EmitCsp 120 ELSE EmitCsp 30
     CASE BLOG
-        IF t1 = TYDBL THEN Csp 121 ELSE Csp 29
+        IF t1 = TYDBL THEN EmitCsp 121 ELSE EmitCsp 29
     CASE BRND
         IF NX(n) = 1 THEN
             DropWords NodeWords(a)
@@ -1496,7 +1496,7 @@ SUB GenValue (n)
         ELSEIF NTy(n) = TYSNG THEN
             OB ONGR
         ELSE
-            Csp 104
+            EmitCsp 104
         END IF
     CASE NNOT
         GenValue NA(n)
@@ -1571,9 +1571,9 @@ SUB GenCond (n, falselab)
         Jump OFJP, falselab
     ELSE
         OB 0
-        Csp 108
+        EmitCsp 108
         Ldc 1
-        Csp 105
+        EmitCsp 105
         Jump OFJP, falselab
     END IF
 END SUB

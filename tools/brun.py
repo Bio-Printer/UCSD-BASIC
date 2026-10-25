@@ -46,7 +46,7 @@ def list_dirs(ps, dirs):
             if pre + name in [p for k, p, a in dirs if k == 'DIR']:
                 out.append('-- %s%s/ %d' % (pre, name, v.eov if False else last - first))
                 walk(v.sub(name), pre + name + '/')
-            elif pre:
+            elif pre or name.endswith('.BAS'):
                 out.append('-- %s%s %d %d' % (pre, name, last - first, kind & 15))
     walk(v, '')
     return '\n'.join(out) + '\n'
