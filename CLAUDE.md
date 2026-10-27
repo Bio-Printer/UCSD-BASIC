@@ -33,7 +33,9 @@
   .TEXT file as text and sets its kind (the FIB's DFKIND) itself.
 - BC's emitter procedure is EmitCsp: a SUB named Csp would take the CSP
   statement's place.  bas2c turns the CSP statement into nothing and
-  CSP%() into 0 (BC's Harvard check at its start).
+  CSP%() into 0.  BC no longer checks for the Harvard layout (docs/DESIGN.md
+  section 10: what the Z80 mode leaves).  PSYS_MODE=z80 needs the Z80
+  interpreter pascal.bin (setup.sh copies UCSD-TinyC's).
 - BASIC:INSTALL.TEXT (mkvolume) is a batch file of Tiny-C's shell (BIGGY
   1.32: @FILE; MOVE replaces): voltest runs it after BUILD.
 - The tests boot build/psys/data/Big_Disk.BLK (setup.sh copies BOOT_DISK);

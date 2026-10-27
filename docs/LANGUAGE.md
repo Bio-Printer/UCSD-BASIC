@@ -507,8 +507,9 @@ work in the job file BCTEMP.JOB on the prefix volume while they run.
 
 BC needs the emulator's Harvard layout (Options > Harvard Mode, the
 default, in P-Code mode with Reclaim Z80 Interpreter Memory on): its code
-does not fit in the memory of the other layouts.  Started in another one
-it says so and stops (exit status 1).  The programs it makes run in any
+does not fit in the memory of the other layouts.  It does not check (to
+measure what the others leave: BC -M); started in another one, BCGEN
+runs out of memory when its segment GEN loads.  The programs it makes run in any
 layout.
 
 ## 14. Limits

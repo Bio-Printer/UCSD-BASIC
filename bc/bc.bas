@@ -171,17 +171,7 @@ END SUB
 
 ' ---- the main program
 
-DIM cmd$, l$, r, failed
-' BC needs the emulator's Harvard layout: its code is too big for the
-' memory of the others.  Unit 64 is the code space there (a bad unit in
-' every other layout).
-CSP 5, 64, VARPTR(r), 0, 2, 0, 0
-IF CSP%(34) <> 0 THEN
-    PRINT "BC needs the emulator's Harvard layout: Options > Harvard Mode"
-    PRINT "(P-Code mode, Reclaim Z80 Interpreter Memory on), then restart"
-    PRINT "the P-System."
-    SYSTEM 1
-END IF
+DIM cmd$, l$, failed
 ' the other programs are beside this one: on the unit its code file is on
 ' (SYSCOM^.SEGTABLE[1].CODEUNIT)
 JobHome$ = "#" + IStr$(PEEK(OSVAR(1) + 102)) + ":"

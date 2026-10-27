@@ -297,11 +297,14 @@ itself the least any has left is about 12400 words (one program with every
 pass's code and globals had about 5000).  The largest tables were sized from what
 compiling BC needs (tools: -M prints the high-water marks).  In the
 normal layout the code would take memory from the stack and the heap
-(BCGEN alone is 57K), and overrun it.  So BC's first statement reads 2
-bytes of unit 64, the emulator's
-I-space in the Harvard layout and a bad unit (IORESULT 2) in every other
-one, Z80 mode too, and stops with a message when that fails.  (bas2c,
-the bootstrap, takes the CSP statement as nothing and CSP%() as 0.)
+(BCGEN alone is 57K), and overrun it.  BC does not check the layout
+(it did, until the Z80 mode was measured).  Compiling PI with -M, BCGEN
+has 4612 words free after the declarations in Z80 mode (8527 in P-Code
+mode without the Harvard layout), and its segment GEN needs 16104: the
+P-System halts there.  Of BCGEN's main segment (21390 bytes) the library
+is 13368 (all of it is linked; about 9200 is reachable), and the symbol
+table takes about 4600 words whatever the source.  (bas2c takes the CSP
+statement as nothing and CSP%() as 0.)
 
 ## 11. Testing
 

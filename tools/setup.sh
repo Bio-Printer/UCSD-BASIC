@@ -17,6 +17,9 @@ if [ ! -f $B/img/Big_Disk.BLK ]; then (cd $B/img && unzip -q -o "$IMAGES_ZIP"); 
 if [ ! -f $B/data/Big_Disk.BLK ]; then
     if [ -f "$BOOT_DISK" ]; then cp "$BOOT_DISK" $B/data/Big_Disk.BLK; else cp $B/img/Big_Disk.BLK $B/data/Big_Disk.BLK; fi
 fi
+# the Z80 interpreter (PSYS_MODE=z80 runs it): UCSD-TinyC's pascal.bin
+Z80_BIN=${Z80_BIN:-$ROOT/../bio-printer/ucsd-tinyc/pascal.bin}
+if [ -f "$Z80_BIN" ] && ! cmp -s "$Z80_BIN" $B/data/pascal.bin; then cp "$Z80_BIN" $B/data/pascal.bin; fi
 [ -f $B/data/pascal.bin ] || head -c 4096 /dev/zero > $B/data/pascal.bin
 if [ ! -x $B/run_verify ]; then
     g++ -std=c++17 -O2 -w -I "$ENGINE_DIR/verify/linux-shim" -I "$ENGINE_DIR/UCSDPascal" \
