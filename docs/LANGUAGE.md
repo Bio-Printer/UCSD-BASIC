@@ -51,8 +51,8 @@ one type suffix: % INTEGER, ! SINGLE, # DOUBLE, $ STRING.  A name may not
 be a keyword (but a keyword with a suffix, as in STRING$, is a name).
 Names that start with an underscore are used by the run-time library.
 
-Keywords: AND ANDALSO APPEND AS BINARY BYREF BYTE BYVAL CALL CASE CLOSE CLS
-COMMON CONST CONTINUE DATA DECLARE DEFDBL DEFINT DEFSNG DEFSTR DIM DO
+Keywords: AND ANDALSO APPEND AS BINARY BYREF BYTE BYVAL CALL CASE CHAIN CLOSE
+CLS COMMON CONST CONTINUE DATA DECLARE DEFDBL DEFINT DEFSNG DEFSTR DIM DO
 DOUBLE ELSE ELSEIF END ERASE ERROR EXIT EXPLICIT FOR FUNCTION GET GOSUB
 GOTO IF INPUT INTEGER IS KILL LET LINE LOCATE LOOP MOD NEXT NOT ON OPEN
 OPTION OR ORELSE OUTPUT PRESERVE PRINT PRIVATE PUT RANDOM RANDOMIZE READ
@@ -288,6 +288,18 @@ Data
 Program
 - `END [n]`, `STOP`, `SYSTEM [n]` -- the program ends (files are closed);
   n is the exit status a program started by Tiny-C's shell returns.
+- `CHAIN "[VOL:]PROGRAM [options]"` or `CHAIN a$` -- this program ends
+  (its files are closed) and PROGRAM runs in its place, with the options
+  as its COMMAND$; nothing of the first one stays in memory.  PROGRAM is
+  PROGRAM.CODE (PROGRAM. exactly), found as X(ecute finds it: on VOL:, the
+  prefix volume, a path into sub-volumes (BASIC:/DEMO/PI), or the shell's
+  path after a CD.  When it ends, the Command: prompt comes -- or the
+  shell, with the last program's exit status, when the shell started the
+  first one; a program may CHAIN again.  Errors: 53 when there is no such
+  code file (or it is not linked), 64 when the name is empty or the line,
+  with the shell's path, is over 80 characters; ON ERROR RESUME NEXT
+  catches them.  It needs BIGGY's operating system (SYSTEM.PASCAL 1.10 or
+  later, or SYSTEM.C): it uses Tiny-C's pexec.
 - `RANDOMIZE n` -- start RND's sequence from n.
 - `CLS` clears the screen; `LOCATE row, column` moves the cursor (from 1).
 - `ON ERROR RESUME NEXT` -- a failing file operation sets ERR instead of
@@ -413,7 +425,7 @@ A run-time error prints "Run-time error N: text" and stops the program.
     52 Bad file number           53 File not found
     54 Bad file mode             55 File already open
     61 Disk full                 62 Input past end of file
-    67 Too many files
+    64 Bad file name             67 Too many files
 
 Errors the P-machine finds itself (a stack overflow, for example) are
 reported by the operating system as usual.

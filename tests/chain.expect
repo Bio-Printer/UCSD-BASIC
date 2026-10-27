@@ -1,0 +1,9 @@
+chain: first
+no such program: err 53 
+not a code file: err 53 
+no name: err 64 
+too long: err 64 
+chain2: [one, two  three]
+chain2 reads: written before the CHAIN
+chain3: []
+chain3: memory free

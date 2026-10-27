@@ -36,3 +36,7 @@
   inside it, and nothing nests another segment inside GEN that is not
   already there (SUBVOL just fits).  voltest compares the P-System's
   listing (-S) with the host's.
+- CHAIN: lib/rtchain.bas (_CHAIN), the pexec protocol of BIGGY's GETCMD;
+  tests/chain (+ chain.progs) and tools/chaintest.py (from the shell; also
+  --pascal).  bas2c does not translate CHAIN: BC's sources may use it only
+  once bas2c and hostrt.h do.

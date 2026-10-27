@@ -50,6 +50,9 @@ compiler's use) and [docs/DESIGN.md](docs/DESIGN.md) (how BC works).
 * `-J LIB=A,B` -- join object files into a library
 * `@FILE` -- the commands in FILE.TEXT; `-M` -- memory report
 
+`CHAIN "[VOL:]PROGRAM [options]"` (or `CHAIN a$`) ends the program and runs another in its
+place, with the options as its `COMMAND$` (Tiny-C's pexec protocol: BIGGY's systems).
+
 Modules share variables with `COMMON SHARED`, call each other's procedures
 after `DECLARE`; `SEGMENT name` puts the following procedures in a code
 segment of their own.  BC needs the emulator's Harvard layout (its default:

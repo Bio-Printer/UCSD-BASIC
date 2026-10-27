@@ -62,10 +62,9 @@ def run(code, files=(), keys='', timeout=120, dirs=None):
     ps.put(name, open(code, 'rb').read())
     for f in files:
         n = os.path.basename(f).upper()
-        if n.endswith('.BAS'):
-            n = n[:-4] + '.TEXT'
         data = open(f, 'rb').read()
-        ps.put(n, data.decode('latin1') if n.endswith('.TEXT') else data)
+        # (NAME.BAS: a BASIC source, a text file as NAME.TEXT)
+        ps.put(n, data.decode('latin1') if n.endswith('.TEXT') or n.endswith('.BAS') else data)
     base = name[:-5]
     script = 'WAIT "Command:"\nTYPE "X"\nWAIT "Execute what file?"\nTYPE "#5:%s\\r"\n' % base
     if keys:

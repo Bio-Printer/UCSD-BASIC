@@ -130,6 +130,7 @@ SUB _ERRTEXT (code)
     CASE 57: m = SADD("Device I/O error")
     CASE 61: m = SADD("Disk full")
     CASE 62: m = SADD("Input past end of file")
+    CASE 64: m = SADD("Bad file name")
     CASE 67: m = SADD("Too many files")
     CASE ELSE: m = SADD("Error")
     END SELECT

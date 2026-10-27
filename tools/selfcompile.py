@@ -17,7 +17,7 @@ os.environ.setdefault('VERIFY_HARVARD', '1')
 import psys, ucsdvol
 
 MODS = ['BC', 'BCLEX', 'BCDECL', 'BCGEN', 'BCEXPR', 'BCEMIT', 'BCLIST', 'BCLINK']
-LIBS = ['RTCORE', 'RTFILE', 'RTSTR', 'RTNUM', 'RTARR', 'RTINPUT', 'RTDATA', 'RTSUBV']
+LIBS = ['RTCORE', 'RTFILE', 'RTSTR', 'RTNUM', 'RTARR', 'RTINPUT', 'RTDATA', 'RTSUBV', 'RTCHAIN']
 
 
 def main(a):

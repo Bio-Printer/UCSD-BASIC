@@ -1523,6 +1523,11 @@ SUB GenStmt ()
         GetTok
         GenValueAs Expr, TYSTR
         CallRt "_KILL"
+    CASE KCHAIN
+        ' CHAIN "[VOL:]PROGRAM [options]": this program ends, that one runs
+        GetTok
+        GenValueAs Expr, TYSTR
+        CallRt "_CHAIN"
     CASE KSWAP
         GenSwap
     CASE KRANDOMIZE

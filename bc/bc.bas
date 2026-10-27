@@ -69,7 +69,7 @@ FUNCTION KwTable$ (part)
         tb$ = tb$ + "RESTORE  CONTINUE RANDOMIZEOPTION   EXPLICIT REAL     CLS      LOCATE   "
         tb$ = tb$ + "WRITE    PRESERVE ERROR    "
     CASE ELSE
-        tb$ = "RESUME   SEEK     USING    "
+        tb$ = "RESUME   SEEK     USING    CHAIN    "
     END SELECT
     KwTable$ = tb$
 END FUNCTION
