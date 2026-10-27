@@ -22,6 +22,8 @@ DECLARE FUNCTION _XOR (a, b)
 
 CONST PXRUN = 25601, PXCHILD = 25602, PXARGS = 25604, PXPATHSEP = 30
 
+SEGMENT RTSELDOM
+
 ' CHAIN cmd: an error if it cannot be done (53: no such code file, or not
 ' a linked one; 64: no name, or the line too long for PL, 80 characters
 ' with the shell's path)

@@ -2,7 +2,14 @@
 ' messages (BCGEN)
 #INCLUDE "BCCOM"
 
-' ---- keywords (the lexer's table: codes 1..NKEYWORD, 9 characters each)
+' (KwCode's copy of the table, made at its first call)
+DIM SHARED KwT$(3)
+
+' ---- keywords (the lexer's table: codes 1..NKEYWORD, 9 characters each),
+' and their names for messages: in a segment of their own, KWNAMES, which
+' BCGEN loads only for an error; BCLEX's KwCode keeps a copy of the table
+
+SEGMENT KWNAMES
 
 FUNCTION KwTable$ (part)
     DIM tb$
@@ -64,13 +71,20 @@ FUNCTION KwName$ (k)
     END SELECT
 END FUNCTION
 
+SEGMENT
+
 ' the keyword code of an upper-case word, 0 if it is not one
 FUNCTION KwCode (w$)
     DIM part, p, t$, pad$
     IF LEN(w$) > 9 OR LEN(w$) < 2 THEN EXIT FUNCTION
+    IF KwT$(0) = "" THEN
+        FOR part = 0 TO 3
+            KwT$(part) = KwTable$(part)
+        NEXT part
+    END IF
     pad$ = LEFT$(w$ + "         ", 9)
     FOR part = 0 TO 3
-        t$ = KwTable$(part)
+        t$ = KwT$(part)
         p = INSTR(t$, pad$)
         DO WHILE p > 0
             IF (p - 1) MOD 9 = 0 THEN

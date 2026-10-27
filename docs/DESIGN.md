@@ -17,13 +17,14 @@ memory for its own code and tables.
     BCGEN.CODE   passes 2 and 3: bcgen.bas (statements, procedures),
                  bcdecl.bas (declarations; segment DECL), bcexpr.bas
                  (expressions), bcemit.bas (the emitter, jumps, entry and
-                 exit code, the object file) -- segment GEN but for
-                 bcgen's body --, bctok.bas (the token reader, the symbol
-                 table), bckw.bas
+                 exit code, the object file), bctok.bas (the token reader,
+                 the symbol table), bckw.bas; pass 3 in the segments STMT,
+                 STMTA, STMTD, STMTIO, EXPR and EXPRGEN (section 10)
     BCLIST.CODE  the listing and its disassembler: bclist.bas
     BCLINK.CODE  the linker and -J: bclink.bas
 
-Each also has bcutil.bas (messages, file names, the job file, ChainTo),
+Each also has bcutil.bas (messages, file names, the job file, ChainTo; what
+is done once in the library's segment RTSELDOM),
 and the first module of each is its main one (tools/bcprogs.py lists
 them, for every build tool).  bccom.bas holds the declarations every
 module includes, bcgencom.bas those of pass 3 and the listing, bcprocs.bas
@@ -161,12 +162,10 @@ The P-machine as BC uses it:
 The listing: for each statement the offset its code starts at and its
 text go to :BCTEMP.LST, and when a procedure is finished its code (in hex),
 its sizes and its relocations (with their names) to :BCTEMP.LCD
-(ListSave).  After pass 3 the driver calls LIST (ListModule), which reads
-both and disassembles the code between the statements.  Not during pass 3:
-in the Harvard layout the code segments are stacked in the 64K code space,
-and the operating system's segment 0 (7.6K), BC's resident part (21.9K),
-GEN (31.8K), LIST (4K) and the library's SUBVOL (2.3K) are more than it
-holds -- the emulator says *STK OFLOW*.  While the object, the statements
+(ListSave).  After pass 3 BCGEN chains to BCLIST (ListModule), which reads
+both and disassembles the code between the statements: a program of its
+own, as the listing's code beside pass 3's was more than the Harvard
+layout's 64K code space held (*STK OFLOW*).  While the object, the statements
 and the code are written, three new files at once, the object is opened
 with [*] (half the largest free area, the operating system's rule) and
 the statements' file so too, or the first file would take all the room.
@@ -204,8 +203,11 @@ library start with an underscore and have no type suffix.
 
 It reads the object files and the library from the start, never seeking:
 pass 1 enters every module, procedure and COMMON variable and the names
-each module uses; the linked modules are the first one, the library's
-start and end (_RTINIT, _HALT) and whatever a linked module uses; the
+each procedure uses; the linked procedures are the main program's body,
+the library's start and end (_RTINIT, _HALT), whatever a linked
+procedure calls, and the body of each module one of whose procedures is
+linked (a procedure no one calls is left out: PI's code file has 7K of
+the library's 13K); a segment longer than 32000 bytes is an error; the
 layout puts each linked module's statics and the COMMON variables after
 word 3 of the startup procedure's frame, numbers the segments (the main
 one 1, the others 7, 8, ...) and the procedures; then, for each segment,
@@ -235,8 +237,13 @@ and OSCALL (FINIT, FOPEN, FCLOSE, FBLOCKIO).
   buffering are the library's, ported from Tiny-C's stdio.  Every block
   goes through _BLOCKIO: FBLOCKIO for a file the operating system opened,
   RTSUBV's _SVIO for one in a sub-volume.
-- Sub-volumes (RTSUBV, a code segment of its own, SUBVOL, so a program
-  that names no path does not hold it in memory): a path VOL:/A/B/NAME is
+- The segment RTSELDOM holds what a program does seldom, so that it is in
+  memory only then: OPEN and the file names it takes (RTFILE), the
+  sub-volumes (RTSUBV), CHAIN (RTCHAIN), the command line at the start
+  (_ARGS); BC's seldom parts too (bcutil.bas, the end of a procedure in
+  bcemit.bas).  _ERRTEXT stays in the main one: an error for want of
+  memory still has its message.
+- Sub-volumes (RTSUBV): a path VOL:/A/B/NAME is
   followed as Tiny-C's library does it, but the first step is the OS's:
   FOPEN of VOL:A gives its unit (FIB word 7) and first block (FHEADER's
   DFIRSTBLK, word 16), so #5:, * and the prefix work as for any file; the
@@ -256,7 +263,7 @@ and OSCALL (FINIT, FOPEN, FCLOSE, FBLOCKIO).
   (CSP 135).
 - The console: a line buffer written with UNITWRITE; input read a key at
   a time with UNITREAD and echoed.
-- CHAIN (RTCHAIN, linked only into a program that uses it): Tiny-C's
+- CHAIN (RTCHAIN): Tiny-C's
   pexec without the way back.  _CHAIN finds the code file as pexec does
   (a path or the shell's path: RTSUBV's _SVPATH; else FOPEN of NAME.CODE:
   the FIB's unit and first block), checks that it is a linked code file
@@ -291,19 +298,43 @@ fill it.
 
 ## 10. Memory
 
-BC needs the Harvard layout (code in its own 64K instruction space): with
-it each of its programs has about 30000 words of data space, and compiling
-itself the least any has left is about 12400 words (one program with every
-pass's code and globals had about 5000).  The largest tables were sized from what
-compiling BC needs (tools: -M prints the high-water marks).  In the
-normal layout the code would take memory from the stack and the heap
-(BCGEN alone is 57K), and overrun it.  BC does not check the layout
-(it did, until the Z80 mode was measured).  Compiling PI with -M, BCGEN
-has 4612 words free after the declarations in Z80 mode (8527 in P-Code
-mode without the Harvard layout), and its segment GEN needs 16104: the
-P-System halts there.  Of BCGEN's main segment (21390 bytes) the library
-is 13368 (all of it is linked; about 9200 is reachable), and the symbol
-table takes about 4600 words whatever the source.  (bas2c takes the CSP
+BC is written for the Harvard layout (code in its own 64K instruction
+space), where each of its programs has about 30000 words of data space;
+compiling itself, the least any has left is about 9500 words.  It runs in
+the other layouts too, where its code takes data space: the Z80 mode (the
+least memory) and P-Code mode without the Harvard layout (3900 words
+more), for programs the size of the demos -- tools/smalltest.py compiles,
+links and runs PI in both.  What makes that fit:
+
+- The linker links procedures, not modules (section 8): the library's
+  13K of code was in every program; now only what it calls is (BC's own
+  programs are 5 to 6K smaller, PI 7K).
+- The segment RTSELDOM (section 9): the library's and BC's seldom parts.
+- BCGEN's pass 3 is six segments, a call chain holding three of them at
+  most: STMT (the statement loop: GenBlock, GenStmt, IF, FOR, DO, WHILE,
+  SELECT); one of STMTA (assignments, calls, GOTO, GOSUB, ON, EXIT),
+  STMTD (DIM, CONST, SHARED, STATIC) and STMTIO (PRINT, INPUT, the files,
+  READ); and EXPR (an expression parsed into a tree) or EXPRGEN (its
+  code): an expression is parsed, then made into code, so those two are
+  never in memory together.  What all of them use (the emitter, the
+  nodes, the symbol lookups, GenPass and GenProc) is in the main segment.
+  The keywords' names (bckw.bas), for error messages only, are a segment
+  of their own, KWNAMES (BCLEX's KwCode keeps a copy of the table);
+  ProcHeader and CountDims, which only pass 2 uses, are in DECL.
+- BCGEN's tables (the symbols, parameters, string constants, a
+  procedure's code, labels, jumps, calls, expression nodes) start small,
+  as large as a program like PI needs, and BCLINK's (names, procedures,
+  modules, references, COMMON variables; its buffer is the largest
+  procedure's size) too; each is doubled by REDIM PRESERVE when it is full
+  (Grown), up to its MAX constant.  (Doubled, so in few steps: the old
+  table's memory is left as a hole too small for the next one.)
+
+Compiling PI, BCGEN has at least 1360 words left in Z80 mode and BCLINK
+3550 (5280 and 7470 in P-Code mode without the Harvard layout).  BC's own
+modules need more than either has, in the symbol table (up to 640
+symbols, 8 words each) and in their deeper statements: compiling itself
+needs the Harvard layout.  BC does not check the layout; out of memory, it
+says Run-time error 7, or the emulator *STK OFLOW*.  (bas2c takes the CSP
 statement as nothing and CSP%() as 0.)
 
 ## 11. Testing

@@ -6,7 +6,6 @@
 ' tests bit 0), made -1 / 0 when it is used as a number, as BASIC wants.
 #INCLUDE "BCCOM"
 #INCLUDE "BCGENCOM"
-SEGMENT GEN
 
 
 ' ---- nodes
@@ -20,9 +19,15 @@ SUB ResetNodes ()
 END SUB
 
 FUNCTION NewNode (op, ty)
-    IF NNode >= MAXNODE THEN
-        ErrMsg "expression too complex"
-        NNode = 1
+    IF NNode >= NodeCap THEN
+        IF NodeCap < MAXNODE THEN
+            NodeCap = Grown(NodeCap, MAXNODE)
+            REDIM PRESERVE NOp(NodeCap) AS BYTE, NTy(NodeCap) AS BYTE, NA(NodeCap), NB(NodeCap)
+            REDIM PRESERVE NV(NodeCap), NX(NodeCap), NN(NodeCap), NS$(NodeCap), NIsBool(NodeCap) AS BYTE
+        ELSE
+            ErrMsg "expression too complex"
+            NNode = 1
+        END IF
     END IF
     NNode = NNode + 1
     IF NNode > HiNode THEN HiNode = NNode
@@ -131,6 +136,7 @@ FUNCTION BinNode (op, ty, a, b)
     BinNode = n
 END FUNCTION
 
+SEGMENT EXPR
 ' + - * / \ MOD ^ & on two operands
 FUNCTION Arith (op, a, b)
     DIM t, va, vb, r
@@ -223,6 +229,7 @@ END FUNCTION
 
 ' ---- names
 
+SEGMENT
 ' may a symbol of the module be seen here (in a procedure: constants,
 ' procedures and shared variables only)
 FUNCTION Visible (s)
@@ -300,6 +307,7 @@ END FUNCTION
 
 ' ---- real constants
 
+SEGMENT EXPRGEN
 ' the P-machine's 4-byte real of a double: [exp+128][sign|m22..m16][m15..m8][m7..m0]
 FUNCTION RealImage$ (d#)
     DIM b$, b3, b4, b5, b6, b7, e, m1, m2, m3, sg
@@ -370,6 +378,7 @@ END SUB
 
 ' ---- parsing
 
+SEGMENT EXPR
 FUNCTION Expr ()
     DIM a, b
     a = ParseOr
@@ -990,6 +999,7 @@ FUNCTION Primary ()
     Primary = n
 END FUNCTION
 
+SEGMENT STMTD
 ' CONST: an expression of constants only; its value in v (integers), the
 ' node returned
 FUNCTION ConstExpr (v)
@@ -1006,6 +1016,7 @@ END FUNCTION
 
 ' ---- code: values
 
+SEGMENT
 FUNCTION IsLvalue (n)
     IF NOp(n) = NVAR THEN
         IsLvalue = SKind(NV(n)) = SKVAR
@@ -1014,6 +1025,7 @@ FUNCTION IsLvalue (n)
     END IF
 END FUNCTION
 
+SEGMENT EXPRGEN
 ' an array's slot: its address (an array parameter holds the caller's)
 SUB GenSlot (s)
     SELECT CASE SCls(s)
@@ -1064,11 +1076,13 @@ SUB GenAddr (n)
     END SELECT
 END SUB
 
+SEGMENT
 ' the type a variable or element is stored as (TYBYTE stays)
 FUNCTION StoreType (n)
     StoreType = SType(NV(n))
 END FUNCTION
 
+SEGMENT EXPRGEN
 SUB GenLoad (n)
     DIM s, w, ty
     s = NV(n)

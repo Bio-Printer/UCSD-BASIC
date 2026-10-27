@@ -8,7 +8,6 @@
 ' both ways out of a condition).
 #INCLUDE "BCCOM"
 #INCLUDE "BCGENCOM"
-SEGMENT GEN
 
 
 CONST TMEND = 200
@@ -17,6 +16,7 @@ DIM SHARED CtlStepS$(MAXCTL), CtlSign(MAXCTL)
 
 ' ---- helpers
 
+SEGMENT STMT
 SUB StmtEnd ()
     IF NOT AtEnd THEN
         ErrMsg "the end of the statement expected, not " + KwName$(Tok)
@@ -54,6 +54,7 @@ FUNCTION NotCond (c)
 END FUNCTION
 
 
+SEGMENT
 FUNCTION SymNode (s)
     DIM n
     n = NewNode(NVAR, SType(s))
@@ -62,6 +63,7 @@ FUNCTION SymNode (s)
     SymNode = n
 END FUNCTION
 
+SEGMENT STMT
 ' the target of an assignment, INPUT, READ ...: a variable or an element
 ' (made if it is new); 0 after an error
 FUNCTION LValue ()
@@ -143,6 +145,7 @@ SUB DefineLabel (nm$)
     SetLabel SAux(s)
 END SUB
 
+SEGMENT STMTA
 SUB GenGoto ()
     DIM s
     s = LabelSym(LabelText$)
@@ -162,6 +165,7 @@ END SUB
 
 ' ---- control structures
 
+SEGMENT STMT
 FUNCTION PushCtl (kind, ex, cont)
     IF NCtl >= MAXCTL THEN
         ErrMsg "blocks nested too deep"
@@ -174,6 +178,7 @@ FUNCTION PushCtl (kind, ex, cont)
     PushCtl = NCtl
 END FUNCTION
 
+SEGMENT STMTA
 FUNCTION FindCtl (kind)
     DIM i
     FOR i = NCtl TO 1 STEP -1
@@ -184,6 +189,7 @@ FUNCTION FindCtl (kind)
     NEXT i
 END FUNCTION
 
+SEGMENT STMT
 SUB GenIf ()
     DIM c, lfalse, lend, f, t, l
     GetTok
@@ -565,6 +571,7 @@ SUB GenSelect ()
     END IF
 END SUB
 
+SEGMENT STMTA
 SUB GenExitStmt (cont)
     DIM k, kind
     GetTok
@@ -683,6 +690,7 @@ END SUB
 
 ' ---- PRINT, INPUT
 
+SEGMENT STMTIO
 ' the file number of PRINT # / INPUT #: a constant or a local (ch < 0)
 FUNCTION FileNum ()
     DIM e, t
@@ -951,6 +959,7 @@ END SUB
 
 ' ---- declarations
 
+SEGMENT STMTD
 ' the bytes of an array element
 FUNCTION ElemBytes (ty)
     SELECT CASE ty
@@ -1140,9 +1149,14 @@ SUB GenConst ()
             t$ = NS$(n)
             IF NOp(n) = NRCON AND NX(n) THEN t$ = "-" + t$
             NConst = NConst + 1
-            IF NConst > 300 THEN
-                ErrMsg "too many string and real constants"
-                NConst = 1
+            IF NConst > ConstCap THEN
+                IF ConstCap < 300 THEN
+                    ConstCap = Grown(ConstCap, 300)
+                    REDIM PRESERVE ConstText$(ConstCap)
+                ELSE
+                    ErrMsg "too many string and real constants"
+                    NConst = 1
+                END IF
             END IF
             ConstText$(NConst) = t$
             SAux(s) = NConst
@@ -1155,6 +1169,7 @@ END SUB
 
 ' ---- DATA, READ, RESTORE
 
+SEGMENT
 ' the module's DATA statements (the declaration pass kept them in a file):
 ' given to the library's list when the body starts
 SUB GenDataList ()
@@ -1176,6 +1191,7 @@ SUB GenDataList ()
     KILL DatName$
 END SUB
 
+SEGMENT STMTIO
 SUB GenRead ()
     DIM lv, ty
     GetTok
@@ -1272,6 +1288,7 @@ END SUB
 
 ' ---- other statements
 
+SEGMENT STMTA
 SUB GenSwap ()
     DIM a, b, ty
     GetTok
@@ -1412,6 +1429,7 @@ SUB GenEnd ()
     CallRt "_HALT"
 END SUB
 
+SEGMENT STMT
 SUB GenStmt ()
     DIM k, s
     k = Tok
@@ -1565,6 +1583,7 @@ SUB GenStmt ()
     END SELECT
 END SUB
 
+SEGMENT
 ' skip a SUB or FUNCTION (its body is compiled in the second reading)
 SUB SkipProc ()
     DO
@@ -1584,6 +1603,7 @@ SUB SkipProc ()
     LOOP
 END SUB
 
+SEGMENT STMT
 ' statements up to the end of a block: returns what ended it (ELSE,
 ' ELSEIF, NEXT, LOOP, WEND, CASE: the keyword read; END IF / SUB /
 ' FUNCTION / SELECT: TMEND + the keyword, both read; TEOF)
@@ -1640,6 +1660,7 @@ END FUNCTION
 
 ' ---- procedures
 
+SEGMENT
 SUB GenProc (priv)
     DIM isfunc, nm$, ty, np, s, i, pw, rw, off, w, p, t, r, ht$, hl, sv$, sl
     ht$ = TokText$
@@ -1721,11 +1742,11 @@ END SUB
 
 SUB GenPass ()
     DIM t, s, k, w
-    REDIM Code(MAXCODE) AS BYTE, LabPos(MAXLAB), FixPos(MAXFIX), FixLab(MAXFIX)
-    REDIM RelPos(MAXREL), RelType(MAXREL) AS BYTE, RelSym(MAXREL)
-    REDIM NOp(MAXNODE) AS BYTE, NTy(MAXNODE) AS BYTE, NA(MAXNODE), NB(MAXNODE)
-    REDIM NV(MAXNODE), NX(MAXNODE), NN(MAXNODE), NS$(MAXNODE), NIsBool(MAXNODE) AS BYTE
-    REDIM CtlKind(MAXCTL), CtlExit(MAXCTL), CtlCont(MAXCTL), ConstText$(300)
+    REDIM Code(CodeCap) AS BYTE, LabPos(LabCap), FixPos(FixCap), FixLab(FixCap)
+    REDIM RelPos(RelCap), RelType(RelCap) AS BYTE, RelSym(RelCap)
+    REDIM NOp(NodeCap) AS BYTE, NTy(NodeCap) AS BYTE, NA(NodeCap), NB(NodeCap)
+    REDIM NV(NodeCap), NX(NodeCap), NN(NodeCap), NS$(NodeCap), NIsBool(NodeCap) AS BYTE
+    REDIM CtlKind(MAXCTL), CtlExit(MAXCTL), CtlCont(MAXCTL), ConstText$(ConstCap)
     NNode = 0
     NConst = 0
     MemNote "gen arrays"
@@ -1810,10 +1831,20 @@ StepNames
 ErrCount = 0
 TokLine = 0
 TokText$ = ""
-REDIM SName$(MAXSYM), SKind(MAXSYM) AS BYTE, SType(MAXSYM) AS BYTE, SCls(MAXSYM) AS BYTE
-REDIM SOff(MAXSYM), SFlags(MAXSYM) AS BYTE, SScope(MAXSYM) AS BYTE, SNext(MAXSYM)
-REDIM SAux(MAXSYM), SAux2(MAXSYM), SSeg(MAXSYM) AS BYTE, HashHead(HSIZE)
-REDIM PType(MAXPAR) AS BYTE, PFlg(MAXPAR) AS BYTE
+' the tables: small at first (enough for a program such as PI), each
+' grown (Grown) up to its MAX constant when it is too small
+SymCap = 100
+ParCap = 40
+ConstCap = 16
+CodeCap = 1024
+LabCap = 64
+FixCap = 64
+RelCap = 96
+NodeCap = 32
+REDIM SName$(SymCap), SKind(SymCap) AS BYTE, SType(SymCap) AS BYTE, SCls(SymCap) AS BYTE
+REDIM SOff(SymCap), SFlags(SymCap) AS BYTE, SScope(SymCap) AS BYTE, SNext(SymCap)
+REDIM SAux(SymCap), SAux2(SymCap), SSeg(SymCap) AS BYTE, HashHead(HSIZE)
+REDIM PType(ParCap) AS BYTE, PFlg(ParCap) AS BYTE
 MemNote "symbols"
 InitSyms
 DeclPass

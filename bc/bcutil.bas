@@ -72,6 +72,11 @@ FUNCTION FileExists (f$)
     ON ERROR GOTO 0
 END FUNCTION
 
+' (the names of files, the job file, the end of a step: seldom, in the
+' library's segment RTSELDOM; MemNote, and the CHAIN to the next program,
+' which ends every program, a Fatal error deep in GEN too, in the main one)
+SEGMENT RTSELDOM
+
 ' NAME with the suffix suf$ unless it has one (a dot after its volume and
 ' sub-volumes)
 FUNCTION WithSuffix$ (f$, suf$)
@@ -150,9 +155,23 @@ FUNCTION ListOf$ (n$)
     ListOf$ = DirOf$(n$) + m$ + ".LST"
 END FUNCTION
 
+SEGMENT
+
+' a table's new size when cap entries were too few: twice as many, max at
+' most (BCGEN's tables, BCLINK's).  (REDIM PRESERVE leaves the old one's
+' memory behind, a hole too small for the next: few steps, few holes.)
+FUNCTION Grown (cap, max)
+    DIM n
+    n = cap * 2
+    IF n > max THEN n = max
+    Grown = n
+END FUNCTION
+
 SUB MemNote (w$)
     IF OptMem THEN SayLn "  [" + w$ + ": " + IStr$(FRE(0)) + " free, least " + IStr$(FRE(-1)) + "]"
 END SUB
+
+SEGMENT RTSELDOM
 
 ' ---- the job (BC writes it; the other programs read it, do the step and
 ' chain on)
@@ -174,6 +193,8 @@ SUB ReadJob ()
     IF JobFlags AND JFMEM THEN OptMem = 1
 END SUB
 
+SEGMENT
+
 ' CHAIN to the program p$ of the compiler (args$ its command line); it
 ' cannot be found: a message, and the end with status 1
 SUB ChainTo (p$, args$)
@@ -192,6 +213,8 @@ END SUB
 SUB PhaseDone (ok)
     IF ok THEN ChainTo "BC", "-Z 0" ELSE ChainTo "BC", "-Z 1"
 END SUB
+
+SEGMENT RTSELDOM
 
 ' a compile step's files: "C lst NAME"
 SUB StepNames ()

@@ -8,18 +8,26 @@
 ' and the procedure is written to the object file as a P record.
 #INCLUDE "BCCOM"
 #INCLUDE "BCGENCOM"
-SEGMENT GEN
 
 
 DIM SHARED LongLab(60), PendPC, PendLine, PendText$, PendSet
 DIM SHARED GsRet(100), ProcKeep
 
+' ---- the tables, made as large as the source seemed to need (BCGEN's
+' body): grown (BCUTIL's Grown) when that was too few, up to the MAX
+' constants
+
 ' ---- bytes
 
 SUB OB (b)
-    IF PC >= MAXCODE - 40 THEN
-        ErrMsg "procedure too large: split it"
-        PC = 0
+    IF PC >= CodeCap - 40 THEN
+        IF CodeCap < MAXCODE THEN
+            CodeCap = Grown(CodeCap, MAXCODE)
+            REDIM PRESERVE Code(CodeCap) AS BYTE
+        ELSE
+            ErrMsg "procedure too large: split it"
+            PC = 0
+        END IF
     END IF
     Code(PC) = b AND 255
     PC = PC + 1
@@ -89,9 +97,14 @@ END SUB
 ' ---- labels and jumps
 
 FUNCTION NewLabel ()
-    IF NLab >= MAXLAB THEN
-        ErrMsg "procedure too large (labels): split it"
-        NLab = 0
+    IF NLab >= LabCap THEN
+        IF LabCap < MAXLAB THEN
+            LabCap = Grown(LabCap, MAXLAB)
+            REDIM PRESERVE LabPos(LabCap)
+        ELSE
+            ErrMsg "procedure too large (labels): split it"
+            NLab = 0
+        END IF
     END IF
     LabPos(NLab) = -1
     NewLabel = NLab
@@ -114,12 +127,19 @@ SUB SetLabel (l)
     LabPos(l) = PC
 END SUB
 
-SUB Jump (op, l)
-    OB op
-    IF NFix >= MAXFIX THEN
+SUB MoreFix ()
+    IF FixCap < MAXFIX THEN
+        FixCap = Grown(FixCap, MAXFIX)
+        REDIM PRESERVE FixPos(FixCap), FixLab(FixCap)
+    ELSE
         ErrMsg "procedure too large (jumps): split it"
         NFix = 0
     END IF
+END SUB
+
+SUB Jump (op, l)
+    OB op
+    IF NFix >= FixCap THEN MoreFix
     FixPos(NFix) = PC
     FixLab(NFix) = l
     NFix = NFix + 1
@@ -128,10 +148,7 @@ END SUB
 
 ' a word of a case table: self-relative, the target is its address - it
 SUB CaseWord (l)
-    IF NFix >= MAXFIX THEN
-        ErrMsg "procedure too large (jumps): split it"
-        NFix = 0
-    END IF
+    IF NFix >= FixCap THEN MoreFix
     FixPos(NFix) = PC
     FixLab(NFix) = -2 - l
     NFix = NFix + 1
@@ -141,9 +158,14 @@ END SUB
 ' ---- relocations and the names they refer to
 
 SUB Reloc (ty, sym)
-    IF NRel >= MAXREL THEN
-        ErrMsg "procedure too large (calls): split it"
-        NRel = 0
+    IF NRel >= RelCap THEN
+        IF RelCap < MAXREL THEN
+            RelCap = Grown(RelCap, MAXREL)
+            REDIM PRESERVE RelPos(RelCap), RelType(RelCap) AS BYTE, RelSym(RelCap)
+        ELSE
+            ErrMsg "procedure too large (calls): split it"
+            NRel = 0
+        END IF
     END IF
     RelPos(NRel) = PC
     RelType(NRel) = ty
@@ -162,6 +184,7 @@ FUNCTION RtSym (n$)
     RtSym = s
 END FUNCTION
 
+SEGMENT RTSELDOM
 FUNCTION RtVar (n$)
     DIM s
     s = FindSym(n$)
@@ -173,6 +196,7 @@ FUNCTION RtVar (n$)
     RtVar = s
 END FUNCTION
 
+SEGMENT
 ' a global variable's load, store or address: op with a 2-byte operand the
 ' linker fills in (a module static: its offset in the module's block; a
 ' COMMON variable: the offset in it)
@@ -256,6 +280,7 @@ END SUB
 
 ' ---- the listing's statement records (written one behind: see SetLabel)
 
+SEGMENT RTSELDOM
 SUB ListFlush ()
     IF PendSet THEN
         PRINT #CHLREC, IStr$(PendPC); " "; IStr$(PendLine)
@@ -287,6 +312,7 @@ SUB ListSave (nm$)
     NEXT i
 END SUB
 
+SEGMENT
 ' the pending record dropped (a procedure skipped: no code of its own)
 SUB ListDrop ()
     IF PendSet AND PendPC = PC THEN PendSet = 0
@@ -335,6 +361,7 @@ SUB BeginProc (s)
     END IF
 END SUB
 
+SEGMENT STMTA
 ' a GOSUB's return point: its number (RETURN goes back through a table)
 FUNCTION GosubSite (l)
     IF NGosub >= 100 THEN
@@ -347,6 +374,7 @@ FUNCTION GosubSite (l)
     GosubSite = NGosub
 END FUNCTION
 
+SEGMENT RTSELDOM
 ' the exit code: the result, the strings and arrays given back
 SUB GenExit ()
     DIM s, i, ty

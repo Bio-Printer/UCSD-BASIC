@@ -156,7 +156,13 @@ END FUNCTION
 
 FUNCTION AddSym (n$, kind, ty)
     DIM h
-    IF NSym >= MAXSYM THEN Fatal "too many names"
+    IF NSym >= SymCap THEN
+        IF SymCap >= MAXSYM THEN Fatal "too many names"
+        SymCap = Grown(SymCap, MAXSYM)
+        REDIM PRESERVE SName$(SymCap), SKind(SymCap) AS BYTE, SType(SymCap) AS BYTE, SCls(SymCap) AS BYTE
+        REDIM PRESERVE SOff(SymCap), SFlags(SymCap) AS BYTE, SScope(SymCap) AS BYTE, SNext(SymCap)
+        REDIM PRESERVE SAux(SymCap), SAux2(SymCap), SSeg(SymCap) AS BYTE
+    END IF
     NSym = NSym + 1
     SName$(NSym) = n$
     SKind(NSym) = kind

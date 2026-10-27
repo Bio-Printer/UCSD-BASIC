@@ -56,10 +56,11 @@ place, with the options as its `COMMAND$` (Tiny-C's pexec protocol: BIGGY's syst
 
 Modules share variables with `COMMON SHARED`, call each other's procedures
 after `DECLARE`; `SEGMENT name` puts the following procedures in a code
-segment of their own.  BC needs the emulator's Harvard layout (its default:
-Options > Harvard Mode, in P-Code mode with Reclaim Z80 Interpreter Memory on);
-it no longer checks, and in any other layout BCGEN runs out of memory (the
-P-System halts).  It works under SYSTEM.PASCAL and SYSTEM.C,
+segment of their own.  BC is best in the emulator's Harvard layout (its
+default: Options > Harvard Mode, in P-Code mode with Reclaim Z80 Interpreter
+Memory on), where it compiles itself; in the other layouts, the Z80 mode
+too, it compiles programs the size of the demos (tools/smalltest.py: PI).
+It works under SYSTEM.PASCAL and SYSTEM.C,
 and from Tiny-C's shell (`BASIC:BC -C PROG`: COMMAND$, exit status 0 or 1;
 after `CD BASIC:/DEMO`, `BC PI` compiles BASIC:/DEMO/PI.BAS).  Programs open
 files in sub-volumes by their paths (`OPEN "BASIC:/DEMO/X.TXT" ...`), and a

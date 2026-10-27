@@ -240,6 +240,34 @@ static void ar_dim(barr *a, int esize, int isstr, int nd, ...)
     a->data = calloc(n ? n : 1, esize);
 }
 
+/* REDIM PRESERVE: the elements kept, as bytes (as the library's _ADIM) */
+static void ar_dimp(barr *a, int esize, int isstr, int nd, ...)
+{
+    va_list ap;
+    long n = 1, ob = 1;
+    int i;
+    char *old = a->data;
+    for (i = 0; i < a->nd; i++)
+        ob *= a->dim[i];
+    ob *= a->esize;
+    va_start(ap, nd);
+    for (i = 0; i < nd; i++) {
+        int b = va_arg(ap, int);
+        if (b < 0) brt_fatal(9, "subscript out of range (DIM)");
+        a->dim[i] = b + 1;
+        n *= b + 1;
+    }
+    va_end(ap);
+    a->nd = nd;
+    a->esize = esize;
+    a->isstr = isstr;
+    a->data = calloc(n ? n : 1, esize);
+    if (old) {
+        memcpy(a->data, old, ob < n * esize ? ob : n * esize);
+        free(old);
+    }
+}
+
 static void *ax(barr *a, int nd, ...)
 {
     va_list ap;

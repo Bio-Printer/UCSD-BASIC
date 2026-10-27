@@ -47,6 +47,8 @@ SUB _RTINIT ()
     _HEAPTOP = i + 2
 END SUB
 
+SEGMENT RTSELDOM
+
 ' The command line Tiny-C's shell gave (pexec), kept for COMMAND$ without
 ' the program's name, and the shell's path (CD) after it: in the operating
 ' system's prompt line PL while SYSCOM's expansion words say so (EXPANSION[0]
@@ -97,6 +99,8 @@ SUB _ARGS ()
         POKEB _CMDLINE, n
     END IF
 END SUB
+
+SEGMENT
 
 ' ---- the end
 SUB _HALT (code)

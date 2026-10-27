@@ -1482,6 +1482,10 @@ class Trans:
         if self.kw('SHARED'):
             self.next()
             shared = True
+        preserve = False
+        if redim and self.kw('PRESERVE'):
+            self.next()
+            preserve = True
         while True:
             n = self.next().v
             bounds = None
@@ -1505,7 +1509,7 @@ class Trans:
             if bounds:
                 es = 'sizeof(%s)' % ELEMC[v.ty]
                 bs = ', '.join(self.toint(b)[0] for b in bounds)
-                self.emit('ar_dim(%s, %s, %d, %d, %s);' % (self.arrptr(v), es, v.ty == T_STR, len(bounds), bs))
+                self.emit('%s(%s, %s, %d, %d, %s);' % ('ar_dimp' if preserve else 'ar_dim', self.arrptr(v), es, v.ty == T_STR, len(bounds), bs))
             if not self.op(','):
                 break
             self.next()

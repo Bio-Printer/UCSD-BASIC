@@ -4,9 +4,10 @@
 ' The object files are read from the start several times, never sought:
 '   1. every module, procedure and COMMON variable, and the names each
 '      module refers to (calls, COMMON variables);
-'   then what is linked: the first module (the main program), the run-time
-'   library's start and end (_RTINIT, _HALT) and every module whose
-'   procedures or variables a linked module uses;
+'   then what is linked: the main program's body, the run-time library's
+'   start and end (_RTINIT, _HALT) and every procedure a linked one calls,
+'   and the body of each module one of whose procedures is linked (a
+'   procedure no one calls is left out);
 '   then the layout: the globals from word 3 of the startup procedure's
 '   frame (each linked module's statics, then the COMMON variables), the
 '   segments (the main one is 1, the others 7, 8, ...) and the procedure
@@ -18,17 +19,20 @@
 ' _HALT(0).
 #INCLUDE "BCCOM"
 
-CONST MAXLN = 700, MAXLP = 520, MAXLM = 90, MAXREFS = 3600, MAXLD = 160
-CONST MAXLF = 24, LBUFSZ = 5000, LHSIZE = 128
+CONST MAXLN = 700, MAXLP = 520, MAXLM = 90, MAXREFS = 4000, MAXLD = 160
+CONST MAXLF = 24, LHSIZE = 128
 CONST CHIN = 1, CHOUT = 2
 
 DIM SHARED LName$(), LKind() AS BYTE, LDef(), LNext(), LHead(), NLName
-DIM SHARED PNm(), PMod(), PSg() AS BYTE, PLen(), PFl() AS BYTE, PNum() AS BYTE, NLP
-DIM SHARED MNm$(), MStat(), MBase(), MLive() AS BYTE, MRef0(), MRefN(), MBody(), NLM
+DIM SHARED PNm(), PMod(), PSg() AS BYTE, PLen(), PFl() AS BYTE, PNum() AS BYTE, PLive() AS BYTE, PRef0(), PRefN(), NLP
+DIM SHARED MNm$(), MStat(), MBase(), MLive() AS BYTE, MBody(), NLM
 DIM SHARED RefNm(), NRefs, DWords(), DOff(), DLive() AS BYTE, NLD
 DIM SHARED LSeg$(16), LSegNum(16), LSegLen(16), LSegBlk(16), LSegProcs(16), NLSeg
 DIM SHARED LFile$(MAXLF), NLF, LBuf() AS BYTE, LErr, LEof
 DIM SHARED Entry() AS BYTE, NEntry, EntryJtab, GlobWords
+' the tables' sizes: small at first, grown (Grown) up to the MAX constants;
+' the largest procedure (LBuf holds it)
+DIM SHARED CapLN, CapLP, CapLM, CapRefs, CapLD, MaxClen
 
 SUB LinkErrMsg (m$)
     LErr = LErr + 1
@@ -114,7 +118,11 @@ FUNCTION LNameIx (n$)
         END IF
         i = LNext(i)
     LOOP
-    IF NLName >= MAXLN THEN Fatal "Link: too many names"
+    IF NLName >= CapLN THEN
+        IF CapLN >= MAXLN THEN Fatal "Link: too many names"
+        CapLN = Grown(CapLN, MAXLN)
+        REDIM PRESERVE LName$(CapLN), LKind(CapLN) AS BYTE, LDef(CapLN), LNext(CapLN)
+    END IF
     NLName = NLName + 1
     LName$(NLName) = n$
     LKind(NLName) = 0
@@ -144,10 +152,10 @@ END FUNCTION
 
 ' ---- pass 1
 
-' a P record (the letter read): its procedure entered; refs: its names
-' added to the module's references
+' a P record (the letter read): its procedure entered, with the names it
+' refers to (each once)
 SUB ReadProc1 (m)
-    DIM fl, nm$, sg$, parmsz, rw, clen, jtab, nrel, i, pos, ty, t$, x, k, j, dup
+    DIM fl, nm$, sg$, parmsz, rw, clen, jtab, nrel, i, pos, ty, t$, x, k, j, dup, p
     fl = RdB
     nm$ = RdS$
     sg$ = RdS$
@@ -155,14 +163,21 @@ SUB ReadProc1 (m)
     rw = RdB
     clen = RdW
     jtab = RdW
+    IF clen > MaxClen THEN MaxClen = clen
     FOR i = 1 TO clen
         x = RdB
     NEXT i
     x = LNameIx(nm$)
+    p = 0
     IF LKind(x) = 1 THEN
         LinkErrMsg nm$ + " defined twice"
     ELSE
-        IF NLP >= MAXLP THEN Fatal "Link: too many procedures"
+        IF NLP >= CapLP THEN
+            IF CapLP >= MAXLP THEN Fatal "Link: too many procedures"
+            CapLP = Grown(CapLP, MAXLP)
+            REDIM PRESERVE PNm(CapLP), PMod(CapLP), PSg(CapLP) AS BYTE, PLen(CapLP), PFl(CapLP) AS BYTE, PNum(CapLP) AS BYTE
+            REDIM PRESERVE PLive(CapLP) AS BYTE, PRef0(CapLP), PRefN(CapLP)
+        END IF
         NLP = NLP + 1
         PNm(NLP) = x
         PMod(NLP) = m
@@ -170,6 +185,10 @@ SUB ReadProc1 (m)
         PLen(NLP) = (clen + 1) AND &HFFFE
         PFl(NLP) = fl
         PNum(NLP) = 0
+        PLive(NLP) = 0
+        PRef0(NLP) = NRefs
+        PRefN(NLP) = 0
+        p = NLP
         LKind(x) = 1
         LDef(x) = NLP
         IF fl = 1 THEN MBody(m) = NLP
@@ -179,21 +198,24 @@ SUB ReadProc1 (m)
         pos = RdW
         ty = RdB
         t$ = RdS$
-        IF ty <> 3 THEN
+        IF ty <> 3 AND p > 0 THEN
             k = LNameIx(t$)
-            ' once per module
             dup = 0
-            FOR j = MRef0(m) TO MRef0(m) + MRefN(m) - 1
+            FOR j = PRef0(p) TO PRef0(p) + PRefN(p) - 1
                 IF RefNm(j) = k THEN
                     dup = 1
                     EXIT FOR
                 END IF
             NEXT j
             IF dup = 0 THEN
-                IF NRefs >= MAXREFS THEN Fatal "Link: too many references"
+                IF NRefs >= CapRefs THEN
+                    IF CapRefs >= MAXREFS THEN Fatal "Link: too many references"
+                    CapRefs = Grown(CapRefs, MAXREFS)
+                    REDIM PRESERVE RefNm(CapRefs)
+                END IF
                 RefNm(NRefs) = k
                 NRefs = NRefs + 1
-                MRefN(m) = MRefN(m) + 1
+                PRefN(p) = PRefN(p) + 1
             END IF
         END IF
     NEXT i
@@ -211,14 +233,16 @@ SUB Pass1 ()
             CASE 0
                 EXIT DO
             CASE 77
-                IF NLM >= MAXLM THEN Fatal "Link: too many modules"
+                IF NLM >= CapLM THEN
+                    IF CapLM >= MAXLM THEN Fatal "Link: too many modules"
+                    CapLM = Grown(CapLM, MAXLM)
+                    REDIM PRESERVE MNm$(CapLM), MStat(CapLM), MBase(CapLM), MLive(CapLM) AS BYTE, MBody(CapLM)
+                END IF
                 NLM = NLM + 1
                 m = NLM
                 MNm$(m) = RdS$
                 MStat(m) = 0
                 MLive(m) = 0
-                MRef0(m) = NRefs
-                MRefN(m) = 0
                 MBody(m) = 0
                 FOR x = 1 TO m - 1
                     IF MNm$(x) = MNm$(m) THEN LinkErrMsg "two modules " + MNm$(m)
@@ -235,7 +259,11 @@ SUB Pass1 ()
                 ELSEIF LKind(x) = 2 THEN
                     IF w > DWords(LDef(x)) THEN DWords(LDef(x)) = w
                 ELSE
-                    IF NLD >= MAXLD THEN Fatal "Link: too many COMMON variables"
+                    IF NLD >= CapLD THEN
+                        IF CapLD >= MAXLD THEN Fatal "Link: too many COMMON variables"
+                        CapLD = Grown(CapLD, MAXLD)
+                        REDIM PRESERVE DWords(CapLD), DOff(CapLD), DLive(CapLD) AS BYTE
+                    END IF
                     NLD = NLD + 1
                     LKind(x) = 2
                     LDef(x) = NLD
@@ -257,9 +285,20 @@ END SUB
 
 ' ---- what is linked
 
+' a name a linked procedure uses: the procedure (and its module's body)
+' linked, or the COMMON variable kept
 SUB MarkName (x)
+    DIM p, b
     IF LKind(x) = 1 THEN
-        IF MLive(PMod(LDef(x))) = 0 THEN MLive(PMod(LDef(x))) = 1
+        p = LDef(x)
+        IF PLive(p) = 0 THEN PLive(p) = 1
+        IF MLive(PMod(p)) = 0 THEN
+            MLive(PMod(p)) = 1
+            b = MBody(PMod(p))
+            IF b > 0 THEN
+                IF PLive(b) = 0 THEN PLive(b) = 1
+            END IF
+        END IF
     ELSEIF LKind(x) = 2 THEN
         DLive(LDef(x)) = 1
     ELSE
@@ -269,24 +308,25 @@ SUB MarkName (x)
 END SUB
 
 SUB MarkAll ()
-    DIM m, j, again, x
+    DIM p, j, again, x
     IF NLM = 0 THEN EXIT SUB
     MLive(1) = 1
+    IF MBody(1) > 0 THEN PLive(MBody(1)) = 1
     x = LNameIx("_RTINIT")
     MarkName x
     x = LNameIx("_HALT")
     MarkName x
     DO
         again = 0
-        FOR m = 1 TO NLM
-            IF MLive(m) = 1 THEN
-                MLive(m) = 2
+        FOR p = 1 TO NLP
+            IF PLive(p) = 1 THEN
+                PLive(p) = 2
                 again = 1
-                FOR j = MRef0(m) TO MRef0(m) + MRefN(m) - 1
+                FOR j = PRef0(p) TO PRef0(p) + PRefN(p) - 1
                     MarkName RefNm(j)
                 NEXT j
             END IF
-        NEXT m
+        NEXT p
     LOOP WHILE again
 END SUB
 
@@ -320,7 +360,7 @@ SUB Layout ()
     LSegProcs(s) = 1
     n = 6
     FOR p = 1 TO NLP
-        IF MLive(PMod(p)) THEN
+        IF PLive(p) THEN
             s = PSg(p)
             IF LSegNum(s) = 0 THEN
                 n = n + 1
@@ -333,6 +373,12 @@ SUB Layout ()
             LSegProcs(s) = LSegProcs(s) + 1
             IF LSegProcs(s) > 255 THEN LinkErrMsg "more than 255 procedures in segment " + LSeg$(s)
             PNum(p) = LSegProcs(s)
+            ' (with its procedure dictionary and, in the main one, the startup
+            ' code: a segment's length is a word)
+            IF LSegLen(s) > 32000 - PLen(p) - 2 * LSegProcs(s) THEN
+                LinkErrMsg "segment " + LSeg$(s) + " too large (32000 bytes at most)"
+                LSegLen(s) = 0
+            END IF
             LSegLen(s) = LSegLen(s) + PLen(p)
         END IF
     NEXT p
@@ -471,7 +517,7 @@ SUB WriteSeg (s, jt(), BYREF slen)
                 p = LDef(x)
                 skip = 1
                 IF LKind(x) = 1 THEN
-                    IF MLive(PMod(p)) AND PSg(p) = s THEN skip = 0
+                    IF PLive(p) <> 0 AND PSg(p) = s THEN skip = 0
                 END IF
                 IF skip THEN
                     FOR i = 1 TO clen
@@ -484,7 +530,6 @@ SUB WriteSeg (s, jt(), BYREF slen)
                         sg$ = RdS$
                     NEXT i
                 ELSE
-                    IF clen > LBUFSZ THEN Fatal "Link: a procedure too large"
                     FOR i = 0 TO clen - 1
                         LBuf(i) = RdB
                     NEXT i
@@ -558,10 +603,17 @@ FUNCTION LinkProg (out$, objs$)
     NRefs = 0
     NLD = 0
     NLSeg = 0
-    REDIM LName$(MAXLN), LKind(MAXLN) AS BYTE, LDef(MAXLN), LNext(MAXLN), LHead(LHSIZE)
-    REDIM PNm(MAXLP), PMod(MAXLP), PSg(MAXLP) AS BYTE, PLen(MAXLP), PFl(MAXLP) AS BYTE, PNum(MAXLP) AS BYTE
-    REDIM MNm$(MAXLM), MStat(MAXLM), MBase(MAXLM), MLive(MAXLM) AS BYTE, MRef0(MAXLM), MRefN(MAXLM), MBody(MAXLM)
-    REDIM RefNm(MAXREFS), DWords(MAXLD), DOff(MAXLD), DLive(MAXLD) AS BYTE
+    CapLN = 200
+    CapLP = 160
+    CapLM = 24
+    CapRefs = 800
+    CapLD = 40
+    MaxClen = 0
+    REDIM LName$(CapLN), LKind(CapLN) AS BYTE, LDef(CapLN), LNext(CapLN), LHead(LHSIZE)
+    REDIM PNm(CapLP), PMod(CapLP), PSg(CapLP) AS BYTE, PLen(CapLP), PFl(CapLP) AS BYTE, PNum(CapLP) AS BYTE
+    REDIM PLive(CapLP) AS BYTE, PRef0(CapLP), PRefN(CapLP)
+    REDIM MNm$(CapLM), MStat(CapLM), MBase(CapLM), MLive(CapLM) AS BYTE, MBody(CapLM)
+    REDIM RefNm(CapRefs), DWords(CapLD), DOff(CapLD), DLive(CapLD) AS BYTE
     s = SegIx("")
     ObjFiles objs$, 1
     IF LErr = 0 THEN Pass1
@@ -571,7 +623,8 @@ FUNCTION LinkProg (out$, objs$)
         SayLn "Link: " + IStr$(LErr) + " error(s): no " + out$
         GOTO done
     END IF
-    REDIM LBuf(LBUFSZ) AS BYTE, Entry(600) AS BYTE
+    ' (LBuf: the largest procedure, and a byte to make it even)
+    REDIM LBuf(MaxClen + 1) AS BYTE, Entry(600) AS BYTE
     MakeEntry
     s = SegIx("")
     LSegLen(s) = LSegLen(s) + NEntry
@@ -664,8 +717,8 @@ FUNCTION LinkProg (out$, objs$)
     ERASE LBuf, Entry
     IF LErr = 0 THEN LinkProg = -1
 done:
-    ERASE LName$, LKind, LDef, LNext, LHead, PNm, PMod, PSg, PLen, PFl, PNum
-    ERASE MNm$, MStat, MBase, MLive, MRef0, MRefN, MBody, RefNm, DWords, DOff, DLive
+    ERASE LName$, LKind, LDef, LNext, LHead, PNm, PMod, PSg, PLen, PFl, PNum, PLive, PRef0, PRefN
+    ERASE MNm$, MStat, MBase, MLive, MBody, RefNm, DWords, DOff, DLive
 END FUNCTION
 
 ' -J LIB=A,B: the object files one after another (a library); the zero

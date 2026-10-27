@@ -214,7 +214,9 @@ checked: one out of its range stops the program (run-time error 9).
 - `SEGMENT NAME` before procedures puts them into the code segment NAME
   (a UCSD code segment: loaded when called, so a program can be bigger
   than memory); `SEGMENT` alone goes back to the main segment.  A program
-  has at most 10 segments.  The module's body is always in the main one.
+  has at most 10 segments (the library's RTSELDOM, for OPEN, CHAIN and the
+  sub-volumes, is one of them).  The module's body is always in the main
+  one.  Modules may name the same segment.
 
 ## 7. Statements
 
@@ -505,12 +507,14 @@ BCLINK.CODE; BC chains to the others (each in memory alone), and they
 must be on the same volume as BC.CODE, at its top (BASIC:).  BC keeps its
 work in the job file BCTEMP.JOB on the prefix volume while they run.
 
-BC needs the emulator's Harvard layout (Options > Harvard Mode, the
-default, in P-Code mode with Reclaim Z80 Interpreter Memory on): its code
-does not fit in the memory of the other layouts.  It does not check (to
-measure what the others leave: BC -M); started in another one, BCGEN
-runs out of memory when its segment GEN loads.  The programs it makes run in any
-layout.
+BC is best in the emulator's Harvard layout (Options > Harvard Mode, the
+default, in P-Code mode with Reclaim Z80 Interpreter Memory on), where its
+code is out of the way of its data: there it compiles programs as large as
+itself.  In the other layouts, the Z80 mode too, it compiles programs the
+size of the demos (PI, MANDEL); a larger one can run out of memory
+(Run-time error 7, or *STK OFLOW*).  -M shows what each step has left.
+The linker links only the procedures a program calls, of its modules and
+of the library.  The programs BC makes run in any layout.
 
 ## 14. Limits
 

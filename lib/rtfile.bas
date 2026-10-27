@@ -81,6 +81,9 @@ FUNCTION _LOADBLK (e, b)
     IF PEEK(e + FLEN) = 0 THEN CSP 10, PEEK(e + FBUF), 0, 512, 0
 END FUNCTION
 
+' (OPEN and the names it takes: in the segment RTSELDOM, RTSUBV's)
+SEGMENT RTSELDOM
+
 ' a UCSD text file: "x.TEXT", or "x.BAS" (a BASIC source)?
 FUNCTION _ISTEXT (name)
     DIM n, i, c, t, k, m
@@ -302,6 +305,8 @@ SUB _OPEN (name, mode, ch, reclen)
         POKE e + FPOS, 0
     END IF
 END SUB
+
+SEGMENT
 
 SUB _CLOSE1 (ch)
     DIM e, fl, r

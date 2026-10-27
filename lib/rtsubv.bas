@@ -18,7 +18,10 @@
 ' the blocks it had when opened, its kind.
 #INCLUDE "RTCOM"
 
-SEGMENT SUBVOL
+' (the library's segment RTSELDOM: what a program does seldom -- OPEN and
+' the sub-volumes, CHAIN, the command line at the start; RTFILE, RTCHAIN and
+' RTCORE put those there too)
+SEGMENT RTSELDOM
 
 ' the directory of the sub-volume at block base of unit u into d (2048
 ' bytes): 0 if there is none

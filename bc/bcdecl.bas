@@ -107,7 +107,11 @@ FUNCTION ParseParams ()
         END IF
         ty = DeclType(nm$, 0)
         n = n + 1
-        IF NPar + n > MAXPAR THEN Fatal "too many parameters"
+        IF NPar + n > ParCap THEN
+            IF ParCap >= MAXPAR THEN Fatal "too many parameters"
+            ParCap = Grown(ParCap, MAXPAR)
+            REDIM PRESERVE PType(ParCap) AS BYTE, PFlg(ParCap) AS BYTE
+        END IF
         PType(NPar + n) = ty
         PFlg(NPar + n) = fl
         IF n <= 30 THEN
@@ -121,6 +125,9 @@ FUNCTION ParseParams ()
     IF n > 30 THEN ErrMsg "more than 30 parameters"
     ParseParams = n
 END FUNCTION
+
+' ---- pass 2's own (in the segment DECL, which pass 3 does not need)
+SEGMENT DECL
 
 ' SUB/FUNCTION NAME (params) [AS type] [STATIC]: the procedure's symbol
 ' (made, or the DECLAREd one checked).  The keyword is current.
@@ -204,6 +211,8 @@ FUNCTION CountDims ()
     GetTok
     CountDims = n
 END FUNCTION
+
+SEGMENT
 
 ' the words a variable of type ty takes (an array: its slot, 1 word)
 FUNCTION TypeWords (ty)

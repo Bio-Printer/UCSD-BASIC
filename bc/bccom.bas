@@ -64,7 +64,8 @@ CONST JFASK = 1, JFQUIET = 2, JFMEM = 4, CHJOB = 13, MAXSTEP = 300
 COMMON SHARED Tok, TokS$, TokV, TokLine, TokFile$, TokText$, TokNewLine
 
 ' ---- the symbol table
-COMMON SHARED NSym, NModSym, NPar, CurSeg, NSegName
+COMMON SHARED NSym, NModSym, NPar, CurSeg, NSegName, SymCap, ParCap
+COMMON SHARED CodeCap, LabCap, FixCap, RelCap, NodeCap, ConstCap
 COMMON SHARED SName$(), SKind() AS BYTE, SType() AS BYTE, SCls() AS BYTE
 COMMON SHARED SOff(), SFlags() AS BYTE, SScope() AS BYTE, SNext()
 COMMON SHARED SAux(), SAux2(), SSeg() AS BYTE, HashHead()
