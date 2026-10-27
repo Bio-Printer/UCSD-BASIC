@@ -16,7 +16,9 @@
 - After a change to the compiler or the library run `tools/runtests.py`,
   `tools/selfcompile.py` (must say IDENTICAL seven times: BASLIB and the six programs), `tools/errtest.py` and, for the volume,
   `tools/voltest.py`, and for memory `tools/smalltest.py` (PI in Z80 mode
-  and P-Code mode without the Harvard layout).  New cross-module calls need
+  and P-Code mode without the Harvard layout); for the console's line ends
+  `tools/crtest.py` (a CR alone, CHR$(13), goes back to the line's start;
+  PRINT's line end is CR LF: the library's UNITWRITE has CRLFBIT).  New cross-module calls need
   `tools/mkdecls.py` (buildhost.sh runs it).
 - Errors in BCLEX and BCGEN are numbers (ErrNo n / ErrRec n, a, t, s$ /
   Expect t / LexErr n, s$ / FatalRec n, s$, each with its text as a

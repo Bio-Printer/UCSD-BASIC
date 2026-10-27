@@ -229,7 +229,10 @@ Output
 - `PRINT [#n,] items` -- items separated by ; (nothing between) or , (to
   the next 14-column zone); TAB(n) moves to column n, SPC(n) prints n
   blanks.  A PRINT that does not end in ; or , ends the line.  A number
-  is printed with a blank (or -) before it and a blank after it.
+  is printed with a blank (or -) before it and a blank after it.  On the
+  console the end of a line is CR and LF; CHR$(13) is a CR alone (back to
+  the line's start: PRINT n; CHR$(13); shows a count on one line) and
+  CHR$(10) a LF alone.  In a file the end of a line is a CR.
 - `WRITE [#n,] items` -- items separated by commas, strings in quotes,
   numbers without blanks, then the end of the line.
 

@@ -147,12 +147,12 @@ SUB _RTERR (code)
     IF inerr THEN CSP 4, 1, 1
     inerr = 1
     _CONFLUSH
-    _CONPUT 13
+    _PNL 0
     _PSTR 0, SADD("Run-time error ")
     _PSTR 0, _ISTR(code, 0)
     _PSTR 0, SADD(": ")
     _ERRTEXT code
-    _CONPUT 13
+    _PNL 0
     _CONFLUSH
     _CLOSE 0
     CSP 4, 1, 1
@@ -484,10 +484,13 @@ FUNCTION _GSPOP ()
     _GSPOP = PEEK(_GSBASE + _GSSP * 2)
 END FUNCTION
 
-' ---- the console's output: a line at a time (UNITWRITE to unit 1)
+' ---- the console's output: a line at a time (UNITWRITE to unit 1, with
+' the control word's CRLFBIT, 8: the console adds no LF after a CR -- a
+' CR, CHR$(13), goes back to the line's start; the end of a PRINT line is
+' CR and LF, _PNL)
 SUB _CONFLUSH ()
     IF _CONLEN > 0 THEN
-        CSP 6, 1, _CONBUF, 0, _CONLEN, 0, 0
+        CSP 6, 1, _CONBUF, 0, _CONLEN, 0, 8
         _CONLEN = 0
     END IF
 END SUB
@@ -495,8 +498,8 @@ END SUB
 SUB _CONPUT (c)
     POKEB _CONBUF + _CONLEN, c
     _CONLEN = _CONLEN + 1
-    IF c = 13 THEN
-        _CONCOL = 0
+    IF c = 13 OR c = 10 THEN
+        IF c = 13 THEN _CONCOL = 0
         _CONFLUSH
     ELSE
         _CONCOL = _CONCOL + 1
@@ -520,8 +523,17 @@ SUB _PSTR (ch, s)
     END IF
 END SUB
 
+' the end of a line: CR and LF on the console (or a file opened as
+' CONSOLE:), CR in a file
 SUB _PNL (ch)
-    IF ch = 0 THEN _CONPUT 13 ELSE _FPUTC ch, 13
+    IF ch <> 0 THEN
+        IF (PEEK(_FOPENED(ch) + FFL) AND FCON) = 0 THEN
+            _FPUTC ch, 13
+            EXIT SUB
+        END IF
+    END IF
+    _CONPUT 13
+    _CONPUT 10
 END SUB
 
 ' (the number's text is a temporary the caller does not know of: given back

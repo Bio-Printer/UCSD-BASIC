@@ -299,8 +299,11 @@ and OSCALL (FINIT, FOPEN, FCLOSE, FBLOCKIO).
   that could not be written whole is not entered.  KILL removes an entry.
 - Numbers: text with DTOA (CSP 133) and BASIC's style; VAL with ATODM
   (CSP 135).
-- The console: a line buffer written with UNITWRITE; input read a key at
-  a time with UNITREAD and echoed.
+- The console: a line buffer written with UNITWRITE, whose control word
+  has CRLFBIT (8): the console adds no LF after a CR, so CHR$(13) goes
+  back to the line's start, and _PNL ends a line with CR and LF (on the
+  console, or a file opened as CONSOLE:).  Input is read a key at a time
+  with UNITREAD and echoed (the echo of RETURN with its LF).
 - CHAIN (RTCHAIN): Tiny-C's
   pexec without the way back.  _CHAIN finds the code file as pexec does
   (a path or the shell's path: RTSUBV's _SVPATH; else FOPEN of NAME.CODE:
