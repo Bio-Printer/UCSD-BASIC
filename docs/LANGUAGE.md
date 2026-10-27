@@ -425,7 +425,7 @@ NAME may be a path into sub-volumes: BASIC:/DEMO/HELLO):
 
     NAME              compile NAME.BAS (or NAME.TEXT), link NAME.CODE
     -C NAME           compile only: NAME.OBJ
-    -S NAME           compile with a listing: NAME.LST.TEXT
+    -S NAME           compile with a listing: NAME.LST
     -S -C NAME        both
     -L OUT=A,B,C      link A.OBJ, B.OBJ, C.OBJ (and BASLIB.OBJ) into
                       OUT.CODE; the first is the main program
@@ -469,7 +469,10 @@ The sub-volumes have room for what their batch files make; Tiny-C's GROW
 
 The listing (-S) shows, for every procedure, each BASIC statement
 followed by the P-code made for it: offsets within the procedure, calls
-and global variables by name, and the entry and exit code.
+and global variables by name, and the entry and exit code.  NAME.LST is a
+file of lines that end in CR (not a UCSD text file, so not NAME.TEXT): the
+shell's TYPE shows it, vi edits it (and writes it back so), the Filer's
+T(ransfer to CONSOLE: lists it.
 
 A program of several modules:
 

@@ -3,7 +3,7 @@
 @BASIC:ALL, which rebuilds the compiler from BASIC:/SRC (BUILD -> BASIC:BC2.CODE,
 the same as BC.CODE but for segment 1's name) and the library in BASIC:/LIB
 (LIBS -> BASLIB2.OBJ, the same as BASLIB.OBJ), and compiles every demo and
-test in their sub-volumes, and then PI again with a listing (-S: DEMO/PI.LST.TEXT,
+test in their sub-volumes, and then PI again with a listing (-S: DEMO/PI.LST,
 the host's listing but for the source's name); then the demos STATS and PI and
 the test PROCS run from there (X(ecute BASIC:/DEMO/STATS).  The volume's
 directories are checked on the host afterwards.
@@ -69,14 +69,14 @@ def main(a):
     shutil.copy(os.path.join(ROOT, 'demos', 'pi.bas'), work)
     shutil.copy(os.path.join(ROOT, 'build', 'BASLIB.OBJ'), work)
     subprocess.run([os.path.join(ROOT, 'build', 'bc'), '-Q', '-S', '-C', 'PI'], cwd=work, capture_output=True)
-    host = open(os.path.join(work, 'PI.LST.TEXT'), encoding='latin1').read()
+    host = open(os.path.join(work, 'PI.LST'), encoding='latin1').read()
     shutil.rmtree(work, True)
     try:
-        got = ucsdvol.ucsd_to_text(v.sub('DEMO').read('PI.LST.TEXT')[0]).replace('BASIC:/DEMO/PI.BAS', 'PI.BAS')
+        got = v.sub('DEMO').read('PI.LST')[0].rstrip(b'\0').decode('latin1').replace('\r', '\n').replace('BASIC:/DEMO/PI.BAS', 'PI.BAS')
     except BaseException:
         got = ''
     same = got == host
-    print('DEMO/PI.LST.TEXT: %s' % ('the host\'s listing' if same else 'DIFFERENT'))
+    print('DEMO/PI.LST: %s' % ('the host\'s listing' if same else 'DIFFERENT'))
     bad += not same
     for name, exp in [('STATS', 'std. dev. 4.73840690527945'),
                       ('PI', '  24   100663296  3.141592653589792  3.141592653589794  15 15'),

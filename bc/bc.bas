@@ -7,7 +7,7 @@
 '   NAME            compile NAME.BAS (or NAME.TEXT) and link NAME.CODE
 '   -C NAME         compile only: NAME.OBJ
 '   -S NAME         compile with a listing (the BASIC statements and the
-'                   P-code made for them) in NAME.LST.TEXT; -S -C NAME too
+'                   P-code made for them) in NAME.LST; -S -C NAME too
 '   -L OUT=A,B,...  link A.OBJ, B.OBJ ... (and BASLIB.OBJ) into OUT.CODE
 '   -J LIB=A,B,...  join object files into one library LIB.OBJ
 '   @FILE           the commands in FILE.TEXT, one or more a line
@@ -450,12 +450,13 @@ FUNCTION FindSource$ (n$, dir$)
     IF WithSuffix$(n$, ".X") = n$ THEN FindSource$ = n$ ELSE FindSource$ = n$ + ".BAS"
 END FUNCTION
 
-' the listing file: NAME.LST.TEXT (the name cut so that it fits in 15)
+' the listing file: NAME.LST (the name cut so that it fits in 15), a file
+' of lines that end in CR, not a UCSD text file
 FUNCTION ListOf$ (n$)
     DIM m$
     m$ = ModOf$(n$)
-    IF LEN(m$) > 6 THEN m$ = LEFT$(m$, 6)
-    ListOf$ = DirOf$(n$) + m$ + ".LST.TEXT"
+    IF LEN(m$) > 11 THEN m$ = LEFT$(m$, 11)
+    ListOf$ = DirOf$(n$) + m$ + ".LST"
 END FUNCTION
 
 ' ---- compiling one file
