@@ -325,7 +325,9 @@ the bootstrap, takes the CSP statement as nothing and CSP%() as 0.)
   runs @BASIC:ALL and -S BASIC:/DEMO/PI on it (BC2.CODE, LIB/BASLIB2.OBJ and
   the listing must be the host's,
   every demo and test gets its code file, the directories must hold
-  together) and runs a demo and a test from their sub-volumes;
+  together) and runs a demo and a test from their sub-volumes; then, in the
+  shell, @BASIC:INSTALL (BIGGY 1.32's batch files) puts BC2.CODE ... in the
+  places of BC.CODE ..., and that compiler makes DEMO/HELLO, which runs;
   --pascal boots BIGGY's SYSTEM.PASCAL instead of SYSTEM.C.
 - tools/brun.py runs a code file; tools/objdump.py shows an object file;
   tools/pdis.py disassembles a code file.

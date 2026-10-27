@@ -34,6 +34,8 @@
 - BC's emitter procedure is EmitCsp: a SUB named Csp would take the CSP
   statement's place.  bas2c turns the CSP statement into nothing and
   CSP%() into 0 (BC's Harvard check at its start).
+- BASIC:INSTALL.TEXT (mkvolume) is a batch file of Tiny-C's shell (BIGGY
+  1.32: @FILE; MOVE replaces): voltest runs it after BUILD.
 - The tests boot build/psys/data/Big_Disk.BLK (setup.sh copies BOOT_DISK);
   BIGGY 1.29 is the first whose systems make a new NAME.BAS a text file;
   1.30's shell (and Tiny-C's library: __istext) reads NAME.BAS as text.

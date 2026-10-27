@@ -6,8 +6,10 @@ name) and the library in BASIC:/LIB
 (LIBS -> BASLIB2.OBJ, the same as BASLIB.OBJ), and compiles every demo and
 test in their sub-volumes, and then PI again with a listing (-S: DEMO/PI.LST,
 the host's listing but for the source's name); then the demos STATS and PI and
-the test PROCS run from there (X(ecute BASIC:/DEMO/STATS).  The volume's
-directories are checked on the host afterwards.
+the test PROCS run from there (X(ecute BASIC:/DEMO/STATS).  Then, in the
+shell, @BASIC:INSTALL puts the rebuilt compiler in the old one's place (BC2.CODE
+becomes BC.CODE ...), and that one compiles and links DEMO/HELLO, which runs.
+The volume's directories are checked on the host afterwards.
 
   voltest.py [--pascal]     (--pascal: BIGGY boots SYSTEM.PASCAL, not SYSTEM.C)
 """
@@ -30,7 +32,10 @@ def main(a):
               'WAIT "Compile what file?"\nTYPE "\\r"\nWAIT "Command:"\n'
               'TYPE "X"\nWAIT "Execute what file?"\nTYPE "BASIC:/DEMO/STATS\\r"\nWAIT "Command:"\n'
               'TYPE "X"\nWAIT "Execute what file?"\nTYPE "BASIC:/DEMO/PI\\r"\nWAIT "Command:"\n'
-              'TYPE "X"\nWAIT "Execute what file?"\nTYPE "BASIC:/TEST/PROCS\\r"\nWAIT "Command:"\n')
+              'TYPE "X"\nWAIT "Execute what file?"\nTYPE "BASIC:/TEST/PROCS\\r"\nWAIT "Command:"\n'
+              'TYPE "S"\nWAIT "> "\nTYPE "@BASIC:INSTALL\\r"\nWAIT "BCLINK.CODE"\nWAIT "> "\n'
+              'TYPE "bc -q basic:/demo/hello\\r"\nWAIT "exit status"\nWAIT "> "\n'
+              'TYPE "basic:/demo/hello\\r"\nWAIT "exit status"\nWAIT "> "\nTYPE "bye\\r"\nWAIT "Command:"\n')
     ok, tr, info = ps.run_script(script, 3000)
     tr = tr.replace('\n\n', '\n')
     print(tr[tr.find('BASIC:BC'):])
@@ -38,15 +43,17 @@ def main(a):
     v = ucsdvol.Volume(os.path.join(ps.out, 'VERIFY_SOURCE.BLK'))
     lib = open(os.path.join(ROOT, 'build', 'BASLIB.OBJ'), 'rb').read()
     bad = 0
+    # (after @BASIC:INSTALL: PROG.CODE is the PROG2.CODE BUILD made, and that is gone)
     for p, m in PROGS:
         bc = open(os.path.join(ROOT, 'build', p + '.CODE'), 'rb').read()
         try:
-            bc2 = bytearray(v.read(p + '2.CODE')[0])
+            bc2 = bytearray(v.read(p + '.CODE')[0])
+            same = bc2[72:80] != bc[72:80] and not v.find(p + '2.CODE')
             bc2[72:80] = bc[72:80]          # segment 1's name: BC2 ...
-            same = bytes(bc2) == bc
+            same = same and bytes(bc2) == bc
         except BaseException:
             same = False
-        print('%s2.CODE: %s' % (p, 'the same as %s.CODE' % p if same else 'DIFFERENT'))
+        print('%s.CODE: %s' % (p, 'the %s2.CODE BUILD made, the same as the host\'s' % p if same else 'DIFFERENT'))
         bad += not same
     try:
         lib2 = v.sub('LIB').read('BASLIB2.OBJ')[0]
@@ -80,6 +87,10 @@ def main(a):
         got = ''
     same = got == host
     print('DEMO/PI.LST: %s' % ('the host\'s listing' if same else 'DIFFERENT'))
+    bad += not same
+    i = tr.find('@BASIC:INSTALL')
+    same = i >= 0 and tr.count('(replaced)', i) == len(PROGS) and 'Hello' in tr[tr.find('basic:/demo/hello', i + 30):]
+    print('@BASIC:INSTALL: %s' % ('the five moved; BC then made HELLO, which ran' if same else 'FAILED'))
     bad += not same
     for name, exp in [('STATS', 'std. dev. 4.73840690527945'),
                       ('PI', '  24   100663296  3.141592653589792  3.141592653589794  15 15'),

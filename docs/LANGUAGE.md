@@ -467,6 +467,9 @@ The volume BASIC: holds:
                                 BCLINK.CODE, the programs it chains to)
     README.TEXT LANGUAGE.TEXT DESIGN.TEXT
     ALL.TEXT                    @BASIC:ALL: the four batch files below
+    INSTALL.TEXT                @BASIC:INSTALL in Tiny-C's shell (BIGGY 1.32),
+                                after @BASIC:/SRC/BUILD: BC2.CODE ...
+                                BCLINK2.CODE become BC.CODE ... BCLINK.CODE
     FILES.TEXT                  every file, the sub-volumes' too
     SRC/   BC*.BAS              the compiler's sources;
            BUILD.TEXT           @BASIC:/SRC/BUILD: BASIC:BC2.CODE ...

@@ -28,6 +28,7 @@ BLK_format), laid out in sub-volumes (Tiny-C's: data files holding a volume,
 | `BC.CODE` | the compiler (the driver: run it); `BCLEX.CODE`, `BCGEN.CODE`, `BCLIST.CODE`, `BCLINK.CODE` the programs it chains to, each in memory alone |
 | `README.TEXT`, `LANGUAGE.TEXT`, `DESIGN.TEXT` | the manuals |
 | `ALL.TEXT` | `@BASIC:ALL`: the four batch files below |
+| `INSTALL.TEXT` | after `@BASIC:/SRC/BUILD`, in Tiny-C's shell (BIGGY 1.32: `@FILE` runs a batch file): `@BASIC:INSTALL` moves BC2.CODE ... BCLINK2.CODE onto BC.CODE ... BCLINK.CODE (each old file goes, the new one takes its name; nothing goes when the new one is missing) |
 | `FILES.TEXT` | every file, the sub-volumes' too |
 | `SRC/` | the compiler's sources; `BUILD.TEXT`: `@BASIC:/SRC/BUILD` rebuilds the compiler's five programs as BASIC:BC2.CODE, BCLEX2.CODE ... BCLINK2.CODE |
 | `LIB/` | `BASLIB.OBJ`, the run-time library, and its sources; `LIBS.TEXT`: `@BASIC:/LIB/LIBS` rebuilds it as BASIC:/LIB/BASLIB2.OBJ |

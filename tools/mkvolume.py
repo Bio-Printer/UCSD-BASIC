@@ -5,6 +5,8 @@
                        BCLINK.CODE the programs it chains to (each in memory alone)
     README.TEXT LANGUAGE.TEXT DESIGN.TEXT   the documentation
     ALL.TEXT           @BASIC:ALL runs the four batch files below
+    INSTALL.TEXT       in the shell, after @BASIC:/SRC/BUILD: @BASIC:INSTALL puts
+                       BC2.CODE ... BCLINK2.CODE in the places of BC.CODE ... BCLINK.CODE
     FILES.TEXT         every file, the sub-volumes' too
     SRC/               the compiler's sources (BC*.BAS); BUILD.TEXT:
                        @BASIC:/SRC/BUILD rebuilds the compiler as BASIC:BC2.CODE,
@@ -111,6 +113,11 @@ def main(out=os.path.join(ROOT, 'build', 'BASIC.BLK')):
     top.text('DESIGN.TEXT', text(os.path.join(ROOT, 'docs', 'DESIGN.md')))
     top.text('ALL.TEXT', "' everything: the compiler, the library, the demos, the tests\n"
              '@BASIC:/SRC/BUILD\n@BASIC:/LIB/LIBS\n@BASIC:/DEMO/DEMOS\n@BASIC:/TEST/TESTS\n')
+
+    top.text('INSTALL.TEXT', "' the compiler @BASIC:/SRC/BUILD rebuilt in the place of the old one: in the\n"
+             "' shell, @BASIC:INSTALL.  Each MOVE deletes the old file and renames the new\n"
+             "' one; when the new one is not there it says so and leaves the old one.\n" +
+             ''.join('MOVE BASIC:%s2.CODE BASIC:%s.CODE\n' % (p, p) for p, m in PROGS))
 
     src = top.sub('SRC')
     src.text('BUILD.TEXT', "' the compiler: its modules, linked into its five programs BASIC:BC2.CODE,\n"
