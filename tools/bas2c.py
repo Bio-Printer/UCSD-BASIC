@@ -1428,6 +1428,12 @@ class Trans:
         self.next()
         self.emit('b_chain(%s);' % self.conv(self.expr(), T_STR)[0])
 
+    def s_SEEK(self):
+        self.next()
+        ch = self.chan()
+        self.expect_op(',')
+        self.emit('b_seek(%s, %s);' % (ch, self.toint(self.expr())[0]))
+
     def s_KILL(self):
         self.next()
         self.emit('b_kill(%s);' % self.conv(self.expr(), T_STR)[0])

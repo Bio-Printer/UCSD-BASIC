@@ -4,8 +4,14 @@
 
 ' ---- the token file
 
+' (its header: THWORDS words, BCLEX's counts, into TokHead(THxxx))
 SUB OpenTok ()
+    DIM i
+    REDIM TokHead(THWORDS)
     OPEN TokName$ FOR BINARY AS #CHTOK
+    FOR i = 0 TO THWORDS - 1
+        GET #CHTOK, , TokHead(i)
+    NEXT i
     TokLine = 0
     TokText$ = ""
     TokFile$ = SrcName$

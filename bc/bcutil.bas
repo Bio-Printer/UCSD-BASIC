@@ -157,10 +157,17 @@ END FUNCTION
 
 SEGMENT
 
+' n, max at most (a table's size)
+FUNCTION Capped (n, max)
+    IF n > max OR n < 0 THEN Capped = max ELSE Capped = n
+END FUNCTION
+
 ' a table's new size when cap entries were too few: 100 more, max at most
-' (BCGEN's tables; BCLINK's double: LinkGrown)
+' (BCLEX's names, BCGEN's tables; BCLINK's double: LinkGrown); NGrown
+' counts them (BCGEN -M says how often its tables grew)
 FUNCTION Grown (cap, max)
     DIM n
+    NGrown = NGrown + 1
     n = cap + 100
     IF n > max THEN n = max
     Grown = n

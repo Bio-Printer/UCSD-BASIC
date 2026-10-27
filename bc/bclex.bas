@@ -9,10 +9,99 @@
 
 DIM SHARED LxDepth, LxLine$, LxPos, LxLen, LxLineNo, LxFile$
 
+' What the token file's header says (THWORDS, BCCOM): the names declared or
+' used at the module's level and the procedures' names (LxGlob), and, of
+' each procedure (the module's body as one), the names in it (a name in
+' the table NmTxt$ remembers whether it was counted at the module's level,
+' NmGlob, and the procedure it was last counted for, NmProc), the code's
+' tokens and its
+' strings' bytes, the keywords that make labels and jumps; the parameters
+' of SUB, FUNCTION and DECLARE lines (and the most of one line), the names
+' in CONST lines, the tokens of the longest statement.  LxProc is the procedure being read (0: none),
+' LxLead the keyword the statement starts with, LxParen its ( depth.
+DIM SHARED NmTxt$(), NmGlob() AS BYTE, NmProc(), NmNext(), NmHead(127), NNm, NmCap
+DIM SHARED LxProc, LxNProc, LxProcName, LxLead, LxParen, LxStmtTok, LxDecl
+DIM SHARED LxGlob, LxParams, LxConsts, LxLoc, LxCode, LxStrB, LxCtl, LxHdrPar, LxMaxPar
+DIM SHARED LxMaxLoc, LxMaxCode, LxMaxCtl, LxMaxStmt, LxBodyCode, LxBodyStrB, LxBodyCtl
+
 SUB TB (v)
     DIM b AS BYTE
     b = v
     PUT #CHTOK, , b
+    LxStmtTok = LxStmtTok + 1
+    IF LxDecl = 0 THEN
+        IF LxProc THEN LxCode = LxCode + 1 ELSE LxBodyCode = LxBodyCode + 1
+    END IF
+END SUB
+
+' a string constant's bytes (they are in the code)
+SUB LxStrBytes (n)
+    IF LxProc THEN LxStrB = LxStrB + n ELSE LxBodyStrB = LxBodyStrB + n
+END SUB
+
+' a name (or label: twice, as pass 2 and pass 3 each make a symbol for it)
+' counted once at the module's level, once in each procedure
+SUB LxName (w$, times)
+    DIM h, i
+    FOR i = 1 TO LEN(w$)
+        h = (h * 3 + ASC(w$, i)) AND 127
+    NEXT i
+    i = NmHead(h)
+    DO WHILE i > 0
+        IF NmTxt$(i) = w$ THEN EXIT DO
+        i = NmNext(i)
+    LOOP
+    IF i = 0 THEN
+        IF NNm >= NmCap THEN
+            NmCap = Grown(NmCap, 32000)
+            REDIM PRESERVE NmTxt$(NmCap), NmGlob(NmCap) AS BYTE, NmProc(NmCap), NmNext(NmCap)
+        END IF
+        NNm = NNm + 1
+        i = NNm
+        NmTxt$(i) = w$
+        NmGlob(i) = 0
+        NmProc(i) = 0
+        NmNext(i) = NmHead(h)
+        NmHead(h) = i
+    END IF
+    IF LxProc = 0 OR LxProcName THEN
+        ' the module's level, or the procedure's own name
+        LxProcName = 0
+        IF NmGlob(i) = 0 THEN
+            NmGlob(i) = 1
+            LxGlob = LxGlob + times
+        END IF
+    ELSEIF NmProc(i) <> LxProc THEN
+        NmProc(i) = LxProc
+        LxLoc = LxLoc + times
+    END IF
+    IF LxParen > 0 THEN
+        IF LxLead = KSUB OR LxLead = KFUNCTION OR LxLead = KDECLARE OR LxLead = KPRIVATE THEN
+            LxParams = LxParams + 1
+            LxHdrPar = LxHdrPar + 1
+        END IF
+    END IF
+    IF LxLead = KCONST THEN LxConsts = LxConsts + 1
+END SUB
+
+' a procedure's start (SUB or FUNCTION) or end (END SUB, END FUNCTION, or
+' the end of the source): the most of each count so far
+SUB ProcMark (start)
+    IF LxProc THEN
+        IF LxLoc > LxMaxLoc THEN LxMaxLoc = LxLoc
+        IF 3 * LxCode + LxStrB > LxMaxCode THEN LxMaxCode = 3 * LxCode + LxStrB
+        IF LxCtl > LxMaxCtl THEN LxMaxCtl = LxCtl
+    END IF
+    LxProc = 0
+    IF start THEN
+        LxNProc = LxNProc + 1
+        LxProc = LxNProc
+        LxProcName = 1
+        LxLoc = 0
+        LxCode = 0
+        LxStrB = 0
+        LxCtl = 0
+    END IF
 END SUB
 
 SUB TW (v)
@@ -207,6 +296,16 @@ SUB LexTokens ()
         LOOP
         IF LxPos > LxLen THEN EXIT DO
         c = LxC
+        IF first <> 0 THEN
+            ' a statement starts
+            IF LxStmtTok > LxMaxStmt THEN LxMaxStmt = LxStmtTok
+            IF LxHdrPar > LxMaxPar THEN LxMaxPar = LxHdrPar
+            LxStmtTok = 0
+            LxHdrPar = 0
+            LxLead = 0
+            LxParen = 0
+            LxDecl = 0
+        END IF
         IF first = 1 AND IsDigit(c) THEN
             ' a line number
             s = LxPos
@@ -219,6 +318,7 @@ SUB LexTokens ()
             LOOP
             TB TLABEL
             TS w$
+            LxName w$, 2
             first = 1
         ELSEIF IsLetter(c) THEN
             s = LxPos
@@ -239,10 +339,12 @@ SUB LexTokens ()
                     LxPos = LxPos + 1
                     TB TLABEL
                     TS w$
+                    LxName w$, 2
                     first = 1
                 ELSE
                     TB TIDENT
                     TS w$
+                    LxName w$, 1
                     first = 0
                 END IF
             ELSEIF k = KDATA THEN
@@ -250,8 +352,24 @@ SUB LexTokens ()
                 TB k
                 TB TSTR
                 TS LTRIM$(MID$(LxLine$, LxPos))
+                LxStrBytes LxLen - LxPos + 1
                 LxPos = LxLen + 1
             ELSE
+                IF k = KSUB OR k = KFUNCTION THEN
+                    IF first <> 0 OR LxLead = KPRIVATE THEN ProcMark 1
+                    IF first = 0 AND LxLead = KEND THEN ProcMark 0
+                END IF
+                IF first <> 0 THEN
+                    LxLead = k
+                    SELECT CASE k
+                    CASE KDECLARE, KCONST, KCOMMON, KDEFINT, KDEFSNG, KDEFDBL, KDEFSTR, KOPTION, KSEGMENT
+                        LxDecl = 1
+                    END SELECT
+                END IF
+                SELECT CASE k
+                CASE KIF, KELSEIF, KELSE, KFOR, KNEXT, KDO, KLOOP, KWHILE, KWEND, KSELECT, KCASE, KEXIT, KGOTO, KGOSUB, KRETURN, KON, KAND, KOR, KUNTIL
+                    IF LxProc THEN LxCtl = LxCtl + 1 ELSE LxBodyCtl = LxBodyCtl + 1
+                END SELECT
                 TB k
                 first = 0
                 IF k = KTHEN OR k = KELSE THEN first = 2
@@ -264,6 +382,7 @@ SUB LexTokens ()
             IF q = 0 THEN q = LxLen + 1
             TB TSTR
             TS MID$(LxLine$, LxPos + 1, q - LxPos - 1)
+            LxStrBytes q - LxPos - 1
             LxPos = q + 1
             first = 0
         ELSEIF c = 38 AND INSTR("HhOoBb", CHR$(ASC(LxLine$, LxPos + 1))) > 0 AND ASC(LxLine$, LxPos + 1) <> 0 THEN
@@ -309,8 +428,12 @@ SUB LexTokens ()
             CASE 47: TB TDIV
             CASE 92: TB TIDIV
             CASE 94: TB TPOW
-            CASE 40: TB TLPAR
-            CASE 41: TB TRPAR
+            CASE 40
+                TB TLPAR
+                LxParen = LxParen + 1
+            CASE 41
+                TB TRPAR
+                LxParen = LxParen - 1
             CASE 44: TB TCOMMA
             CASE 59: TB TSEMI
             CASE 35: TB THASH
@@ -409,12 +532,38 @@ SUB LexInclude (f$)
     TS savefile$
 END SUB
 
+' the token file: its header (THWORDS words: room for it first, written
+' at the end, when the counts are known), then the tokens
 SUB LexFile (f$)
-    OPEN TokName$ FOR OUTPUT AS #CHTOK
+    DIM i
+    IF FileExists(TokName$) THEN KILL TokName$
+    OPEN TokName$ FOR BINARY AS #CHTOK
+    FOR i = 1 TO THWORDS
+        TW 0
+    NEXT i
+    NmCap = 100
+    REDIM NmTxt$(NmCap), NmGlob(NmCap) AS BYTE, NmProc(NmCap), NmNext(NmCap)
     LxDepth = 0
     LexLines f$, CHSRC
     TB TEOF
+    ProcMark 0
+    IF LxStmtTok > LxMaxStmt THEN LxMaxStmt = LxStmtTok
+    IF LxHdrPar > LxMaxPar THEN LxMaxPar = LxHdrPar
+    ' (the module's body: one more procedure)
+    IF 3 * LxBodyCode + LxBodyStrB > LxMaxCode THEN LxMaxCode = 3 * LxBodyCode + LxBodyStrB
+    IF LxBodyCtl > LxMaxCtl THEN LxMaxCtl = LxBodyCtl
+    SEEK #CHTOK, 1
+    TW TOKMAGIC
+    TW LxGlob
+    TW LxMaxLoc
+    TW LxParams
+    TW LxConsts
+    TW LxMaxCode
+    TW LxMaxCtl
+    TW LxMaxStmt
+    TW LxMaxPar
     CLOSE #CHTOK
+    ERASE NmTxt$, NmGlob, NmProc, NmNext
 END SUB
 
 ' ---- BCLEX, the program: pass 1 of the job's compile step, then BCGEN

@@ -415,6 +415,13 @@ static FILE *brt_file(bint ch)
     return brt_f[ch].f;
 }
 
+/* SEEK #ch, pos: the next GET or PUT at byte pos (1 the first) */
+static void b_seek(bint ch, long pos)
+{
+    fseek(brt_file(ch), pos - 1, SEEK_SET);
+}
+
+
 static bint b_eof(bint ch)
 {
     FILE *f = brt_file(ch);

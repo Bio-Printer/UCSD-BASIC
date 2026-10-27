@@ -88,7 +88,27 @@ DATA, no SINGLE arithmetic); BC handles the whole language.
 
 The lexer reads the source a line at a time (LINE INPUT), cuts off the
 comment (' or REM, outside strings), joins " _" continuation lines, and
-follows #INCLUDE.  It writes the token file BCTEMP.TOK, a byte stream:
+follows #INCLUDE.  It writes the token file BCTEMP.TOK: a header of 16
+words, then a byte stream.  The header is room left at the start, filled
+in at the end (SEEK #CHTOK, 1) with what the lexer counted while it read
+the source, for BCGEN to size its tables (section 10); THxxx in bccom.bas
+are the words' indexes:
+
+    0 TOKMAGIC (16980)
+    1 the names at the module's level (DIM SHARED, COMMON, CONST, the
+      body's variables, the procedures' names; a label counts twice: pass
+      2 and pass 3 each make a symbol of it)
+    2 the most names in one procedure (each counted once in it)
+    3 the parameters of all SUB, FUNCTION and DECLARE lines;  8 the most of
+      one line
+    4 the names in CONST lines
+    5 the largest procedure's code estimate: 3 bytes a token (not counting
+      DECLARE, CONST, COMMON, DEFINT ... lines) and its strings' bytes
+    6 the most keywords that make labels and jumps (IF, ELSE, FOR, NEXT,
+      DO, LOOP, SELECT, CASE, GOTO, GOSUB, AND, OR ...) in one procedure
+    7 the tokens of the longest statement
+
+The byte stream:
 
     1..99    keywords (KPRINT .. KUSING)
     100..118 operators and punctuation
@@ -321,18 +341,28 @@ links and runs PI in both.  What makes that fit:
   The keywords' names (bckw.bas), for error messages only, are a segment
   of their own, KWNAMES (BCLEX's KwCode keeps a copy of the table);
   ProcHeader and CountDims, which only pass 2 uses, are in DECL.
-- BCGEN's tables (the symbols, parameters, string constants, a
-  procedure's code, labels, jumps, calls, expression nodes) start small,
-  as large as a program like PI needs, and BCLINK's (names, procedures,
-  modules, references, COMMON variables; its buffer is the largest
-  procedure's size) too.  When one is full, REDIM PRESERVE makes it larger,
-  up to its MAX constant: BCGEN's by 100 entries (Grown), BCLINK's twice
-  as large (LinkGrown) -- they grow far, the references to thousands, and
-  each step leaves the old table's memory behind as a hole too small for
-  the next one.
+- BCGEN's tables are as large as the token file's header (section 3)
+  says the source needs, their MAX constants at most: the symbols (the
+  module's names, the most of one procedure, and 48 for the run-time
+  library's procedures a procedure calls, which pass 3 enters as symbols),
+  the parameters (all of them, and one line's again: pass 3 reads each
+  procedure's parameters after them), the string and real constants --
+  these are never too few -- and a procedure's code (its estimate and 104
+  bytes), its jumps (2 a keyword of word 6, and 8), labels (3 a keyword,
+  and 8), calls (one for every 8 bytes of the code's estimate, and 24) and
+  an expression's nodes (half the longest statement's tokens, and 16),
+  which are estimates.  -M shows the sizes ([tables: ...]) and the most of
+  each that was used ([high: ...]).  When one is full, REDIM PRESERVE makes
+  it 100 entries larger (Grown): of BC's sources, the library, the demos
+  and the tests only the test DATA's calls need that, once.  BCLINK's
+  tables (names, procedures, modules, references, COMMON variables; its
+  buffer is the largest procedure's size) start small and double when
+  full (LinkGrown) -- they grow far, the references to thousands, and each
+  step leaves the old table's memory behind as a hole too small for the
+  next one.
 
-Compiling PI, BCGEN has at least 1360 words left in Z80 mode and BCLINK
-3550 (5280 and 7470 in P-Code mode without the Harvard layout).  BC's own
+Compiling PI, BCGEN has at least 1010 words left in Z80 mode and BCLINK
+3550 (4930 and 7470 in P-Code mode without the Harvard layout).  BC's own
 modules need more than either has, in the symbol table (up to 640
 symbols, 8 words each) and in their deeper statements: compiling itself
 needs the Harvard layout.  BC does not check the layout; out of memory, it

@@ -40,10 +40,14 @@
   CSP%() into 0.  BC does not check for the Harvard layout (docs/DESIGN.md
   section 10: what the other layouts leave).  PSYS_MODE=z80 needs the Z80
   interpreter pascal.bin (setup.sh copies UCSD-TinyC's).
-- The linker links procedures, not modules; BCGEN's and BCLINK's tables
-  start small and grow (REDIM PRESERVE: bas2c's ar_dimp): BCGEN's by 100
-  entries (Grown), BCLINK's double (LinkGrown; by 100 it ran out of memory
-  linking BCGEN on the P-System).  The
+- The linker links procedures, not modules.  BCLEX counts what BCGEN's
+  tables need into the token file's 16-word header (THxxx in bccom.bas,
+  written at the end with SEEK: bas2c's b_seek; DESIGN.md sections 3 and
+  10); BCGEN sizes them from it, and grows one that was too small by 100
+  entries (Grown, REDIM PRESERVE: bas2c's ar_dimp) -- -M says "tables grown
+  N times"; keep it 0 for the sources, the demos and the tests (the test
+  DATA: 1).  BCLINK's tables start small and double (LinkGrown; by 100 it
+  ran out of memory linking BCGEN on the P-System).  The
   library's segment RTSELDOM holds what is done seldom (OPEN, CHAIN, the
   sub-volumes, _ARGS; BCUTIL's job and file-name code; EndProc).
 - BASIC:INSTALL.TEXT (mkvolume) is a batch file of Tiny-C's shell (BIGGY

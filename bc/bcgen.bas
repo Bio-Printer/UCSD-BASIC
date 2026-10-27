@@ -1818,7 +1818,10 @@ SUB GenPass ()
         CLOSE #CHLCOD
         LstOpen = 0
     END IF
-    IF OptMem THEN SayLn "  [high: code " + IStr$(HiPC) + ", jumps " + IStr$(HiFix) + ", labels " + IStr$(HiLab) + ", calls " + IStr$(HiRel) + ", nodes " + IStr$(HiNode) + ", names " + IStr$(HiSym) + "]"
+    IF OptMem THEN
+        Say "  [high: code " + IStr$(HiPC) + ", jumps " + IStr$(HiFix) + ", labels " + IStr$(HiLab) + ", calls " + IStr$(HiRel) + ", nodes " + IStr$(HiNode)
+        SayLn ", names " + IStr$(HiSym) + ", parameters " + IStr$(NPar) + ", constants " + IStr$(NConst) + "; tables grown " + IStr$(NGrown) + " times]"
+    END IF
     ERASE Code, LabPos, FixPos, FixLab, RelPos, RelType, RelSym
     ERASE NOp, NTy, NA, NB, NV, NX, NN, NS$, NIsBool, CtlKind, CtlExit, CtlCont, ConstText$
 END SUB
@@ -1831,16 +1834,27 @@ StepNames
 ErrCount = 0
 TokLine = 0
 TokText$ = ""
-' the tables: small at first (enough for a program such as PI), each
-' grown (Grown) up to its MAX constant when it is too small
-SymCap = 100
-ParCap = 40
-ConstCap = 16
-CodeCap = 1024
-LabCap = 64
-FixCap = 64
-RelCap = 96
-NodeCap = 32
+' the tables: as large as BCLEX's counts (the token file's header) say
+' they need, MAX constants at most -- the symbols, parameters and string
+' constants for certain; a procedure's code, labels, jumps and calls, and
+' an expression's nodes estimated (growing, Grown, if that was too few)
+OpenTok
+CLOSE #CHTOK
+IF TokHead(THMAGIC) <> TOKMAGIC THEN Fatal "not BCLEX's token file: " + TokName$
+' (and the run-time library's procedures a procedure calls)
+SymCap = Capped(TokHead(THGLOB) + TokHead(THLOC) + 48, MAXSYM)
+' (pass 3 reads each procedure's parameters again, after all of them)
+ParCap = Capped(TokHead(THPARAMS) + TokHead(THMAXPAR) + 1, MAXPAR)
+ConstCap = Capped(TokHead(THCONSTS) + 1, 300)
+CodeCap = Capped(TokHead(THCODE) + 104, MAXCODE)
+LabCap = Capped(3 * TokHead(THCTL) + 8, MAXLAB)
+FixCap = Capped(2 * TokHead(THCTL) + 8, MAXFIX)
+RelCap = Capped(TokHead(THCODE) \ 8 + 24, MAXREL)
+NodeCap = Capped(TokHead(THSTMT) \ 2 + 16, MAXNODE)
+IF OptMem THEN
+    Say "  [tables: " + IStr$(SymCap) + " names, " + IStr$(ParCap) + " parameters, " + IStr$(ConstCap) + " constants, code " + IStr$(CodeCap)
+    SayLn ", jumps " + IStr$(FixCap) + ", labels " + IStr$(LabCap) + ", calls " + IStr$(RelCap) + ", nodes " + IStr$(NodeCap) + "]"
+END IF
 REDIM SName$(SymCap), SKind(SymCap) AS BYTE, SType(SymCap) AS BYTE, SCls(SymCap) AS BYTE
 REDIM SOff(SymCap), SFlags(SymCap) AS BYTE, SScope(SymCap) AS BYTE, SNext(SymCap)
 REDIM SAux(SymCap), SAux2(SymCap), SSeg(SymCap) AS BYTE, HashHead(HSIZE)
