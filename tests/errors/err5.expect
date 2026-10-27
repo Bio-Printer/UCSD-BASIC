@@ -1,47 +1,21 @@
-ERR5.BAS line 7: F1: 2 argument(s) expected
+ERR5.BAS line 6: F1: 2 argument(s) expected
+  z = f1(1)
+ERR5.BAS line 7: LEN: an argument expected
   z = LEN()
-ERR5.BAS line 8: LEN: an argument expected
+ERR5.BAS line 8: MID$: arguments expected
   z = MID$("a")
-ERR5.BAS line 9: MID$: arguments expected
+ERR5.BAS line 8: type mismatch
+  z = MID$("a")
+ERR5.BAS line 9: INSTR: arguments expected
   z = INSTR()
-ERR5.BAS line 9: type mismatch
-  z = INSTR()
-ERR5.BAS line 10: INSTR: arguments expected
+ERR5.BAS line 10: FRE: one argument expected
   z = FRE()
-ERR5.BAS line 11: FRE: one argument expected
+ERR5.BAS line 11: OSVAR: a constant expected
   z = OSVAR(z)
-ERR5.BAS line 12: OSVAR: a constant expected
+ERR5.BAS line 12: SADD: one argument expected
   z = SADD()
-ERR5.BAS line 13: SADD: one argument expected
+ERR5.BAS line 13: STR$: one argument expected
   w$ = STR$()
-ERR5.BAS line 14: STR$: one argument expected
+ERR5.BAS line 14: S1: 1 argument(s) expected
   s1 1, 2
-ERR5.BAS line 15: S1: 1 argument(s) expected
-  s2 y$()
-ERR5.BAS line 16: argument 1 of S2: an array of another type
-  s2 z
-ERR5.BAS line 16: an array expected as argument 1 of S2
-  s2 z
-ERR5.BAS line 18: X!: the wrong number of indexes
-  z = q(1)
-ERR5.BAS line 18: Q: no such array or function
-  z = q(1)
-ERR5.BAS line 19: an expression expected, not =
-  s1 = 3
-ERR5.BAS line 19: the end of the statement expected, not a number
-  s1 = 3
-ERR5.BAS line 21: S1 is a SUB, not a FUNCTION
-  lab:
-ERR5.BAS line 21: S1: arguments expected
-  lab:
-ERR5.BAS line 21: type mismatch
-  lab:
-ERR5.BAS line 22: label LAB defined twice
-  lab:
-ERR5.BAS line 23: only ON ERROR GOTO 0 and ON ERROR RESUME NEXT
-  ON ERROR GOTO 5
-ERR5.BAS line 32: label NOLABEL not defined
-  END SUB
-ERR5.BAS line 32: internal: a label not set
-  END SUB
-23 error(s): no ERR5.OBJ
+10 error(s): no ERR5.OBJ

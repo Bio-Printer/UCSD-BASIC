@@ -1,0 +1,21 @@
+ERR7.BAS line 3: LINE INPUT needs a string variable
+  LINE INPUT a
+ERR7.BAS line 4: MID$ needs a string variable
+  MID$(a, 1) = "x"
+ERR7.BAS line 5: RETURN with a value outside a FUNCTION
+  RETURN 5
+ERR7.BAS line 6: not inside such a block
+  EXIT FOR
+ERR7.BAS line 7: not inside such a block
+  CONTINUE SELECT
+ERR7.BAS line 8: RESTORE without DATA
+  RESTORE
+ERR7.BAS line 10: the end of the statement expected, not a number
+  a = 1.5.5
+ERR7.BAS line 11: an expression expected, not &
+  a = &Q
+ERR7.BAS line 11: the end of the statement expected, not a name
+  a = &Q
+ERR7.BAS line 12: a constant expression expected
+  CONST k = a
+10 error(s): no ERR7.OBJ

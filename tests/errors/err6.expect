@@ -1,0 +1,21 @@
+ERR6.BAS line 4: a label expected
+  GOSUB
+ERR6.BAS line 5: the end of the statement expected, not SELECT
+  SELECT a
+ERR6.BAS line 6: CASE without its block
+  CASE IS
+ERR6.BAS line 6: a statement expected, not IS
+  CASE IS
+ERR6.BAS line 7: END SELECT without its block
+  END SELECT
+ERR6.BAS line 9: INPUT, OUTPUT, APPEND, BINARY or RANDOM expected
+  OPEN "F" FOR READING AS #1
+ERR6.BAS line 10: PRINT USING is not supported
+  PRINT USING "#"; a
+ERR6.BAS line 11: SWAP needs two variables of one type
+  SWAP a, b$
+ERR6.BAS line 12: VARPTR needs a variable
+  k2 = VARPTR(3)
+ERR6.BAS line 13: label NOWHERE not defined
+  END
+10 error(s): no ERR6.OBJ

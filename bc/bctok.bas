@@ -44,6 +44,10 @@ SUB GetTok ()
             EXIT SUB
         CASE TLINE
             GET #CHTOK, , v
+            PrevLine = TokLine
+            PrevText$ = TokText$
+            PrevFile$ = LineFile$
+            LineFile$ = TokFile$
             TokLine = v
             TokText$ = TokStr$
             TokNewLine = 1

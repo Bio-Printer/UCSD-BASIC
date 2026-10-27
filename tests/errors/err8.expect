@@ -1,0 +1,21 @@
+ERR8.BAS line 6: argument 1 of S2: an array of another type
+  s2 y$()
+ERR8.BAS line 7: an array expected as argument 1 of S2
+  s2 z
+ERR8.BAS line 8: X!: the wrong number of indexes
+  z = x(1, 2)
+ERR8.BAS line 9: Q: no such array or function
+  z = q(1)
+ERR8.BAS line 10: an expression expected, not =
+  s1 = 3
+ERR8.BAS line 10: the end of the statement expected, not a number
+  s1 = 3
+ERR8.BAS line 11: S1 is a SUB, not a FUNCTION
+  z = s1
+ERR8.BAS line 11: S1: arguments expected
+  z = s1
+ERR8.BAS line 11: type mismatch
+  z = s1
+ERR8.BAS line 13: label LAB defined twice
+  lab:
+10 error(s): no ERR8.OBJ

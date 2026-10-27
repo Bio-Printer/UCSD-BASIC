@@ -195,8 +195,13 @@ Errors.  BCLEX's and BCGEN's errors are numbers: ErrNo n, or ErrRec n,
 a, t, s$ for a message with a number, a token or a string in it (Expect t:
 error 1, "{k} expected, not {t}"; LexErr n, s$; FatalRec n, s$ for one
 after which the step cannot go on), each with a comment that gives its
-text.  BCUTIL's ErrRec keeps the first 30 with where they were (the file,
-the line's number and text), in arrays made at the first one; when the
+text.  BCUTIL's ErrRec keeps them with where they were (the file, the
+line's number and text), in arrays made at the first one; the 10th
+(MAXERR) ends the step at once, so the first ones do not scroll off the
+screen.  Where: the line of the token being read -- but while it is TLINE
+(the end of a statement: "the end of the statement expected", "TO
+expected, not ...") the line before, which GetTok keeps (PrevLine,
+PrevText$, PrevFile$) when it reads the next line's TLINE.  When the
 step ends (CompileFailed) they are written to :BCTEMP.ERR, and the
 program chains to BCERR.  BCERR has the texts (MsgText$; {s}, {a}, {t},
 {k} filled in, KwName$ for a token's name), says each error as the

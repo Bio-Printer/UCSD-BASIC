@@ -23,7 +23,8 @@ END FUNCTION
 
 ' an error in the source: where, what, and the line
 ' ---- errors: BCLEX's and BCGEN's are numbers (their texts are BCERR's),
-' kept with where they were (the first 30) until the step ends; then the
+' kept with where they were until the step ends -- the 10th ends it at
+' once (MAXERR: more would scroll the first off the screen); then the
 ' program chains to BCERR, which says them all (CompileFailed).  n: the
 ' message (n < 0: a fatal error, the end at once), a: a number in it, t:
 ' a token, s$: a string (its text's {a}, {t} or {k}, {s}).
@@ -34,18 +35,23 @@ SUB ErrRec (n, a, t, s$)
     DIM i
     ErrCount = ErrCount + 1
     i = ErrCount
-    IF i > 30 THEN
-        IF n >= 0 THEN EXIT SUB
-        i = 30
-    END IF
-    IF i = 1 THEN REDIM ErN(30), ErA(30), ErT(30), ErL(30), ErF$(30), ErX$(30), ErS$(30)
+    IF i = 1 THEN REDIM ErN(MAXERR), ErA(MAXERR), ErT(MAXERR), ErL(MAXERR), ErF$(MAXERR), ErX$(MAXERR), ErS$(MAXERR)
     ErN(i) = n
     ErA(i) = a
     ErT(i) = t
-    ErL(i) = TokLine
-    ErF$(i) = TokFile$
-    ErX$(i) = TokText$
+    IF Tok = TLINE THEN
+        ' (the statement ended: it was on the line before)
+        ErL(i) = PrevLine
+        ErF$(i) = PrevFile$
+        ErX$(i) = PrevText$
+    ELSE
+        ErL(i) = TokLine
+        ErF$(i) = LineFile$
+        IF LineFile$ = "" THEN ErF$(i) = TokFile$
+        ErX$(i) = TokText$
+    END IF
     ErS$(i) = s$
+    IF i >= MAXERR THEN CompileFailed
 END SUB
 
 SUB ErrNo (n)
@@ -270,7 +276,7 @@ SUB CompileFailed ()
     ' the line's number, the file, the line's text, the string)
     DIM i, n
     n = ErrCount
-    IF n > 30 THEN n = 30
+    IF n > MAXERR THEN n = MAXERR
     OPEN ErrName$ FOR OUTPUT AS #CHJOB
     PRINT #CHJOB, IStr$(ErrCount)
     FOR i = 1 TO n

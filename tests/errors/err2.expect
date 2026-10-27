@@ -1,11 +1,11 @@
-ERR2.BAS line 5: S1: not as declared before
-  END SUB
-ERR2.BAS line 7: F1: not as declared before
-  f1 = 1
-ERR2.BAS line 15: S1 defined twice
-  END SUB
-ERR2.BAS line 17: a SUB name with a type suffix
-  END SUB
+ERR2.BAS line 4: S1: not as declared before
+  SUB s1 (a, b)
+ERR2.BAS line 6: F1: not as declared before
+  FUNCTION f1 (a)
+ERR2.BAS line 14: S1 defined twice
+  SUB s1 (a)
+ERR2.BAS line 16: a SUB name with a type suffix
+  SUB s3$ ()
 ERR2.BAS line 33: a letter expected
   DEFINT 1
 5 error(s): no ERR2.OBJ

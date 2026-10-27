@@ -17,6 +17,8 @@ CONST CHSRC = 1, CHTOK = 2, CHOBJ = 3, CHLST = 4, CHLTMP = 5, CHBAT = 6, CHINC =
 ' (the listing's two temporary files, written by pass 3, read by LIST)
 CONST CHLREC = 11, CHLCOD = 12
 
+' the end of a block GenBlock returns: TMEND + KIF (END IF), KSUB ...
+CONST TMEND = 200
 ' ---- token codes: keywords 1..99, operators 100..127, others 128..
 CONST KPRINT = 1, KINPUT = 2, KLET = 3, KIF = 4, KTHEN = 5, KELSE = 6
 CONST KELSEIF = 7, KEND = 8, KFOR = 9, KTO = 10, KSTEP = 11, KNEXT = 12
@@ -62,10 +64,14 @@ COMMON SHARED BcVol$
 ' ---- the job file (BCUTIL): where the programs are (#unit:), the options
 ' (JF...), the step being done
 COMMON SHARED JobHome$, JobFlags, JobCur$, JobName$, ErrName$
+CONST MAXERR = 10
 CONST JFASK = 1, JFQUIET = 2, JFMEM = 4, CHJOB = 13, MAXSTEP = 300
 
 ' ---- the token reader (passes 2 and 3)
 COMMON SHARED Tok, TokS$, TokV, TokLine, TokFile$, TokText$, TokNewLine
+' the line TokLine is in (its file), and the line before it: while Tok is
+' TLINE (the end of a statement) the statement was on the line before
+COMMON SHARED LineFile$, PrevLine, PrevText$, PrevFile$
 
 ' ---- the symbol table
 COMMON SHARED NSym, NModSym, NPar, CurSeg, NSegName, SymCap, ParCap

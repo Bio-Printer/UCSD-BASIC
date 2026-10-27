@@ -33,10 +33,16 @@ FUNCTION KwTable$ (part)
 END FUNCTION
 
 FUNCTION KwName$ (k)
-    DIM t$
-    IF k >= 1 AND k <= NKEYWORD THEN
-        t$ = KwTable$((k - 1) \ 27)
-        KwName$ = RTRIM$(MID$(t$, ((k - 1) MOD 27) * 9 + 1, 9))
+    DIM t$, e$, j
+    j = k
+    IF j > TMEND AND j <= TMEND + NKEYWORD THEN
+        ' (the end of a block: END IF, END SELECT ...)
+        e$ = "END "
+        j = j - TMEND
+    END IF
+    IF j >= 1 AND j <= NKEYWORD THEN
+        t$ = KwTable$((j - 1) \ 27)
+        KwName$ = e$ + RTRIM$(MID$(t$, ((j - 1) MOD 27) * 9 + 1, 9))
         EXIT FUNCTION
     END IF
     SELECT CASE k

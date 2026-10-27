@@ -1,21 +1,21 @@
-ERR4.BAS line 4: B not declared (OPTION EXPLICIT)
-  FOR a$ = 1 TO 2
+ERR4.BAS line 3: B not declared (OPTION EXPLICIT)
+  a = b
 ERR4.BAS line 4: A$ not declared (OPTION EXPLICIT)
   FOR a$ = 1 TO 2
 ERR4.BAS line 4: FOR needs a numeric variable
   FOR a$ = 1 TO 2
-ERR4.BAS line 5: type mismatch
-  NEXT
-ERR4.BAS line 5: type mismatch
-  NEXT
-ERR4.BAS line 5: type mismatch
-  NEXT
-ERR4.BAS line 7: ? without its block
+ERR4.BAS line 4: type mismatch
+  FOR a$ = 1 TO 2
+ERR4.BAS line 4: type mismatch
+  FOR a$ = 1 TO 2
+ERR4.BAS line 4: type mismatch
+  FOR a$ = 1 TO 2
+ERR4.BAS line 6: END IF without its block
+  END IF
+ERR4.BAS line 7: WEND without its block
   WEND
-ERR4.BAS line 8: WEND without its block
+ERR4.BAS line 8: LOOP without its block
   LOOP
-ERR4.BAS line 9: LOOP without its block
-  SUB s
 ERR4.BAS line 10: END SUB expected
   END FUNCTION
 10 error(s): no ERR4.OBJ

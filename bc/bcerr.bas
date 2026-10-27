@@ -182,7 +182,7 @@ OPEN ErrName$ FOR INPUT AS #CHJOB
 LINE INPUT #CHJOB, l$
 count = VAL(l$)
 n = count
-IF n > 30 THEN n = 30
+IF n > MAXERR THEN n = MAXERR
 FOR i = 1 TO n
     LINE INPUT #CHJOB, l$
     p = VAL(l$)

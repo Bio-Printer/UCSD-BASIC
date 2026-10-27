@@ -26,7 +26,8 @@
 - Errors in BCLEX and BCGEN are numbers (ErrNo n / ErrRec n, a, t, s$ /
   Expect t / LexErr n, s$ / FatalRec n, s$, each with its text as a
   comment); BCERR (bcerr.bas) has the texts and says them (DESIGN.md
-  section 5).  A new error: the next number, its text in bcerr.bas's
+  section 5).  The 10th error (MAXERR) ends the step; an error while Tok is
+  TLINE is reported on the line before (PrevLine: GetTok keeps it).  A new error: the next number, its text in bcerr.bas's
   MsgA$/MsgB$/MsgC$ (keep each under BC's 3200 bytes a procedure), and a
   case in tests/errors if it is easy to make.
 - BC's sources must stay within the part of the language tools/bas2c.py
