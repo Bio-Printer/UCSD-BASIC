@@ -1,11 +1,17 @@
 # Notes for Claude
 
 - Build: `tools/setup.sh` (emulator runner, boot disk), `tools/buildhost.sh`
-  (host BC), `tools/mklib.sh`, `tools/mkself.sh`, `tools/mkvolume.py`.
+  (host BC: build/bc, bclex, bcgen, bclist, bclink), `tools/mklib.sh`,
+  `tools/mkself.sh`, `tools/mkvolume.py`.
   The sibling checkouts are expected in `../bio-printer/` (the emulator,
   UCSD-TinyC, UCSD-Pascal-Volumes); see setup.sh's variables.
+- BC is five programs that CHAIN to each other through the job file
+  :BCTEMP.JOB (docs/DESIGN.md section 1); tools/bcprogs.py lists each one's
+  modules (the first its main one) for every build tool.  A new module goes
+  there.  BCGEN keeps segments GEN and DECL (one segment holds at most 255
+  procedures).
 - After a change to the compiler or the library run `tools/runtests.py`,
-  `tools/selfcompile.py` (must say IDENTICAL twice) and, for the volume,
+  `tools/selfcompile.py` (must say IDENTICAL six times: BASLIB and the five programs) and, for the volume,
   `tools/voltest.py`.  New cross-module calls need `tools/mkdecls.py`
   (buildhost.sh runs it).
 - BC's sources must stay within the part of the language tools/bas2c.py
@@ -31,12 +37,10 @@
 - The tests boot build/psys/data/Big_Disk.BLK (setup.sh copies BOOT_DISK);
   BIGGY 1.29 is the first whose systems make a new NAME.BAS a text file;
   1.30's shell (and Tiny-C's library: __istext) reads NAME.BAS as text.
-- Code space (Harvard): OS segment 0 + BC's resident part + GEN fill most
-  of the 64K; LIST runs after GEN (ListModule from the driver), never from
-  inside it, and nothing nests another segment inside GEN that is not
-  already there (SUBVOL just fits).  voltest compares the P-System's
-  listing (-S) with the host's.
+- Code space (Harvard): BCGEN (its main segment, GEN, DECL, SUBVOL) is the
+  largest program; LIST is a program of its own (BCLIST, after BCGEN).
+  voltest compares the P-System's listing (-S) with the host's.
 - CHAIN: lib/rtchain.bas (_CHAIN), the pexec protocol of BIGGY's GETCMD;
   tests/chain (+ chain.progs) and tools/chaintest.py (from the shell; also
-  --pascal).  bas2c does not translate CHAIN: BC's sources may use it only
-  once bas2c and hostrt.h do.
+  --pascal).  bas2c translates CHAIN (hostrt.h b_chain: execv of the host
+  program of that name beside the running one), PEEK and OSVAR (0).

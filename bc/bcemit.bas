@@ -10,6 +10,7 @@
 #INCLUDE "BCGENCOM"
 SEGMENT GEN
 
+
 DIM SHARED LongLab(60), PendPC, PendLine, PendText$, PendSet
 DIM SHARED GsRet(100), ProcKeep
 

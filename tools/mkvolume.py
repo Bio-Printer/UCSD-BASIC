@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """mkvolume.py -- build/BASIC.BLK: the volume BASIC: (4000 blocks)
 
-    BC.CODE            the compiler
+    BC.CODE            the compiler: its driver; BCLEX.CODE, BCGEN.CODE, BCLIST.CODE and
+                       BCLINK.CODE the programs it chains to (each in memory alone)
     README.TEXT LANGUAGE.TEXT DESIGN.TEXT   the documentation
     ALL.TEXT           @BASIC:ALL runs the four batch files below
     FILES.TEXT         every file, the sub-volumes' too
     SRC/               the compiler's sources (BC*.BAS); BUILD.TEXT:
-                       @BASIC:/SRC/BUILD rebuilds the compiler as BASIC:BC2.CODE
+                       @BASIC:/SRC/BUILD rebuilds the compiler as BASIC:BC2.CODE,
+                       BCLEX2.CODE ... BCLINK2.CODE
     LIB/               the run-time library BASLIB.OBJ, its sources (RT*.BAS);
                        LIBS.TEXT: @BASIC:/LIB/LIBS rebuilds it as BASIC:/LIB/BASLIB2.OBJ
     DEMO/              example programs; DEMOS.TEXT compiles them all
@@ -26,7 +28,7 @@ ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 import ucsdvol
 
-MODS = ['BC', 'BCLEX', 'BCDECL', 'BCGEN', 'BCEXPR', 'BCEMIT', 'BCLIST', 'BCLINK']
+from bcprogs import PROGS, MODS
 LIBS = ['RTCORE', 'RTFILE', 'RTSTR', 'RTNUM', 'RTARR', 'RTINPUT', 'RTDATA', 'RTSUBV', 'RTCHAIN']
 # the demos: NAME, or (NAME, [the modules linked with it])
 DEMOS = ['HELLO', 'PRIMES', 'HANOI', 'MANDEL', 'PI', 'GUESS', ('STATS', ['STATLIB'])]
@@ -102,7 +104,8 @@ def host_sizes(srcs, links):
 
 def main(out=os.path.join(ROOT, 'build', 'BASIC.BLK')):
     top = Dir('BASIC', 4000)
-    top.binary('BC.CODE', open(os.path.join(ROOT, 'build', 'BC.CODE'), 'rb').read())
+    for p, m in PROGS:
+        top.binary(p + '.CODE', open(os.path.join(ROOT, 'build', p + '.CODE'), 'rb').read())
     top.text('README.TEXT', text(os.path.join(ROOT, 'README.md')))
     top.text('LANGUAGE.TEXT', text(os.path.join(ROOT, 'docs', 'LANGUAGE.md')))
     top.text('DESIGN.TEXT', text(os.path.join(ROOT, 'docs', 'DESIGN.md')))
@@ -110,9 +113,10 @@ def main(out=os.path.join(ROOT, 'build', 'BASIC.BLK')):
              '@BASIC:/SRC/BUILD\n@BASIC:/LIB/LIBS\n@BASIC:/DEMO/DEMOS\n@BASIC:/TEST/TESTS\n')
 
     src = top.sub('SRC')
-    src.text('BUILD.TEXT', "' the compiler: its modules, linked into BASIC:BC2.CODE\n" +
+    src.text('BUILD.TEXT', "' the compiler: its modules, linked into its five programs BASIC:BC2.CODE,\n"
+             "' BCLEX2, BCGEN2, BCLIST2, BCLINK2 (the first module of each its main one)\n" +
              ''.join('-C BASIC:/SRC/%s\n' % m for m in MODS) +
-             '-L BASIC:BC2=' + ','.join('BASIC:/SRC/' + m for m in MODS) + '\n')
+             ''.join('-L BASIC:%s2=%s\n' % (p, ','.join('BASIC:/SRC/' + x for x in m)) for p, m in PROGS))
     for f in sorted(glob.glob(os.path.join(ROOT, 'bc', '*.bas'))):
         src.text(os.path.basename(f)[:-4].upper() + '.BAS', text(f))
     src.extra = sum(blocks(os.path.getsize(os.path.join(ROOT, 'build', 'self', m + '.OBJ'))) for m in MODS)

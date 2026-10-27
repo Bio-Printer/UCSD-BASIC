@@ -10,6 +10,7 @@
 #INCLUDE "BCGENCOM"
 SEGMENT GEN
 
+
 CONST TMEND = 200
 DIM SHARED CtlVar(MAXCTL), CtlLim(MAXCTL), CtlStep(MAXCTL), CtlStepI(MAXCTL)
 DIM SHARED CtlStepS$(MAXCTL), CtlSign(MAXCTL)
@@ -1800,3 +1801,25 @@ SUB GenPass ()
     ERASE Code, LabPos, FixPos, FixLab, RelPos, RelType, RelSym
     ERASE NOp, NTy, NA, NB, NV, NX, NN, NS$, NIsBool, CtlKind, CtlExit, CtlCont, ConstText$
 END SUB
+
+' ---- BCGEN, the program: passes 2 and 3 of the job's compile step (the
+' declarations, the code), then BCLIST for a listing
+
+ReadJob
+StepNames
+ErrCount = 0
+TokLine = 0
+TokText$ = ""
+REDIM SName$(MAXSYM), SKind(MAXSYM) AS BYTE, SType(MAXSYM) AS BYTE, SCls(MAXSYM) AS BYTE
+REDIM SOff(MAXSYM), SFlags(MAXSYM) AS BYTE, SScope(MAXSYM) AS BYTE, SNext(MAXSYM)
+REDIM SAux(MAXSYM), SAux2(MAXSYM), SSeg(MAXSYM) AS BYTE, HashHead(HSIZE)
+REDIM PType(MAXPAR) AS BYTE, PFlg(MAXPAR) AS BYTE
+MemNote "symbols"
+InitSyms
+DeclPass
+MemNote "declared"
+IF ErrCount = 0 THEN GenPass
+IF ErrCount > 0 THEN CompileFailed
+KILL TokName$
+IF OptList THEN ChainTo "BCLIST", ""
+CompileDone

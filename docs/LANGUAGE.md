@@ -463,12 +463,14 @@ SYSTEM.PASCAL and SYSTEM.C), or from Tiny-C's shell.
 
 The volume BASIC: holds:
 
-    BC.CODE                     the compiler
+    BC.CODE                     the compiler (and BCLEX, BCGEN, BCLIST,
+                                BCLINK.CODE, the programs it chains to)
     README.TEXT LANGUAGE.TEXT DESIGN.TEXT
     ALL.TEXT                    @BASIC:ALL: the four batch files below
     FILES.TEXT                  every file, the sub-volumes' too
     SRC/   BC*.BAS              the compiler's sources;
-           BUILD.TEXT           @BASIC:/SRC/BUILD: BASIC:BC2.CODE
+           BUILD.TEXT           @BASIC:/SRC/BUILD: BASIC:BC2.CODE ...
+                                BCLINK2.CODE
     LIB/   BASLIB.OBJ           the run-time library, RT*.BAS its sources;
            LIBS.TEXT            @BASIC:/LIB/LIBS: BASIC:/LIB/BASLIB2.OBJ
     DEMO/  HELLO PRIMES HANOI MANDEL PI GUESS, STATS + STATLIB (two modules);
@@ -494,6 +496,11 @@ A program of several modules:
 
 The body (module-level statements) of every module runs when the program
 starts, the main program's (the first module's) last.
+
+BC is five programs, BC.CODE (the one you run), BCLEX, BCGEN, BCLIST and
+BCLINK.CODE; BC chains to the others (each in memory alone), and they
+must be on the same volume as BC.CODE, at its top (BASIC:).  BC keeps its
+work in the job file BCTEMP.JOB on the prefix volume while they run.
 
 BC needs the emulator's Harvard layout (Options > Harvard Mode, the
 default, in P-Code mode with Reclaim Z80 Interpreter Memory on): its code

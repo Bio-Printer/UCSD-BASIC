@@ -218,6 +218,7 @@ END FUNCTION
 ' ---- pass 2 itself
 SEGMENT DECL
 
+
 ' DIM SHARED / COMMON SHARED: the variables (the keyword after SHARED is current)
 SUB DeclShared (iscommon)
     DIM nm$, nd, ty, s, kind

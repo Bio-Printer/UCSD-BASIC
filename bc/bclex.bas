@@ -6,7 +6,6 @@
 ' on in the next one.  Numbers are converted here: TINT holds the value,
 ' TSNG and TDBL the text of a real (digits, ".", "E", exponent).
 #INCLUDE "BCCOM"
-SEGMENT LEX
 
 DIM SHARED LxDepth, LxLine$, LxPos, LxLen, LxLineNo, LxFile$
 
@@ -417,3 +416,21 @@ SUB LexFile (f$)
     TB TEOF
     CLOSE #CHTOK
 END SUB
+
+' ---- BCLEX, the program: pass 1 of the job's compile step, then BCGEN
+
+ReadJob
+StepNames
+ErrCount = 0
+IF NOT FileExists(SrcName$) THEN
+    SayLn "BC: no file " + SrcName$
+    PhaseDone 0
+END IF
+IF OptQuiet = 0 THEN SayLn "Compiling " + SrcName$
+TokLine = 0
+TokText$ = ""
+MemNote "start"
+LexFile SrcName$
+MemNote "lexed"
+IF ErrCount > 0 THEN CompileFailed
+ChainTo "BCGEN", ""

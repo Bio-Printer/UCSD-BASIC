@@ -10,7 +10,6 @@
 ' the GEN segment and this one do not fit into the code space together.)
 #INCLUDE "BCCOM"
 #INCLUDE "BCGENCOM"
-SEGMENT LIST
 
 ' opcodes 128..215: a name (4) and an operand format (1), then a blank
 FUNCTION OpTable$ (part)
@@ -321,3 +320,10 @@ SUB ListModule ()
     KILL LTmpName$
     ERASE Code, RelPos, RelType, RelName$
 END SUB
+
+' ---- BCLIST, the program: the listing of the module BCGEN compiled
+
+ReadJob
+StepNames
+ListModule
+CompileDone

@@ -17,7 +17,6 @@
 ' _RTINIT, the bodies of the linked modules (the main program's last),
 ' _HALT(0).
 #INCLUDE "BCCOM"
-SEGMENT LINK
 
 CONST MAXLN = 700, MAXLP = 520, MAXLM = 90, MAXREFS = 3600, MAXLD = 160
 CONST MAXLF = 24, LBUFSZ = 5000, LHSIZE = 128
@@ -700,3 +699,36 @@ FUNCTION JoinLib (out$, objs$)
     CLOSE #CHOUT
     JoinLib = -1
 END FUNCTION
+
+' ---- BCLINK, the program: the job's step, L OUT=A,B (link) or J LIB=A,B
+' (join)
+
+' -L OUT=A,B: the code file and the object files
+FUNCTION DoLink (spec$)
+    DIM e, out$, objs$
+    e = INSTR(spec$, "=")
+    IF e = 0 THEN
+        out$ = spec$
+        objs$ = spec$
+    ELSE
+        out$ = LEFT$(spec$, e - 1)
+        objs$ = MID$(spec$, e + 1)
+    END IF
+    out$ = WithSuffix$(out$, ".CODE")
+    DoLink = LinkProg(out$, objs$)
+END FUNCTION
+
+FUNCTION DoJoin (spec$)
+    DIM e
+    e = INSTR(spec$, "=")
+    IF e = 0 THEN
+        SayLn "BC: -J LIB=A,B,..."
+        EXIT FUNCTION
+    END IF
+    DoJoin = JoinLib(WithSuffix$(LEFT$(spec$, e - 1), ".OBJ"), MID$(spec$, e + 1))
+END FUNCTION
+
+DIM ok
+ReadJob
+IF LEFT$(JobCur$, 1) = "L" THEN ok = DoLink(MID$(JobCur$, 3)) ELSE ok = DoJoin(MID$(JobCur$, 3))
+PhaseDone ok

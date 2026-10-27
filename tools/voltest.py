@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """voltest.py -- build/BASIC.BLK on the P-System (unit #5): BC runs
 @BASIC:ALL, which rebuilds the compiler from BASIC:/SRC (BUILD -> BASIC:BC2.CODE,
-the same as BC.CODE but for segment 1's name) and the library in BASIC:/LIB
+BCLEX2 ... BCLINK2, each the same as BC.CODE ... BCLINK.CODE but for segment 1's
+name) and the library in BASIC:/LIB
 (LIBS -> BASLIB2.OBJ, the same as BASLIB.OBJ), and compiles every demo and
 test in their sub-volumes, and then PI again with a listing (-S: DEMO/PI.LST,
 the host's listing but for the source's name); then the demos STATS and PI and
@@ -16,6 +17,7 @@ ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 os.environ.setdefault('VERIFY_HARVARD', '1')
 import psys, ucsdvol, mkvolume
+from bcprogs import PROGS
 
 
 def main(a):
@@ -34,17 +36,18 @@ def main(a):
     print(tr[tr.find('BASIC:BC'):])
     print(info.strip().split('\n')[-1])
     v = ucsdvol.Volume(os.path.join(ps.out, 'VERIFY_SOURCE.BLK'))
-    bc = open(os.path.join(ROOT, 'build', 'BC.CODE'), 'rb').read()
     lib = open(os.path.join(ROOT, 'build', 'BASLIB.OBJ'), 'rb').read()
     bad = 0
-    try:
-        bc2 = bytearray(v.read('BC2.CODE')[0])
-        bc2[72:80] = bc[72:80]          # segment 1's name: BC2
-        same = bytes(bc2) == bc
-    except BaseException:
-        same = False
-    print('BC2.CODE: %s' % ('the same as BC.CODE' if same else 'DIFFERENT'))
-    bad += not same
+    for p, m in PROGS:
+        bc = open(os.path.join(ROOT, 'build', p + '.CODE'), 'rb').read()
+        try:
+            bc2 = bytearray(v.read(p + '2.CODE')[0])
+            bc2[72:80] = bc[72:80]          # segment 1's name: BC2 ...
+            same = bytes(bc2) == bc
+        except BaseException:
+            same = False
+        print('%s2.CODE: %s' % (p, 'the same as %s.CODE' % p if same else 'DIFFERENT'))
+        bad += not same
     try:
         lib2 = v.sub('LIB').read('BASLIB2.OBJ')[0]
         same = lib2.rstrip(b'\0') == lib.rstrip(b'\0')

@@ -529,10 +529,46 @@ static void b_onerr(bint on)
 
 static bint b_errno(void) { return brt_err; }
 
+static char brt_self[512];             /* this program's file: CHAIN runs one beside it */
+
+/* CHAIN "[VOL:]PROGRAM [args]": the host program PROGRAM (lower case) in this one's
+   directory takes its place, with the args as its command line */
+static void b_chain(bstr cmd)
+{
+    char line[300], path[900], *argv[64], *p, *name;
+    int n = 0, i;
+    memcpy(line, cmd.s, cmd.len);
+    line[cmd.len] = 0;
+    p = line;
+    while (*p == ' ') p++;
+    name = p;
+    while (*p && *p != ' ') p++;
+    if (*p) *p++ = 0;
+    if (strrchr(name, ':')) name = strrchr(name, ':') + 1;
+    for (i = 0; name[i]; i++) name[i] = tolower((unsigned char)name[i]);
+    snprintf(path, sizeof path, "%s/%s", brt_self, name);
+    argv[n++] = path;
+    while (*p && n < 62) {
+        while (*p == ' ') p++;
+        if (!*p) break;
+        argv[n++] = p;
+        while (*p && *p != ' ') p++;
+        if (*p) *p++ = 0;
+    }
+    argv[n] = 0;
+    brt_closeall();
+    fflush(stdout);
+    execv(path, argv);
+    brt_ioerr(53, "CHAIN: no such program");
+}
+
 static void brt_init(int argc, char **argv)
 {
     char b[256];
     int i, n = 0;
+    ssize_t k = readlink("/proc/self/exe", brt_self, sizeof brt_self - 1);
+    brt_self[k > 0 ? k : 0] = 0;
+    if (strrchr(brt_self, '/')) *strrchr(brt_self, '/') = 0;
     b[0] = 0;
     for (i = 1; i < argc; i++) {
         if (i > 1 && n < 250) b[n++] = ' ';

@@ -24,7 +24,7 @@ GOTO GOSUB RETURN ON SUB FUNCTION CALL DIM REDIM SHARED COMMON AS INTEGER SINGLE
 STRING BYTE CONST DECLARE DEFINT DEFSNG DEFDBL DEFSTR SELECT CASE IS OPEN CLOSE OUTPUT
 APPEND BINARY RANDOM LINE GET PUT KILL STOP SYSTEM AND OR XOR NOT MOD BYREF BYVAL STATIC
 SEGMENT PRIVATE SWAP ERASE DATA READ RESTORE CONTINUE RANDOMIZE OPTION EXPLICIT REAL CLS
-LOCATE WRITE PRESERVE ERROR RESUME SEEK USING""".split()
+LOCATE WRITE PRESERVE ERROR RESUME SEEK USING CHAIN""".split()
 KW = set(KEYWORDS)
 
 T_INT, T_SNG, T_DBL, T_STR, T_BYTE = 'I', 'F', 'D', 'S', 'B'
@@ -832,6 +832,10 @@ class Trans:
         if n == 'FRE':
             self.args()
             return ('((bint)0)', T_INT, False)
+        if n in ('PEEK', 'OSVAR'):
+            # (the P-System's memory: nothing on the host)
+            self.args()
+            return ('((bint)0)', T_INT, False)
         if n == 'CSP%':
             # (CSP%(34), IORESULT: 0 on the host)
             self.args()
@@ -1418,6 +1422,11 @@ class Trans:
             if not self.op(','):
                 break
             self.next()
+
+    def s_CHAIN(self):
+        # (the host runs the program beside this one: hostrt.h b_chain)
+        self.next()
+        self.emit('b_chain(%s);' % self.conv(self.expr(), T_STR)[0])
 
     def s_KILL(self):
         self.next()
