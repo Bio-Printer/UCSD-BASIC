@@ -392,6 +392,9 @@ statement as nothing and CSP%() as 0.)
 
 ## 11. Testing
 
+- tools/importtest.py: a Windows PI.BAS imported with the emulator's
+  Import File (run_verify's VERIFY_IMPORT; emulator 2.10 makes it a text
+  file), compiled, linked and run with BC, exported back the same.
 - Errors: _RTERR closes every file; an error while it does (a CLOSE that
   cannot write) ends the program at once, and _CLOSE1 marks a file closed
   before it reports, so the two do not call each other until the stack

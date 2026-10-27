@@ -21,7 +21,8 @@ fi
 Z80_BIN=${Z80_BIN:-$ROOT/../bio-printer/ucsd-tinyc/pascal.bin}
 if [ -f "$Z80_BIN" ] && ! cmp -s "$Z80_BIN" $B/data/pascal.bin; then cp "$Z80_BIN" $B/data/pascal.bin; fi
 [ -f $B/data/pascal.bin ] || head -c 4096 /dev/zero > $B/data/pascal.bin
-if [ ! -x $B/run_verify ]; then
+# (built again when the emulator's sources are newer: a new version)
+if [ ! -x $B/run_verify ] || [ -n "$(find "$ENGINE_DIR/UCSDPascal" "$ENGINE_DIR/verify/run_verify.cpp" -newer $B/run_verify -name '*.[ch]*' 2>/dev/null | head -1)" ]; then
     g++ -std=c++17 -O2 -w -I "$ENGINE_DIR/verify/linux-shim" -I "$ENGINE_DIR/UCSDPascal" \
         -o $B/run_verify "$ENGINE_DIR/verify/run_verify.cpp" \
         "$ENGINE_DIR/UCSDPascal/PSystemEngine.cpp" "$ENGINE_DIR/UCSDPascal/z80.cpp" -lpthread

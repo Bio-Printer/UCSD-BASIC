@@ -24,6 +24,9 @@ Tiny-C's library takes NAME.BAS for a text file too (since BIGGY 1.30 and
 the TINY-C: and TOOLS: volumes of the same day): the shell's TYPE, vi, cat,
 grep, wc, less and the other tools read and write it as text.  An older
 one shows its header and blank-compression codes, and vi refuses it.
+The emulator's Options > Import File makes a PC file NAME.BAS a text file
+since its version 2.10 (before, a data file: its first 1K, taken for the
+header, was lost), and Export File writes it back as PC text.
 
 - Lines.  One or more statements a line, separated by colons.  A line
   ending in " _" (blank, underscore) goes on in the next line.  A source

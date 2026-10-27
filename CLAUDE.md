@@ -18,7 +18,10 @@
   `tools/voltest.py`, and for memory `tools/smalltest.py` (PI in Z80 mode
   and P-Code mode without the Harvard layout); for the console's line ends
   `tools/crtest.py` (a CR alone, CHR$(13), goes back to the line's start;
-  PRINT's line end is CR LF: the library's UNITWRITE has CRLFBIT).  New cross-module calls need
+  PRINT's line end is CR LF: the library's UNITWRITE has CRLFBIT); for the
+  emulator's Import/Export of NAME.BAS `tools/importtest.py` (emulator 2.10;
+  setup.sh rebuilds build/psys/run_verify when the emulator's sources are
+  newer).  New cross-module calls need
   `tools/mkdecls.py` (buildhost.sh runs it).
 - Errors in BCLEX and BCGEN are numbers (ErrNo n / ErrRec n, a, t, s$ /
   Expect t / LexErr n, s$ / FatalRec n, s$, each with its text as a
