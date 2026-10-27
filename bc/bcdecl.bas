@@ -15,7 +15,7 @@ SUB DefLetters (ty)
     DIM a, b
     DO
         IF Tok <> TIDENT THEN
-            ErrMsg "a letter expected"
+            ErrNo 12   ' a letter expected
             EXIT SUB
         END IF
         a = ASC(TokS$, 1) - 65
@@ -62,7 +62,7 @@ FUNCTION DeclType (n$, isproc)
     ty = NameType(n$)
     IF Tok = KAS THEN
         GetTok
-        IF SuffixType(n$) THEN ErrMsg "a name with a type suffix declared AS a type"
+        IF SuffixType(n$) THEN ErrNo 13   ' a name with a type suffix declared AS a type
         ty = ParseType
         DeclFlags = SFAS
     ELSEIF SuffixType(n$) = 0 THEN
@@ -95,20 +95,20 @@ FUNCTION ParseParams ()
             GetTok
         END IF
         IF Tok <> TIDENT THEN
-            ErrMsg "a parameter name expected"
+            ErrNo 14   ' a parameter name expected
             EXIT DO
         END IF
         nm$ = TokS$
         GetTok
         IF Tok = TLPAR THEN
             GetTok
-            Expect TRPAR, ")"
+            Expect TRPAR
             fl = PFARRAY
         END IF
         ty = DeclType(nm$, 0)
         n = n + 1
         IF NPar + n > ParCap THEN
-            IF ParCap >= MAXPAR THEN Fatal "too many parameters"
+            IF ParCap >= MAXPAR THEN FatalRec 15, ""   ' too many parameters
             ParCap = Grown(ParCap, MAXPAR)
             REDIM PRESERVE PType(ParCap) AS BYTE, PFlg(ParCap) AS BYTE
         END IF
@@ -121,8 +121,8 @@ FUNCTION ParseParams ()
         IF Tok <> TCOMMA THEN EXIT DO
         GetTok
     LOOP
-    Expect TRPAR, ")"
-    IF n > 30 THEN ErrMsg "more than 30 parameters"
+    Expect TRPAR
+    IF n > 30 THEN ErrNo 16   ' more than 30 parameters
     ParseParams = n
 END FUNCTION
 
@@ -136,7 +136,7 @@ FUNCTION ProcHeader (defining, priv)
     isfunc = Tok = KFUNCTION
     GetTok
     IF Tok <> TIDENT THEN
-        ErrMsg "a procedure name expected"
+        ErrNo 17   ' a procedure name expected
         SkipStmt
         EXIT FUNCTION
     END IF
@@ -149,7 +149,7 @@ FUNCTION ProcHeader (defining, priv)
         fl = DeclFlags
     ELSE
         ty = TYVOID
-        IF SuffixType(nm$) THEN ErrMsg "a SUB name with a type suffix"
+        IF SuffixType(nm$) THEN ErrNo 18   ' a SUB name with a type suffix
     END IF
     IF Tok = KSTATIC THEN GetTok
     s = FindProc(nm$)
@@ -162,14 +162,14 @@ FUNCTION ProcHeader (defining, priv)
                 IF PType(j) <> PType(NPar + i) OR PFlg(j) <> PFlg(NPar + i) THEN same = 0
             NEXT i
         END IF
-        IF NOT same THEN ErrMsg nm$ + ": not as declared before"
+        IF NOT same THEN ErrRec 19, 0, 0, nm$   ' {s}: not as declared before
         IF defining THEN
-            IF SFlags(s) AND SFDEFINED THEN ErrMsg nm$ + " defined twice"
+            IF SFlags(s) AND SFDEFINED THEN ErrRec 20, 0, 0, nm$   ' {s} defined twice
             SFlags(s) = SFlags(s) OR SFDEFINED
             SSeg(s) = CurSeg
         END IF
     ELSE
-        IF FindSym(nm$) > 0 THEN ErrMsg nm$ + " is already the name of something else"
+        IF FindSym(nm$) > 0 THEN ErrRec 21, 0, 0, nm$   ' {s} is already the name of something else
         IF isfunc THEN s = AddSym(nm$, SKFUNC, ty) ELSE s = AddSym(nm$, SKSUB, ty)
         SFlags(s) = fl
         SAux(s) = NPar + 1
@@ -202,7 +202,7 @@ FUNCTION CountDims ()
         ELSEIF Tok = TCOMMA AND depth = 0 THEN
             n = n + 1
         ELSEIF Tok = TLINE OR Tok = TEOF OR Tok = TCOLON THEN
-            ErrMsg ") expected"
+            ErrNo 22   ' ) expected
             CountDims = n
             EXIT FUNCTION
         END IF
@@ -233,7 +233,7 @@ SUB DeclShared (iscommon)
     DIM nm$, nd, ty, s, kind
     DO
         IF Tok <> TIDENT THEN
-            ErrMsg "a variable name expected"
+            ErrNo 23   ' a variable name expected
             SkipStmt
             EXIT SUB
         END IF
@@ -250,7 +250,7 @@ SUB DeclShared (iscommon)
         nm$ = DeclName$
         s = FindSym(nm$)
         IF s > 0 THEN
-            ErrMsg nm$ + " declared twice"
+            ErrRec 24, 0, 0, nm$   ' {s} declared twice
         ELSE
             s = AddSym(nm$, kind, ty)
             SFlags(s) = DeclFlags OR SFSHARED
@@ -344,7 +344,7 @@ SUB DeclPass ()
             IF Tok = KSUB OR Tok = KFUNCTION THEN
                 s = ProcHeader(0, priv)
             ELSE
-                ErrMsg "SUB or FUNCTION expected"
+                ErrNo 25   ' SUB or FUNCTION expected
             END IF
         CASE KSUB, KFUNCTION
             s = ProcHeader(1, priv)

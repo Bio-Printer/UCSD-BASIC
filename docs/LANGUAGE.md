@@ -466,16 +466,17 @@ SYSTEM.PASCAL and SYSTEM.C), or from Tiny-C's shell.
 The volume BASIC: holds:
 
     BC.CODE                     the compiler (and BCLEX, BCGEN, BCLIST,
-                                BCLINK.CODE, the programs it chains to)
+                                BCLINK, BCERR.CODE, the programs it chains
+                                to)
     README.TEXT LANGUAGE.TEXT DESIGN.TEXT
     ALL.TEXT                    @BASIC:ALL: the four batch files below
     INSTALL.TEXT                @BASIC:INSTALL in Tiny-C's shell (BIGGY 1.32),
                                 after @BASIC:/SRC/BUILD: BC2.CODE ...
-                                BCLINK2.CODE become BC.CODE ... BCLINK.CODE
+                                BCERR2.CODE become BC.CODE ... BCERR.CODE
     FILES.TEXT                  every file, the sub-volumes' too
     SRC/   BC*.BAS              the compiler's sources;
            BUILD.TEXT           @BASIC:/SRC/BUILD: BASIC:BC2.CODE ...
-                                BCLINK2.CODE
+                                BCERR2.CODE
     LIB/   BASLIB.OBJ           the run-time library, RT*.BAS its sources;
            LIBS.TEXT            @BASIC:/LIB/LIBS: BASIC:/LIB/BASLIB2.OBJ
     DEMO/  HELLO PRIMES HANOI MANDEL PI GUESS, STATS + STATLIB (two modules);
@@ -502,8 +503,8 @@ A program of several modules:
 The body (module-level statements) of every module runs when the program
 starts, the main program's (the first module's) last.
 
-BC is five programs, BC.CODE (the one you run), BCLEX, BCGEN, BCLIST and
-BCLINK.CODE; BC chains to the others (each in memory alone), and they
+BC is six programs, BC.CODE (the one you run), BCLEX, BCGEN, BCLIST,
+BCLINK and BCERR.CODE (it says a compile's errors); BC chains to the others (each in memory alone), and they
 must be on the same volume as BC.CODE, at its top (BASIC:).  BC keeps its
 work in the job file BCTEMP.JOB on the prefix volume while they run.
 

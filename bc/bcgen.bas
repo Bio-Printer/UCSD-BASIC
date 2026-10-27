@@ -19,7 +19,7 @@ DIM SHARED CtlStepS$(MAXCTL), CtlSign(MAXCTL)
 SEGMENT STMT
 SUB StmtEnd ()
     IF NOT AtEnd THEN
-        ErrMsg "the end of the statement expected, not " + KwName$(Tok)
+        ErrRec 26, 0, Tok, ""   ' the end of the statement expected, not {t}
         SkipStmt
     END IF
 END SUB
@@ -48,7 +48,7 @@ FUNCTION NotCond (c)
         NIsBool(n) = 2
         NotCond = n
     ELSE
-        IF NTy(c) = TYSTR THEN ErrMsg "type mismatch: a string as a condition"
+        IF NTy(c) = TYSTR THEN ErrNo 27   ' type mismatch: a string as a condition
         NotCond = Compare(TEQ, c, ConvNode(IConst(0), NTy(c)))
     END IF
 END FUNCTION
@@ -69,7 +69,7 @@ SEGMENT STMT
 FUNCTION LValue ()
     DIM nm$, s
     IF Tok <> TIDENT THEN
-        ErrMsg "a variable expected"
+        ErrNo 28   ' a variable expected
         SkipStmt
         EXIT FUNCTION
     END IF
@@ -79,21 +79,21 @@ FUNCTION LValue ()
     IF s > 0 THEN
         IF SKind(s) = SKARRAY THEN
             IF Tok <> TLPAR THEN
-                ErrMsg nm$ + " is an array: an index expected"
+                ErrRec 29, 0, 0, nm$   ' {s} is an array: an index expected
                 EXIT FUNCTION
             END IF
             LValue = ElemNode(s)
             EXIT FUNCTION
         END IF
         IF SKind(s) = SKCONST THEN
-            ErrMsg nm$ + " is a constant"
+            ErrRec 30, 0, 0, nm$   ' {s} is a constant
             EXIT FUNCTION
         END IF
         LValue = SymNode(s)
         EXIT FUNCTION
     END IF
     IF Tok = TLPAR THEN
-        ErrMsg nm$ + ": no such array (DIM it first)"
+        ErrRec 31, 0, 0, nm$   ' {s}: no such array (DIM it first)
         EXIT FUNCTION
     END IF
     s = LookupVar(nm$, 1)
@@ -118,7 +118,7 @@ FUNCTION LabelText$ ()
     CASE TIDENT, TSNG, TDBL, TLABEL
         LabelText$ = TokS$
     CASE ELSE
-        ErrMsg "a label expected"
+        ErrNo 32   ' a label expected
     END SELECT
     GetTok
 END FUNCTION
@@ -140,7 +140,7 @@ END FUNCTION
 SUB DefineLabel (nm$)
     DIM s
     s = LabelSym(nm$)
-    IF SFlags(s) AND SFSETLAB THEN ErrMsg "label " + nm$ + " defined twice"
+    IF SFlags(s) AND SFSETLAB THEN ErrRec 33, 0, 0, nm$   ' label {s} defined twice
     SFlags(s) = SFlags(s) OR SFSETLAB
     SetLabel SAux(s)
 END SUB
@@ -168,7 +168,7 @@ END SUB
 SEGMENT STMT
 FUNCTION PushCtl (kind, ex, cont)
     IF NCtl >= MAXCTL THEN
-        ErrMsg "blocks nested too deep"
+        ErrNo 34   ' blocks nested too deep
         NCtl = 0
     END IF
     NCtl = NCtl + 1
@@ -204,7 +204,7 @@ SUB GenIf ()
         AtFalse f
         EXIT SUB
     END IF
-    Expect KTHEN, "THEN"
+    Expect KTHEN
     lfalse = NewLabel
     IF Tok = TLINE OR Tok = TEOF THEN
         ' a block IF
@@ -218,7 +218,7 @@ SUB GenIf ()
                 SetLabel lfalse
                 AtFalse f
                 c = Expr
-                Expect KTHEN, "THEN"
+                Expect KTHEN
                 lfalse = NewLabel
                 f = CondJ(c, lfalse)
                 ResetNodes
@@ -235,7 +235,7 @@ SUB GenIf ()
                 EXIT DO
             END IF
         LOOP
-        IF t <> TMEND + KIF THEN ErrMsg "END IF expected"
+        IF t <> TMEND + KIF THEN ErrNo 35   ' END IF expected
         IF lfalse >= 0 THEN
             SetLabel lfalse
             AtFalse f
@@ -319,7 +319,7 @@ SUB GenFor ()
     DIM nm$, s, ty, e1, e2, e3, lv, w, k, ltop, lcont, lexit, lneg, lbody, t
     GetTok
     IF Tok <> TIDENT THEN
-        ErrMsg "a FOR variable expected"
+        ErrNo 36   ' a FOR variable expected
         SkipStmt
         EXIT SUB
     END IF
@@ -327,13 +327,13 @@ SUB GenFor ()
     GetTok
     s = FindVar(nm$)
     IF s = 0 THEN s = LookupVar(nm$, 1)
-    IF SKind(s) <> SKVAR OR SType(s) = TYSTR THEN ErrMsg "FOR needs a numeric variable"
+    IF SKind(s) <> SKVAR OR SType(s) = TYSTR THEN ErrNo 37   ' FOR needs a numeric variable
     ty = SType(s)
     IF ty = TYBYTE THEN ty = TYINT
     w = TypeWords(ty)
-    Expect TEQ, "="
+    Expect TEQ
     e1 = Expr
-    Expect KTO, "TO"
+    Expect KTO
     e2 = Expr
     IF Tok = KSTEP THEN
         GetTok
@@ -342,7 +342,7 @@ SUB GenFor ()
         e3 = IConst(1)
     END IF
     NFor = NFor + 1
-    IF NFor > 30 THEN ErrMsg "FOR loops nested more than 30 deep"
+    IF NFor > 30 THEN ErrNo 38   ' FOR loops nested more than 30 deep
     ltop = NewLabel
     lcont = NewLabel
     lexit = NewLabel
@@ -407,7 +407,7 @@ SUB GenFor ()
         ResetNodes
     END IF
     t = GenBlock
-    IF t <> KNEXT THEN ErrMsg "NEXT expected"
+    IF t <> KNEXT THEN ErrNo 39   ' NEXT expected
     IF PendNext THEN PendNext = 0
     IF Tok = TIDENT THEN
         GetTok
@@ -454,7 +454,7 @@ SUB GenDo ()
     END IF
     k = PushCtl(CDO, lexit, lcont)
     t = GenBlock
-    IF t <> KLOOP THEN ErrMsg "LOOP expected"
+    IF t <> KLOOP THEN ErrNo 40   ' LOOP expected
     NCtl = NCtl - 1
     SetLabel lcont
     IF Tok = KWHILE OR Tok = KUNTIL THEN
@@ -481,7 +481,7 @@ SUB GenWhile ()
     ResetNodes
     k = PushCtl(CWHILE, lexit, ltop)
     t = GenBlock
-    IF t <> KWEND THEN ErrMsg "WEND expected"
+    IF t <> KWEND THEN ErrNo 41   ' WEND expected
     NCtl = NCtl - 1
     Jump OUJP, ltop
     SetLabel lexit
@@ -491,7 +491,7 @@ END SUB
 SUB GenSelect ()
     DIM e, ty, sel, lend, lnext, lbody, lskip, t, c, v1, v2, op, k, f, w
     GetTok
-    Expect KCASE, "CASE"
+    Expect KCASE
     e = Expr
     ty = NTy(e)
     IF NIsBool(e) THEN ty = TYINT
@@ -523,7 +523,7 @@ SUB GenSelect ()
                 GetTok
                 op = Tok
                 IF op < TEQ OR op > TGE THEN
-                    ErrMsg "a comparison expected after IS"
+                    ErrNo 42   ' a comparison expected after IS
                     op = TEQ
                 ELSE
                     GetTok
@@ -562,7 +562,7 @@ SUB GenSelect ()
         SetLabel lnext
         AtFalse f
     END IF
-    IF t <> TMEND + KSELECT THEN ErrMsg "END SELECT expected"
+    IF t <> TMEND + KSELECT THEN ErrNo 43   ' END SELECT expected
     SetLabel lend
     NCtl = NCtl - 1
     IF ty = TYSTR THEN
@@ -581,21 +581,21 @@ SUB GenExitStmt (cont)
     CASE KWHILE: kind = CWHILE
     CASE KSELECT: kind = CSELECT
     CASE KSUB, KFUNCTION
-        IF cont THEN ErrMsg "CONTINUE FOR, DO or WHILE expected"
-        IF InProc = 0 THEN ErrMsg "EXIT " + KwName$(Tok) + " outside a procedure"
+        IF cont THEN ErrNo 44   ' CONTINUE FOR, DO or WHILE expected
+        IF InProc = 0 THEN ErrRec 45, 0, Tok, ""   ' EXIT {t} outside a procedure
         GetTok
         Jump OUJP, ExitLab
         EXIT SUB
     CASE ELSE
-        ErrMsg "FOR, DO, WHILE, SELECT, SUB or FUNCTION expected"
+        ErrNo 46   ' FOR, DO, WHILE, SELECT, SUB or FUNCTION expected
         EXIT SUB
     END SELECT
     GetTok
     k = FindCtl(kind)
     IF k = 0 THEN
-        ErrMsg "not inside such a block"
+        ErrNo 47   ' not inside such a block
     ELSEIF cont THEN
-        IF kind = CSELECT THEN ErrMsg "CONTINUE SELECT?" ELSE Jump OUJP, CtlCont(k)
+        IF kind = CSELECT THEN ErrNo 48 ELSE Jump OUJP, CtlCont(k)   ' CONTINUE SELECT?
     ELSE
         Jump OUJP, CtlExit(k)
     END IF
@@ -609,7 +609,7 @@ SUB GenReturn ()
         EXIT SUB
     END IF
     IF ResultOff = 0 THEN
-        ErrMsg "RETURN with a value outside a FUNCTION"
+        ErrNo 49   ' RETURN with a value outside a FUNCTION
         SkipStmt
         EXIT SUB
     END IF
@@ -626,14 +626,14 @@ SUB GenOn ()
         GetTok
         IF Tok = KRESUME THEN
             GetTok
-            Expect KNEXT, "NEXT"
+            Expect KNEXT
             Ldc 1
         ELSE
-            Expect KGOTO, "GOTO"
+            Expect KGOTO
             IF Tok <> TINT THEN
-                ErrMsg "only ON ERROR GOTO 0 and ON ERROR RESUME NEXT"
+                ErrNo 50   ' only ON ERROR GOTO 0 and ON ERROR RESUME NEXT
             ELSEIF TokV <> 0 THEN
-                ErrMsg "only ON ERROR GOTO 0 and ON ERROR RESUME NEXT"
+                ErrNo 50   ' only ON ERROR GOTO 0 and ON ERROR RESUME NEXT
             END IF
             GetTok
             Ldc 0
@@ -645,7 +645,7 @@ SUB GenOn ()
     IF Tok = KGOSUB THEN
         isgosub = 1
     ELSEIF Tok <> KGOTO THEN
-        ErrMsg "GOTO or GOSUB expected"
+        ErrNo 51   ' GOTO or GOSUB expected
         EXIT SUB
     END IF
     GetTok
@@ -653,7 +653,7 @@ SUB GenOn ()
     DO
         n = n + 1
         IF n > 50 THEN
-            ErrMsg "more than 50 labels"
+            ErrNo 52   ' more than 50 labels
             n = 50
         END IF
         labs(n) = SAux(LabelSym(LabelText$))
@@ -716,10 +716,10 @@ SUB GenPrint ()
     IF Tok = THASH THEN
         GetTok
         ch = FileNum
-        IF Tok = TCOMMA OR Tok = TSEMI THEN GetTok ELSE ErrMsg ", expected"
+        IF Tok = TCOMMA OR Tok = TSEMI THEN GetTok ELSE ErrNo 53   ' , expected
     END IF
     IF Tok = KUSING THEN
-        ErrMsg "PRINT USING is not supported"
+        ErrNo 54   ' PRINT USING is not supported
         SkipStmt
         EXIT SUB
     END IF
@@ -738,10 +738,10 @@ SUB GenPrint ()
             IF Tok = TIDENT THEN nm$ = TokS$
             IF nm$ = "TAB" OR nm$ = "SPC" THEN
                 GetTok
-                Expect TLPAR, "("
+                Expect TLPAR
                 PushCh ch
                 GenValueAs Expr, TYINT
-                Expect TRPAR, ")"
+                Expect TRPAR
                 IF nm$ = "TAB" THEN CallRt "_PTAB" ELSE CallRt "_PSPC"
             ELSE
                 e = Expr
@@ -776,7 +776,7 @@ SUB GenInput (isline)
     IF Tok = THASH THEN
         GetTok
         ch = FileNum
-        Expect TCOMMA, ","
+        Expect TCOMMA
     ELSE
         IF Tok = TSEMI THEN GetTok
         qm = 1
@@ -789,14 +789,14 @@ SUB GenInput (isline)
                 qm = 0
                 GetTok
             ELSE
-                Expect TSEMI, ";"
+                Expect TSEMI
             END IF
         END IF
     END IF
     IF isline THEN
         lv = LValue
         IF lv = 0 THEN EXIT SUB
-        IF StoreType(lv) <> TYSTR THEN ErrMsg "LINE INPUT needs a string variable"
+        IF StoreType(lv) <> TYSTR THEN ErrNo 55   ' LINE INPUT needs a string variable
         StorePre lv
         PushCh ch
         IF hasprompt THEN GenValue e ELSE Ldc 0
@@ -843,7 +843,7 @@ SUB GenOpen ()
     DIM f, mode, n, r
     GetTok
     f = Expr
-    Expect KFOR, "FOR"
+    Expect KFOR
     SELECT CASE Tok
     CASE KINPUT: mode = 1
     CASE KOUTPUT: mode = 2
@@ -851,17 +851,17 @@ SUB GenOpen ()
     CASE KBINARY: mode = 4
     CASE KRANDOM: mode = 5
     CASE ELSE
-        ErrMsg "INPUT, OUTPUT, APPEND, BINARY or RANDOM expected"
+        ErrNo 56   ' INPUT, OUTPUT, APPEND, BINARY or RANDOM expected
     END SELECT
     GetTok
-    Expect KAS, "AS"
+    Expect KAS
     IF Tok = THASH THEN GetTok
     n = Expr
     r = IConst(0)
     IF Tok = TIDENT THEN
         IF TokS$ = "LEN" THEN
             GetTok
-            Expect TEQ, "="
+            Expect TEQ
             r = Expr
         END IF
     END IF
@@ -905,10 +905,10 @@ SUB GenGetPut (isput)
     GetTok
     IF Tok = THASH THEN GetTok
     n = ToInt(Expr)
-    Expect TCOMMA, ","
+    Expect TCOMMA
     p = 0
     IF Tok <> TCOMMA THEN p = Expr
-    Expect TCOMMA, ","
+    Expect TCOMMA
     IF p > 0 THEN
         GenValue n
         GenValueAs p, TYSNG
@@ -977,7 +977,7 @@ SUB GenDim (isredim)
     IF Tok = KSHARED THEN
         isshared = 1
         GetTok
-        IF InProc THEN ErrMsg "DIM SHARED inside a procedure"
+        IF InProc THEN ErrNo 57   ' DIM SHARED inside a procedure
     END IF
     IF Tok = KPRESERVE THEN
         ispreserve = 1
@@ -985,7 +985,7 @@ SUB GenDim (isredim)
     END IF
     DO
         IF Tok <> TIDENT THEN
-            ErrMsg "a variable name expected"
+            ErrNo 23   ' a variable name expected
             SkipStmt
             EXIT SUB
         END IF
@@ -1017,7 +1017,7 @@ SUB GenDim (isredim)
         ELSE
             s = FindSym(DeclName$)
             IF s > 0 THEN
-                IF SScope(s) = 1 THEN ErrMsg nm$ + " declared twice"
+                IF SScope(s) = 1 THEN ErrRec 24, 0, 0, nm$   ' {s} declared twice
             END IF
             s = 0
         END IF
@@ -1027,10 +1027,10 @@ SUB GenDim (isredim)
             IF isarr THEN SAux(s) = nd
         END IF
         IF isarr AND nd = 0 THEN
-            IF SKind(s) <> SKARRAY THEN ErrMsg nm$ + " is not an array"
+            IF SKind(s) <> SKARRAY THEN ErrRec 58, 0, 0, nm$   ' {s} is not an array
         ELSEIF isarr THEN
-            IF SKind(s) <> SKARRAY THEN ErrMsg nm$ + " is not an array"
-            IF SAux(s) > 0 AND SAux(s) <> nd THEN ErrMsg nm$ + ": the wrong number of dimensions"
+            IF SKind(s) <> SKARRAY THEN ErrRec 58, 0, 0, nm$   ' {s} is not an array
+            IF SAux(s) > 0 AND SAux(s) <> nd THEN ErrRec 59, 0, 0, nm$   ' {s}: the wrong number of dimensions
             IF SAux(s) = 0 THEN SAux(s) = nd
             x = b
             DO WHILE x > 0
@@ -1060,13 +1060,13 @@ SUB GenStatic ()
     GetTok
     DO
         IF Tok <> TIDENT THEN
-            ErrMsg "a variable name expected"
+            ErrNo 23   ' a variable name expected
             SkipStmt
             EXIT SUB
         END IF
         nm$ = TokS$
         GetTok
-        IF Tok = TLPAR THEN ErrMsg "STATIC arrays are not supported"
+        IF Tok = TLPAR THEN ErrNo 60   ' STATIC arrays are not supported
         ty = DeclType(nm$, 0)
         s = AddSym(DeclName$, SKVAR, ty)
         SFlags(s) = DeclFlags
@@ -1085,7 +1085,7 @@ SUB GenShared ()
     GetTok
     DO
         IF Tok <> TIDENT THEN
-            ErrMsg "a variable name expected"
+            ErrNo 23   ' a variable name expected
             SkipStmt
             EXIT SUB
         END IF
@@ -1093,7 +1093,7 @@ SUB GenShared ()
         GetTok
         IF Tok = TLPAR THEN
             GetTok
-            Expect TRPAR, ")"
+            Expect TRPAR
         END IF
         IF Tok = KAS THEN
             GetTok
@@ -1102,9 +1102,9 @@ SUB GenShared ()
         s = FindSym(nm$)
         IF s = 0 AND SuffixType(nm$) = 0 THEN s = FindSym(nm$ + TypeChar$(NameType(nm$)))
         IF s = 0 THEN
-            ErrMsg "no module variable " + nm$
+            ErrRec 61, 0, 0, nm$   ' no module variable {s}
         ELSEIF SScope(s) <> 0 OR SKind(s) > SKARRAY THEN
-            ErrMsg "no module variable " + nm$
+            ErrRec 61, 0, 0, nm$   ' no module variable {s}
         ELSE
             a = AddSym(SName$(s), SKind(s), SType(s))
             SFlags(a) = SFlags(s)
@@ -1123,13 +1123,13 @@ SUB GenConst ()
     GetTok
     DO
         IF Tok <> TIDENT THEN
-            ErrMsg "a constant name expected"
+            ErrNo 62   ' a constant name expected
             SkipStmt
             EXIT SUB
         END IF
         nm$ = TokS$
         GetTok
-        Expect TEQ, "="
+        Expect TEQ
         v = 0
         n = ConstExpr(v)
         ty = NTy(n)
@@ -1139,7 +1139,7 @@ SUB GenConst ()
         END IF
         s = FindSym(nm$)
         IF s > 0 THEN
-            IF SScope(s) = InProc THEN ErrMsg nm$ + " declared twice"
+            IF SScope(s) = InProc THEN ErrRec 24, 0, 0, nm$   ' {s} declared twice
         END IF
         s = AddSym(nm$, SKCONST, ty)
         SScope(s) = InProc
@@ -1154,7 +1154,7 @@ SUB GenConst ()
                     ConstCap = Grown(ConstCap, 300)
                     REDIM PRESERVE ConstText$(ConstCap)
                 ELSE
-                    ErrMsg "too many string and real constants"
+                    ErrNo 63   ' too many string and real constants
                     NConst = 1
                 END IF
             END IF
@@ -1225,14 +1225,14 @@ SUB GenRestore ()
     GetTok
     db = FindSym("$DB")
     IF db = 0 THEN
-        ErrMsg "RESTORE without DATA"
+        ErrNo 64   ' RESTORE without DATA
         SkipStmt
         EXIT SUB
     END IF
     GlobOp OLDO, db, 0
     IF NOT AtEnd THEN
         s = FindSym("%" + LabelText$)
-        IF s = 0 THEN ErrMsg "no such label" ELSE Ldc SAux(s): OB OADI
+        IF s = 0 THEN ErrNo 65 ELSE Ldc SAux(s): OB OADI   ' no such label
     END IF
     CallRt "_RESTORE"
 END SUB
@@ -1245,7 +1245,7 @@ SUB GenWrite ()
     IF Tok = THASH THEN
         GetTok
         ch = FileNum
-        Expect TCOMMA, ","
+        Expect TCOMMA
     END IF
     first = 1
     DO WHILE NOT AtEnd
@@ -1293,11 +1293,11 @@ SUB GenSwap ()
     DIM a, b, ty
     GetTok
     a = LValue
-    Expect TCOMMA, ","
+    Expect TCOMMA
     b = LValue
     IF a = 0 OR b = 0 THEN EXIT SUB
     ty = StoreType(a)
-    IF ty <> StoreType(b) THEN ErrMsg "SWAP needs two variables of one type"
+    IF ty <> StoreType(b) THEN ErrNo 66   ' SWAP needs two variables of one type
     GenAddr a
     GenAddr b
     IF ty = TYSTR THEN
@@ -1330,7 +1330,7 @@ SUB GenCallStmt (s)
             LOOP
             ArgCount = k
         END IF
-        IF ArgCount <> SAux2(s) THEN ErrMsg SName$(s) + ": " + IStr$(SAux2(s)) + " argument(s) expected"
+        IF ArgCount <> SAux2(s) THEN ErrRec 67, SAux2(s), 0, SName$(s)   ' {s}: {a} argument(s) expected
     ELSE
         a = ArgList(s, 0, 1)
     END IF
@@ -1345,12 +1345,12 @@ SUB GenIdentStmt ()
     nm$ = TokS$
     IF nm$ = "MID$" AND FindProc(nm$) = 0 THEN
         GetTok
-        Expect TLPAR, "("
+        Expect TLPAR
         lv = LValue
         IF lv = 0 THEN EXIT SUB
-        IF StoreType(lv) <> TYSTR THEN ErrMsg "MID$ needs a string variable"
+        IF StoreType(lv) <> TYSTR THEN ErrNo 68   ' MID$ needs a string variable
         GenAddr lv
-        Expect TCOMMA, ","
+        Expect TCOMMA
         GenValueAs Expr, TYINT
         IF Tok = TCOMMA THEN
             GetTok
@@ -1358,8 +1358,8 @@ SUB GenIdentStmt ()
         ELSE
             Ldc 255
         END IF
-        Expect TRPAR, ")"
-        Expect TEQ, "="
+        Expect TRPAR
+        Expect TEQ
         GenValueAs Expr, TYSTR
         CallRt "_MIDSET"
         EXIT SUB
@@ -1370,7 +1370,7 @@ SUB GenIdentStmt ()
         GetTok
         GenValueAs Expr, TYINT
         IF nm$ = "POKEB" THEN OB 0
-        Expect TCOMMA, ","
+        Expect TCOMMA
         GenValueAs Expr, TYINT
         IF nm$ = "POKEB" THEN OB OSTB ELSE OB OSTO
         EXIT SUB
@@ -1378,7 +1378,7 @@ SUB GenIdentStmt ()
     IF nm$ = "CSP" OR nm$ = "OSCALL" THEN
         GetTok
         e = Expr
-        IF NOp(e) <> NICON THEN ErrMsg nm$ + ": a constant expected"
+        IF NOp(e) <> NICON THEN ErrRec 69, 0, 0, nm$   ' {s}: a constant expected
         k = NV(e)
         DO WHILE Tok = TCOMMA
             GetTok
@@ -1404,7 +1404,7 @@ SUB GenIdentStmt ()
                 Assign SymNode(FindSym("!R")), Expr
                 EXIT SUB
             END IF
-            ErrMsg "= expected after the function's name"
+            ErrNo 70   ' = expected after the function's name
             EXIT SUB
         END IF
     END IF
@@ -1419,7 +1419,7 @@ SUB GenIdentStmt ()
     END IF
     lv = LValue
     IF lv = 0 THEN EXIT SUB
-    Expect TEQ, "="
+    Expect TEQ
     Assign lv, Expr
 END SUB
 
@@ -1445,7 +1445,7 @@ SUB GenStmt ()
         GenInput 0
     CASE KLINE
         GetTok
-        IF Tok <> KINPUT THEN ErrMsg "LINE INPUT expected"
+        IF Tok <> KINPUT THEN ErrNo 71   ' LINE INPUT expected
         GenInput 1
     CASE KIF
         GenIf
@@ -1485,7 +1485,7 @@ SUB GenStmt ()
     CASE KSTATIC
         GenStatic
     CASE KSHARED
-        IF InProc = 0 THEN ErrMsg "SHARED outside a procedure"
+        IF InProc = 0 THEN ErrNo 72   ' SHARED outside a procedure
         GenShared
     CASE KERASE
         GetTok
@@ -1493,16 +1493,16 @@ SUB GenStmt ()
             IF Tok = TIDENT THEN
                 s = FindVar(TokS$)
                 IF s = 0 THEN
-                    ErrMsg "no array " + TokS$
+                    ErrRec 73, 0, 0, TokS$   ' no array {s}
                 ELSEIF SKind(s) <> SKARRAY THEN
-                    ErrMsg TokS$ + " is not an array"
+                    ErrRec 58, 0, 0, TokS$   ' {s} is not an array
                 ELSE
                     GenSlot s
                     CallRt "_AFREE"
                 END IF
                 GetTok
             ELSE
-                ErrMsg "an array name expected"
+                ErrNo 74   ' an array name expected
             END IF
             IF Tok <> TCOMMA THEN EXIT DO
             GetTok
@@ -1512,11 +1512,11 @@ SUB GenStmt ()
     CASE KCALL
         GetTok
         IF Tok <> TIDENT THEN
-            ErrMsg "a SUB name expected"
+            ErrNo 75   ' a SUB name expected
         ELSE
             s = FindProc(TokS$)
             IF s = 0 THEN
-                ErrMsg "no SUB " + TokS$
+                ErrRec 76, 0, 0, TokS$   ' no SUB {s}
                 SkipStmt
             ELSE
                 GetTok
@@ -1535,7 +1535,7 @@ SUB GenStmt ()
         GetTok
         IF Tok = THASH THEN GetTok
         GenValueAs Expr, TYINT
-        Expect TCOMMA, ","
+        Expect TCOMMA
         GenValueAs Expr, TYSNG
         CallRt "_SEEK"
     CASE KKILL
@@ -1578,7 +1578,7 @@ SUB GenStmt ()
     CASE KWRITE
         GenWrite
     CASE ELSE
-        ErrMsg "a statement expected, not " + KwName$(Tok)
+        ErrRec 77, 0, Tok, ""   ' a statement expected, not {t}
         SkipStmt
     END SELECT
 END SUB
@@ -1639,7 +1639,7 @@ FUNCTION GenBlock ()
             StmtEnd
         CASE KSUB, KFUNCTION, KPRIVATE
             IF InProc THEN
-                ErrMsg "a SUB or FUNCTION inside a procedure (END SUB missing?)"
+                ErrNo 78   ' a SUB or FUNCTION inside a procedure (END SUB missing?)
                 GenBlock = TEOF
                 EXIT FUNCTION
             END IF
@@ -1677,7 +1677,7 @@ SUB GenProc (priv)
     IF Tok = KSTATIC THEN GetTok
     s = FindProc(nm$)
     IF s = 0 THEN
-        ErrMsg "internal: " + nm$ + " not declared"
+        ErrRec 79, 0, 0, nm$   ' internal: {s} not declared
         SkipProc
         EXIT SUB
     END IF
@@ -1730,9 +1730,9 @@ SUB GenProc (priv)
     END IF
     t = GenBlock
     IF isfunc THEN
-        IF t <> TMEND + KFUNCTION THEN ErrMsg "END FUNCTION expected"
+        IF t <> TMEND + KFUNCTION THEN ErrNo 80   ' END FUNCTION expected
     ELSE
-        IF t <> TMEND + KSUB THEN ErrMsg "END SUB expected"
+        IF t <> TMEND + KSUB THEN ErrNo 81   ' END SUB expected
     END IF
     EndProc
     InProc = 0
@@ -1773,7 +1773,7 @@ SUB GenPass ()
     DO
         t = GenBlock
         IF t = TEOF THEN EXIT DO
-        ErrMsg KwName$(t) + " without its block"
+        ErrRec 82, 0, t, ""   ' {t} without its block
     LOOP
     EndProc
     CLOSE #CHTOK
@@ -1840,7 +1840,7 @@ TokText$ = ""
 ' an expression's nodes estimated (growing, Grown, if that was too few)
 OpenTok
 CLOSE #CHTOK
-IF TokHead(THMAGIC) <> TOKMAGIC THEN Fatal "not BCLEX's token file: " + TokName$
+IF TokHead(THMAGIC) <> TOKMAGIC THEN FatalRec 83, TokName$   ' not BCLEX's token file: {s}
 ' (and the run-time library's procedures a procedure calls)
 SymCap = Capped(TokHead(THGLOB) + TokHead(THLOC) + 48, MAXSYM)
 ' (pass 3 reads each procedure's parameters again, after all of them)

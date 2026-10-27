@@ -77,11 +77,12 @@ FUNCTION IsTok (t)
     END IF
 END FUNCTION
 
-SUB Expect (t, what$)
+' the token t next (else error 1: "t expected, not ...")
+SUB Expect (t)
     IF Tok = t THEN
         GetTok
     ELSE
-        ErrMsg what$ + " expected, not " + KwName$(Tok)
+        ErrRec 1, t, Tok, ""
     END IF
 END SUB
 
@@ -163,7 +164,7 @@ END FUNCTION
 FUNCTION AddSym (n$, kind, ty)
     DIM h
     IF NSym >= SymCap THEN
-        IF SymCap >= MAXSYM THEN Fatal "too many names"
+        IF SymCap >= MAXSYM THEN FatalRec 9, ""   ' too many names
         SymCap = Grown(SymCap, MAXSYM)
         REDIM PRESERVE SName$(SymCap), SKind(SymCap) AS BYTE, SType(SymCap) AS BYTE, SCls(SymCap) AS BYTE
         REDIM PRESERVE SOff(SymCap), SFlags(SymCap) AS BYTE, SScope(SymCap) AS BYTE, SNext(SymCap)
@@ -206,7 +207,7 @@ FUNCTION SegIndex (n$)
         END IF
     NEXT i
     IF NSegName >= MAXSEG THEN
-        ErrMsg "too many segments"
+        ErrNo 10   ' too many segments
         SegIndex = 1
         EXIT FUNCTION
     END IF
@@ -224,7 +225,7 @@ FUNCTION ParseType ()
     CASE KSTRING: ParseType = TYSTR
     CASE KBYTE: ParseType = TYBYTE
     CASE ELSE
-        ErrMsg "a type expected (INTEGER, SINGLE, DOUBLE, STRING, BYTE)"
+        ErrNo 11   ' a type expected (INTEGER, SINGLE, DOUBLE, STRING, BYTE)
         ParseType = TYINT
         EXIT FUNCTION
     END SELECT

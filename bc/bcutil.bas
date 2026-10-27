@@ -22,11 +22,40 @@ FUNCTION UpStr$ (s$)
 END FUNCTION
 
 ' an error in the source: where, what, and the line
-SUB ErrMsg (msg$)
+' ---- errors: BCLEX's and BCGEN's are numbers (their texts are BCERR's),
+' kept with where they were (the first 30) until the step ends; then the
+' program chains to BCERR, which says them all (CompileFailed).  n: the
+' message (n < 0: a fatal error, the end at once), a: a number in it, t:
+' a token, s$: a string (its text's {a}, {t} or {k}, {s}).
+
+DIM SHARED ErN(), ErA(), ErT(), ErL(), ErF$(), ErX$(), ErS$()
+
+SUB ErrRec (n, a, t, s$)
+    DIM i
     ErrCount = ErrCount + 1
-    IF ErrCount > 30 THEN EXIT SUB
-    PRINT TokFile$; " line "; IStr$(TokLine); ": "; msg$
-    IF TokText$ <> "" THEN PRINT "  "; TokText$
+    i = ErrCount
+    IF i > 30 THEN
+        IF n >= 0 THEN EXIT SUB
+        i = 30
+    END IF
+    IF i = 1 THEN REDIM ErN(30), ErA(30), ErT(30), ErL(30), ErF$(30), ErX$(30), ErS$(30)
+    ErN(i) = n
+    ErA(i) = a
+    ErT(i) = t
+    ErL(i) = TokLine
+    ErF$(i) = TokFile$
+    ErX$(i) = TokText$
+    ErS$(i) = s$
+END SUB
+
+SUB ErrNo (n)
+    ErrRec n, 0, 0, ""
+END SUB
+
+' an error after which the step cannot go on
+SUB FatalRec (n, s$)
+    ErrRec -n, 0, 0, s$
+    CompileFailed
 END SUB
 
 SUB Fatal (msg$)
@@ -237,7 +266,28 @@ END SUB
 
 ' a compile failed: no object, no token file
 SUB CompileFailed ()
-    SayLn IStr$(ErrCount) + " error(s): no " + ObjName$
+    ' the errors, for BCERR: their count, then seven lines each (n, a, t,
+    ' the line's number, the file, the line's text, the string)
+    DIM i, n
+    n = ErrCount
+    IF n > 30 THEN n = 30
+    OPEN ErrName$ FOR OUTPUT AS #CHJOB
+    PRINT #CHJOB, IStr$(ErrCount)
+    FOR i = 1 TO n
+        PRINT #CHJOB, IStr$(ErN(i))
+        PRINT #CHJOB, IStr$(ErA(i))
+        PRINT #CHJOB, IStr$(ErT(i))
+        PRINT #CHJOB, IStr$(ErL(i))
+        PRINT #CHJOB, ErF$(i)
+        PRINT #CHJOB, ErX$(i)
+        PRINT #CHJOB, ErS$(i)
+    NEXT i
+    CLOSE #CHJOB
+    ChainTo "BCERR", ""
+END SUB
+
+' ---- BCERR's: the step failed (the errors said); its files go
+SUB StepFailed ()
     IF FileExists(TokName$) THEN KILL TokName$
     IF FileExists(ObjName$) THEN KILL ObjName$
     PhaseDone 0
@@ -259,3 +309,4 @@ LTmpName$ = ":BCTEMP.LST"
 LCodName$ = ":BCTEMP.LCD"
 DatName$ = ":BCTEMP.DAT"
 JobName$ = ":BCTEMP.JOB"
+ErrName$ = ":BCTEMP.ERR"

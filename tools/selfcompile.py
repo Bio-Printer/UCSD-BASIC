@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """selfcompile.py -- BC compiles itself on the P-System.
 
-The host-built code files of the compiler's five programs (build/BC.CODE,
-BCLEX, BCGEN, BCLIST, BCLINK: tools/mkself.sh) and build/BASLIB.OBJ are put
+The host-built code files of the compiler's six programs (build/BC.CODE,
+BCLEX, BCGEN, BCLIST, BCLINK, BCERR: tools/mkself.sh) and build/BASLIB.OBJ are put
 on WORK: (#5) with BC's sources and a batch file; on the P-System,
-X(ecute #5:BC, then  @#5:BUILD  compiles every module and links the five
+X(ecute #5:BC, then  @#5:BUILD  compiles every module and links the six
 programs onto #9, each of which must be byte for byte the host's.  The Harvard layout (code in its
 own I-space: the emulator's default) gives BC the memory it needs.
 

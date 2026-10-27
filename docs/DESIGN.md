@@ -8,7 +8,7 @@ sources are byte for byte the ones the host build makes (tools/selfcompile
 
 ## 1. The pieces
 
-BC is five programs, each in memory alone: one CHAINs to the next (the
+BC is six programs, each in memory alone: one CHAINs to the next (the
 library's CHAIN, Tiny-C's pexec protocol: section 9), so each has all of
 memory for its own code and tables.
 
@@ -22,6 +22,7 @@ memory for its own code and tables.
                  STMTA, STMTD, STMTIO, EXPR and EXPRGEN (section 10)
     BCLIST.CODE  the listing and its disassembler: bclist.bas
     BCLINK.CODE  the linker and -J: bclink.bas
+    BCERR.CODE   a compile step's error messages: bcerr.bas, bckw.bas
 
 Each also has bcutil.bas (messages, file names, the job file, ChainTo; what
 is done once in the library's segment RTSELDOM),
@@ -36,7 +37,7 @@ programs of the volume's DEMO/.
 The job.  BC turns its command line -- or a line typed at its prompt --
 with the batch files it names into steps, and writes them to the job file
 :BCTEMP.JOB (on the prefix volume): where the programs are ("#u:", the
-unit BC's own code file came from: SYSCOM^.SEGTABLE[1].CODEUNIT; the five
+unit BC's own code file came from: SYSCOM^.SEGTABLE[1].CODEUNIT; the six
 must be on one volume, at its top), the options (-Q, -M, and whether BC
 asks for the next command), the step being done, and the steps after it:
 
@@ -52,7 +53,7 @@ then runs the next step; after a failure it drops the rest (as one failing
 command stopped its batch file and its line).  When there are no more,
 BC asks for the next command, or -- started with its commands as its
 command line -- ends with the last step's status (the shell's exit
-status).  A program of the five run by itself finds no job file and says
+status).  A program of the six run by itself finds no job file and says
 so.  Nothing else passes between them: the token file, :BCTEMP.DAT (DATA),
 the listing's two temporary files and the object file are all files.
 
@@ -189,6 +190,23 @@ layout's 64K code space held (*STK OFLOW*).  While the object, the statements
 and the code are written, three new files at once, the object is opened
 with [*] (half the largest free area, the operating system's rule) and
 the statements' file so too, or the first file would take all the room.
+
+Errors.  BCLEX's and BCGEN's errors are numbers: ErrNo n, or ErrRec n,
+a, t, s$ for a message with a number, a token or a string in it (Expect t:
+error 1, "{k} expected, not {t}"; LexErr n, s$; FatalRec n, s$ for one
+after which the step cannot go on), each with a comment that gives its
+text.  BCUTIL's ErrRec keeps the first 30 with where they were (the file,
+the line's number and text), in arrays made at the first one; when the
+step ends (CompileFailed) they are written to :BCTEMP.ERR, and the
+program chains to BCERR.  BCERR has the texts (MsgText$; {s}, {a}, {t},
+{k} filled in, KwName$ for a token's name), says each error as the
+compiler always did ("FILE line N: text", then the line) and "N error(s):
+no NAME.OBJ" (a fatal one: "BC: text", and no more), removes the step's
+files and chains to BC with the failure.  So the texts take no memory
+while the compiler works: BCGEN's code is 6K smaller.  A new error: a
+number after the last, its text in bcerr.bas.  tools/errtest.py compiles
+tests/errors/*.bas (full of mistakes) on the host and on the P-System and
+compares what is said with tests/errors/*.expect.
 
 ## 6. Strings
 
@@ -338,8 +356,8 @@ links and runs PI in both.  What makes that fit:
   code): an expression is parsed, then made into code, so those two are
   never in memory together.  What all of them use (the emitter, the
   nodes, the symbol lookups, GenPass and GenProc) is in the main segment.
-  The keywords' names (bckw.bas), for error messages only, are a segment
-  of their own, KWNAMES (BCLEX's KwCode keeps a copy of the table);
+  The error messages' texts and the keywords' names are BCERR's (section
+  5): BCGEN holds none (BCLEX's KwCode keeps a copy of the keyword table);
   ProcHeader and CountDims, which only pass 2 uses, are in DECL.
 - BCGEN's tables are as large as the token file's header (section 3)
   says the source needs, their MAX constants at most: the symbols (the
@@ -361,8 +379,8 @@ links and runs PI in both.  What makes that fit:
   step leaves the old table's memory behind as a hole too small for the
   next one.
 
-Compiling PI, BCGEN has at least 1010 words left in Z80 mode and BCLINK
-3550 (4930 and 7470 in P-Code mode without the Harvard layout).  BC's own
+Compiling PI, BCGEN has at least 2180 words left in Z80 mode and BCLINK
+3530 (6100 and 7440 in P-Code mode without the Harvard layout).  BC's own
 modules need more than either has, in the symbol table (up to 640
 symbols, 8 words each) and in their deeper statements: compiling itself
 needs the Harvard layout.  BC does not check the layout; out of memory, it

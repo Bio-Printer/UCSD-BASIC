@@ -5,19 +5,25 @@
   `tools/mkself.sh`, `tools/mkvolume.py`.
   The sibling checkouts are expected in `../bio-printer/` (the emulator,
   UCSD-TinyC, UCSD-Pascal-Volumes); see setup.sh's variables.
-- BC is five programs that CHAIN to each other through the job file
+- BC is six programs that CHAIN to each other through the job file
   :BCTEMP.JOB (docs/DESIGN.md section 1); tools/bcprogs.py lists each one's
   modules (the first its main one) for every build tool.  A new module goes
   there.  BCGEN's segments: DECL, STMT, STMTA, STMTD, STMTIO, EXPR, EXPRGEN,
-  KWNAMES, RTSELDOM -- with the main one ten, a program's most (one segment
+  RTSELDOM -- with the main one nine; a program has at most ten (one segment
   holds at most 255 procedures and 32000 bytes).  The SEGMENT lines in
   bcgen/bcexpr/bcemit were placed by a call-graph analysis (DESIGN.md
   section 10): keep a call chain to three statement/expression segments.
 - After a change to the compiler or the library run `tools/runtests.py`,
-  `tools/selfcompile.py` (must say IDENTICAL six times: BASLIB and the five programs) and, for the volume,
+  `tools/selfcompile.py` (must say IDENTICAL seven times: BASLIB and the six programs), `tools/errtest.py` and, for the volume,
   `tools/voltest.py`, and for memory `tools/smalltest.py` (PI in Z80 mode
   and P-Code mode without the Harvard layout).  New cross-module calls need
   `tools/mkdecls.py` (buildhost.sh runs it).
+- Errors in BCLEX and BCGEN are numbers (ErrNo n / ErrRec n, a, t, s$ /
+  Expect t / LexErr n, s$ / FatalRec n, s$, each with its text as a
+  comment); BCERR (bcerr.bas) has the texts and says them (DESIGN.md
+  section 5).  A new error: the next number, its text in bcerr.bas's
+  MsgA$/MsgB$/MsgC$ (keep each under BC's 3200 bytes a procedure), and a
+  case in tests/errors if it is easy to make.
 - BC's sources must stay within the part of the language tools/bas2c.py
   translates, and their lines under 250 characters.
 - Keep docs/LANGUAGE.md and docs/DESIGN.md current; they are on the volume.

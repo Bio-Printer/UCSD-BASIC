@@ -1,0 +1,7 @@
+ERR3.BAS line 2: no file NOSUCH.BAS
+  #INCLUDE "NOSUCH"
+ERR3.BAS line 3: #INCLUDE "FILE" expected
+  #INCLUDE
+ERR3.BAS line 4: unexpected character ~
+  a = 1 ~ 2
+3 error(s): no ERR3.OBJ

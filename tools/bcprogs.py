@@ -9,9 +9,10 @@ import sys
 
 PROGS = [('BC', ['BC', 'BCUTIL']),                                       # the driver
          ('BCLEX', ['BCLEX', 'BCKW', 'BCUTIL']),                         # pass 1
-         ('BCGEN', ['BCGEN', 'BCDECL', 'BCEXPR', 'BCEMIT', 'BCTOK', 'BCKW', 'BCUTIL']),   # passes 2, 3
+         ('BCGEN', ['BCGEN', 'BCDECL', 'BCEXPR', 'BCEMIT', 'BCTOK', 'BCUTIL']),   # passes 2, 3
          ('BCLIST', ['BCLIST', 'BCUTIL']),                               # the listing
-         ('BCLINK', ['BCLINK', 'BCUTIL'])]                               # the linker
+         ('BCLINK', ['BCLINK', 'BCUTIL']),                               # the linker
+         ('BCERR', ['BCERR', 'BCKW', 'BCUTIL'])]                         # a compile's errors
 MODS = []
 for _p, _m in PROGS:
     MODS += [m for m in _m if m not in MODS]

@@ -11,7 +11,7 @@ as the host build** (`tools/selfcompile.py`).
 
 | Path | What |
 |---|---|
-| `bc/` | the compiler, five programs that chain to each other (each in memory alone): `bc` the driver (commands and batch files into a job file), `bclex` pass 1 (tokens, comments dropped), `bcgen` + `bcdecl` + `bcexpr` + `bcemit` + `bctok` passes 2 and 3 (declarations, code, the object file), `bclist` the listing (each BASIC statement with its P-code), `bclink` the linker; `bcutil`, `bckw` shared (`tools/bcprogs.py` says which module goes where) |
+| `bc/` | the compiler, six programs that chain to each other (each in memory alone): `bc` the driver (commands and batch files into a job file), `bclex` pass 1 (tokens, comments dropped), `bcgen` + `bcdecl` + `bcexpr` + `bcemit` + `bctok` passes 2 and 3 (declarations, code, the object file), `bclist` the listing (each BASIC statement with its P-code), `bclink` the linker, `bcerr` a compile's error messages (the others keep errors as numbers); `bcutil`, `bckw` shared (`tools/bcprogs.py` says which module goes where) |
 | `lib/` | the run-time library BASLIB, in BASIC (heap, strings, arrays, PRINT/INPUT, UCSD text and byte files, DATA) |
 | `tests/` | test programs and their expected output (`subvol.dirs`: the sub-volumes that test needs) |
 | `demos/` | the example programs of the volume's DEMO/ |
@@ -25,12 +25,12 @@ BLK_format), laid out in sub-volumes (Tiny-C's: data files holding a volume,
 
 | File | What |
 |---|---|
-| `BC.CODE` | the compiler (the driver: run it); `BCLEX.CODE`, `BCGEN.CODE`, `BCLIST.CODE`, `BCLINK.CODE` the programs it chains to, each in memory alone |
+| `BC.CODE` | the compiler (the driver: run it); `BCLEX.CODE`, `BCGEN.CODE`, `BCLIST.CODE`, `BCLINK.CODE`, `BCERR.CODE` the programs it chains to, each in memory alone |
 | `README.TEXT`, `LANGUAGE.TEXT`, `DESIGN.TEXT` | the manuals |
 | `ALL.TEXT` | `@BASIC:ALL`: the four batch files below |
-| `INSTALL.TEXT` | after `@BASIC:/SRC/BUILD`, in Tiny-C's shell (BIGGY 1.32: `@FILE` runs a batch file): `@BASIC:INSTALL` moves BC2.CODE ... BCLINK2.CODE onto BC.CODE ... BCLINK.CODE (each old file goes, the new one takes its name; nothing goes when the new one is missing) |
+| `INSTALL.TEXT` | after `@BASIC:/SRC/BUILD`, in Tiny-C's shell (BIGGY 1.32: `@FILE` runs a batch file): `@BASIC:INSTALL` moves BC2.CODE ... BCERR2.CODE onto BC.CODE ... BCERR.CODE (each old file goes, the new one takes its name; nothing goes when the new one is missing) |
 | `FILES.TEXT` | every file, the sub-volumes' too |
-| `SRC/` | the compiler's sources; `BUILD.TEXT`: `@BASIC:/SRC/BUILD` rebuilds the compiler's five programs as BASIC:BC2.CODE, BCLEX2.CODE ... BCLINK2.CODE |
+| `SRC/` | the compiler's sources; `BUILD.TEXT`: `@BASIC:/SRC/BUILD` rebuilds the compiler's six programs as BASIC:BC2.CODE, BCLEX2.CODE ... BCERR2.CODE |
 | `LIB/` | `BASLIB.OBJ`, the run-time library, and its sources; `LIBS.TEXT`: `@BASIC:/LIB/LIBS` rebuilds it as BASIC:/LIB/BASLIB2.OBJ |
 | `DEMO/` | HELLO, PRIMES, HANOI, MANDEL, PI (Archimedes' method, from Tiny-C's PI.C), GUESS and STATS (two modules: STATS + STATLIB); `DEMOS.TEXT` compiles them |
 | `TEST/` | the compiler's tests; `TESTS.TEXT` compiles them; `EXPECT/` what each prints |
@@ -77,7 +77,7 @@ shell and the TOOLS: of that day (vi, cat, grep, ...) read NAME.BAS as text.
 tools/setup.sh          # the emulator runner (needs the sibling emulator / Tiny-C checkouts)
 tools/buildhost.sh      # build/bc: the host build (bas2c.py + gcc)
 tools/mklib.sh          # build/BASLIB.OBJ
-tools/mkself.sh         # build/BC.CODE, BCLEX, BCGEN, BCLIST, BCLINK.CODE
+tools/mkself.sh         # build/BC.CODE, BCLEX, BCGEN, BCLIST, BCLINK, BCERR.CODE
 python3 tools/runtests.py
 python3 tools/selfcompile.py   # BC and BASLIB rebuilt on the P-System: IDENTICAL
 python3 tools/mkvolume.py && python3 tools/voltest.py   # build/BASIC.BLK, checked (also --pascal)

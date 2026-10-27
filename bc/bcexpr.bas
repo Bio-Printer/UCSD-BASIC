@@ -25,7 +25,7 @@ FUNCTION NewNode (op, ty)
             REDIM PRESERVE NOp(NodeCap) AS BYTE, NTy(NodeCap) AS BYTE, NA(NodeCap), NB(NodeCap)
             REDIM PRESERVE NV(NodeCap), NX(NodeCap), NN(NodeCap), NS$(NodeCap), NIsBool(NodeCap) AS BYTE
         ELSE
-            ErrMsg "expression too complex"
+            ErrNo 84   ' expression too complex
             NNode = 1
         END IF
     END IF
@@ -78,7 +78,7 @@ FUNCTION ConvNode (n, ty)
         EXIT FUNCTION
     END IF
     IF t = TYSTR OR ty = TYSTR OR t = TYVOID THEN
-        ErrMsg "type mismatch"
+        ErrNo 85   ' type mismatch
         ConvNode = n
         EXIT FUNCTION
     END IF
@@ -119,7 +119,7 @@ FUNCTION MaxType (a, b)
     ta = NTy(a)
     tb = NTy(b)
     IF ta = TYSTR OR tb = TYSTR THEN
-        IF ta <> tb THEN ErrMsg "type mismatch"
+        IF ta <> tb THEN ErrNo 85   ' type mismatch
         MaxType = TYSTR
         EXIT FUNCTION
     END IF
@@ -142,11 +142,11 @@ FUNCTION Arith (op, a, b)
     DIM t, va, vb, r
     t = MaxType(a, b)
     IF t = TYSTR THEN
-        IF op <> TPLUS AND op <> TAMP THEN ErrMsg "type mismatch"
+        IF op <> TPLUS AND op <> TAMP THEN ErrNo 85   ' type mismatch
         Arith = BinNode(TPLUS, TYSTR, a, b)
         EXIT FUNCTION
     END IF
-    IF op = TAMP THEN ErrMsg "& needs strings"
+    IF op = TAMP THEN ErrNo 86   ' & needs strings
     IF op = TDIV AND t = TYINT THEN t = TYSNG
     IF op = TIDIV OR op = KMOD THEN t = TYINT
     IF op = TPOW THEN
@@ -295,7 +295,7 @@ FUNCTION LookupVar (n$, create)
     DIM s
     s = FindVar(n$)
     IF s = 0 AND create THEN
-        IF OptExplicit THEN ErrMsg n$ + " not declared (OPTION EXPLICIT)"
+        IF OptExplicit THEN ErrRec 87, 0, 0, n$   ' {s} not declared (OPTION EXPLICIT)
         IF SuffixType(n$) THEN
             s = NewVar(n$, SKVAR, SuffixType(n$), 0)
         ELSE
@@ -342,7 +342,7 @@ FUNCTION RealImage$ (d#)
         END IF
     END IF
     IF e > 255 THEN
-        ErrMsg "real constant too large"
+        ErrNo 88   ' real constant too large
         e = 255
     END IF
     IF e < 1 THEN
@@ -527,7 +527,7 @@ END FUNCTION
 FUNCTION Negate (a)
     DIM n
     a = BoolToInt(a)
-    IF NTy(a) = TYSTR THEN ErrMsg "type mismatch"
+    IF NTy(a) = TYSTR THEN ErrNo 85   ' type mismatch
     IF NOp(a) = NICON THEN
         Negate = IConst(-NV(a))
         EXIT FUNCTION
@@ -638,7 +638,7 @@ FUNCTION ParseArgs ()
         IF Tok <> TCOMMA THEN EXIT DO
         GetTok
     LOOP
-    Expect TRPAR, ")"
+    Expect TRPAR
     ArgCount = k
     ParseArgs = first
 END FUNCTION
@@ -657,17 +657,17 @@ FUNCTION Builtin (id, nm$)
     IF id = BLBOUND OR id = BUBOUND THEN
         n = NewNode(NBUILT, TYINT)
         NV(n) = id
-        Expect TLPAR, "("
+        Expect TLPAR
         IF Tok <> TIDENT THEN
-            ErrMsg "an array name expected"
+            ErrNo 74   ' an array name expected
         ELSE
             a = FindVar(TokS$)
-            IF a = 0 THEN ErrMsg TokS$ + " is not an array" ELSE IF SKind(a) <> SKARRAY THEN ErrMsg TokS$ + " is not an array"
+            IF a = 0 THEN ErrRec 58, 0, 0, TokS$ ELSE IF SKind(a) <> SKARRAY THEN ErrRec 58, 0, 0, TokS$   ' {s} is not an array
             NX(n) = a
             GetTok
             IF Tok = TLPAR THEN
                 GetTok
-                Expect TRPAR, ")"
+                Expect TRPAR
             END IF
         END IF
         NA(n) = IConst(1)
@@ -675,15 +675,15 @@ FUNCTION Builtin (id, nm$)
             GetTok
             NA(n) = ToInt(Expr)
         END IF
-        Expect TRPAR, ")"
+        Expect TRPAR
         Builtin = n
         EXIT FUNCTION
     END IF
     IF id = BVARPTR THEN
-        Expect TLPAR, "("
+        Expect TLPAR
         a = Expr
-        Expect TRPAR, ")"
-        IF NOT IsLvalue(a) THEN ErrMsg "VARPTR needs a variable"
+        Expect TRPAR
+        IF NOT IsLvalue(a) THEN ErrNo 89   ' VARPTR needs a variable
         n = NewNode(NADDR, TYINT)
         NA(n) = a
         Builtin = n
@@ -703,7 +703,7 @@ FUNCTION Builtin (id, nm$)
     SELECT CASE id
     CASE BLEN, BASC, BCVI, BCVS, BCVD, BVAL, BUCASE, BLCASE, BLTRIM, BRTRIM, BTRIM
         ' string first
-        IF nargs < 1 THEN ErrMsg nm$ + ": an argument expected" ELSE a = ConvKeep(a, TYSTR)
+        IF nargs < 1 THEN ErrRec 90, 0, 0, nm$ ELSE a = ConvKeep(a, TYSTR)   ' {s}: an argument expected
         SELECT CASE id
         CASE BCVS: ty = TYSNG
         CASE BCVD, BVAL: ty = TYDBL
@@ -713,25 +713,25 @@ FUNCTION Builtin (id, nm$)
     CASE BMID, BLEFT, BRIGHT
         ty = TYSTR
         IF nargs < 2 THEN
-            ErrMsg nm$ + ": arguments expected"
+            ErrRec 91, 0, 0, nm$   ' {s}: arguments expected
         ELSE
             a = ConvKeep(a, TYSTR)
             NN(a) = ConvKeep(NN(a), TYINT)
             IF nargs = 3 THEN NN(NN(a)) = ConvKeep(NN(NN(a)), TYINT)
         END IF
     CASE BFRE
-        IF nargs <> 1 THEN ErrMsg "FRE: one argument expected"
+        IF nargs <> 1 THEN ErrNo 92   ' FRE: one argument expected
     CASE BCHR, BSPACE, BHEX, BMKI, BEOF, BPEEK, BPEEKB, BOSVAR, BPOS, BLOF
-        IF nargs <> 1 THEN ErrMsg nm$ + ": one argument expected" ELSE a = ConvKeep(a, TYINT)
-        IF id = BOSVAR AND NOp(a) <> NICON THEN ErrMsg "OSVAR: a constant expected"
+        IF nargs <> 1 THEN ErrRec 93, 0, 0, nm$ ELSE a = ConvKeep(a, TYINT)   ' {s}: one argument expected
+        IF id = BOSVAR AND NOp(a) <> NICON THEN ErrNo 94   ' OSVAR: a constant expected
         IF id = BCHR OR id = BSPACE OR id = BHEX OR id = BMKI THEN ty = TYSTR
     CASE BOSADDR
-        IF nargs <> 1 THEN ErrMsg nm$ + ": one argument expected"
-        IF NOp(a) <> NICON THEN ErrMsg "OSADDR: a constant expected"
+        IF nargs <> 1 THEN ErrRec 93, 0, 0, nm$   ' {s}: one argument expected
+        IF NOp(a) <> NICON THEN ErrNo 95   ' OSADDR: a constant expected
     CASE BSTRING
         ty = TYSTR
         IF nargs <> 2 THEN
-            ErrMsg nm$ + ": two arguments expected"
+            ErrRec 96, 0, 0, nm$   ' {s}: two arguments expected
         ELSE
             a = ConvKeep(a, TYINT)
             x = NN(a)
@@ -755,7 +755,7 @@ FUNCTION Builtin (id, nm$)
             NX(n) = 3
         END IF
         IF nargs <> 3 THEN
-            ErrMsg "INSTR: arguments expected"
+            ErrNo 97   ' INSTR: arguments expected
         ELSE
             a = ConvKeep(a, TYINT)
             NN(a) = ConvKeep(NN(a), TYSTR)
@@ -763,22 +763,22 @@ FUNCTION Builtin (id, nm$)
         END IF
     CASE BSTR
         ty = TYSTR
-        IF nargs <> 1 THEN ErrMsg "STR$: one argument expected" ELSE a = ConvKeep(a, t1)
+        IF nargs <> 1 THEN ErrNo 98 ELSE a = ConvKeep(a, t1)   ' STR$: one argument expected
     CASE BCINT
-        IF nargs <> 1 THEN ErrMsg nm$ + ": one argument expected"
+        IF nargs <> 1 THEN ErrRec 93, 0, 0, nm$   ' {s}: one argument expected
     CASE BFIX, BINT, BABS
-        IF nargs <> 1 THEN ErrMsg nm$ + ": one argument expected" ELSE a = ConvKeep(a, t1)
+        IF nargs <> 1 THEN ErrRec 93, 0, 0, nm$ ELSE a = ConvKeep(a, t1)   ' {s}: one argument expected
         ty = t1
     CASE BSGN
-        IF nargs <> 1 THEN ErrMsg nm$ + ": one argument expected" ELSE a = ConvKeep(a, t1)
+        IF nargs <> 1 THEN ErrRec 93, 0, 0, nm$ ELSE a = ConvKeep(a, t1)   ' {s}: one argument expected
     CASE BCSNG, BCDBL
-        IF nargs <> 1 THEN ErrMsg nm$ + ": one argument expected"
+        IF nargs <> 1 THEN ErrRec 93, 0, 0, nm$   ' {s}: one argument expected
         IF id = BCSNG THEN ty = TYSNG ELSE ty = TYDBL
         a = ConvNode(a, ty)
         Builtin = a
         EXIT FUNCTION
     CASE BSQR, BSIN, BCOS, BTAN, BATN, BEXP, BLOG
-        IF nargs <> 1 THEN ErrMsg nm$ + ": one argument expected"
+        IF nargs <> 1 THEN ErrRec 93, 0, 0, nm$   ' {s}: one argument expected
         IF t1 = TYDBL THEN ty = TYDBL ELSE ty = TYSNG
         IF nargs = 1 THEN a = ConvKeep(a, ty)
     CASE BMKS
@@ -794,21 +794,21 @@ FUNCTION Builtin (id, nm$)
     CASE BERR, BFREEFILE
     CASE BDVI, BMDI
         IF nargs <> 2 THEN
-            ErrMsg nm$ + ": two arguments expected"
+            ErrRec 96, 0, 0, nm$   ' {s}: two arguments expected
         ELSE
             a = ConvKeep(a, TYINT)
             NN(a) = ConvKeep(NN(a), TYINT)
         END IF
     CASE BSADD
-        IF nargs <> 1 THEN ErrMsg "SADD: one argument expected" ELSE a = ConvKeep(a, TYSTR)
+        IF nargs <> 1 THEN ErrNo 99 ELSE a = ConvKeep(a, TYSTR)   ' SADD: one argument expected
     CASE BCSPI, BCSPS, BCSPD, BOSCALLI
-        IF nargs < 1 THEN ErrMsg nm$ + ": arguments expected"
-        IF NOp(a) <> NICON THEN ErrMsg nm$ + ": a constant first"
+        IF nargs < 1 THEN ErrRec 91, 0, 0, nm$   ' {s}: arguments expected
+        IF NOp(a) <> NICON THEN ErrRec 100, 0, 0, nm$   ' {s}: a constant first
         IF id = BCSPS THEN ty = TYSNG
         IF id = BCSPD THEN ty = TYDBL
         x = NN(a)
         DO WHILE x > 0
-            IF NIsBool(x) THEN ErrMsg nm$ + ": a comparison as an argument"
+            IF NIsBool(x) THEN ErrRec 101, 0, 0, nm$   ' {s}: a comparison as an argument
             x = NN(x)
         LOOP
     END SELECT
@@ -832,8 +832,8 @@ FUNCTION ElemNode (s)
     NV(n) = s
     a = ParseArgs
     k = ArgCount
-    IF k = 0 THEN ErrMsg "an index expected"
-    IF SAux(s) > 0 AND SAux(s) <> k THEN ErrMsg SName$(s) + ": the wrong number of indexes"
+    IF k = 0 THEN ErrNo 102   ' an index expected
+    IF SAux(s) > 0 AND SAux(s) <> k THEN ErrRec 103, 0, 0, SName$(s)   ' {s}: the wrong number of indexes
     ' the indexes as integers (the chain kept in order)
     x = a
     a = 0
@@ -856,7 +856,7 @@ FUNCTION CallNode (s)
     IF Tok = TLPAR THEN
         a = ArgList(s, 1, 1)
     ELSEIF SAux2(s) > 0 THEN
-        ErrMsg SName$(s) + ": arguments expected"
+        ErrRec 91, 0, 0, SName$(s)   ' {s}: arguments expected
     END IF
     NA(n) = a
     CallNode = n
@@ -886,7 +886,7 @@ FUNCTION ArgList (s, paren, check)
                                 GetTok
                                 IF Tok = TLPAR THEN
                                     GetTok
-                                    Expect TRPAR, ")"
+                                    Expect TRPAR
                                 END IF
                                 a = NewNode(NVAR, SType(s2))
                                 NV(a) = s2
@@ -894,7 +894,7 @@ FUNCTION ArgList (s, paren, check)
                             END IF
                         END IF
                     END IF
-                    IF a = 0 THEN ErrMsg "an array expected as argument " + IStr$(k) + " of " + SName$(s)
+                    IF a = 0 THEN ErrRec 104, k, 0, SName$(s)   ' an array expected as argument {a} of {s}
                 END IF
             END IF
             IF a = 0 THEN a = Expr
@@ -903,9 +903,9 @@ FUNCTION ArgList (s, paren, check)
             IF Tok <> TCOMMA THEN EXIT DO
             GetTok
         LOOP
-        IF paren THEN Expect TRPAR, ")"
+        IF paren THEN Expect TRPAR
     END IF
-    IF k <> np AND check THEN ErrMsg SName$(s) + ": " + IStr$(np) + " argument(s) expected"
+    IF k <> np AND check THEN ErrRec 67, np, 0, SName$(s)   ' {s}: {a} argument(s) expected
     ArgCount = k
     ArgList = first
 END FUNCTION
@@ -926,7 +926,7 @@ FUNCTION VarNode (n$)
         VarNode = n
         EXIT FUNCTION
     END IF
-    IF SKind(s) = SKARRAY THEN ErrMsg SName$(s) + " is an array: an index expected"
+    IF SKind(s) = SKARRAY THEN ErrRec 29, 0, 0, SName$(s)   ' {s} is an array: an index expected
     n = NewNode(NVAR, SType(s))
     IF SType(s) = TYBYTE THEN NTy(n) = TYINT
     NV(n) = s
@@ -956,7 +956,7 @@ FUNCTION Primary ()
     CASE TLPAR
         GetTok
         n = Expr
-        Expect TRPAR, ")"
+        Expect TRPAR
     CASE TIDENT
         nm$ = TokS$
         GetTok
@@ -967,7 +967,7 @@ FUNCTION Primary ()
                 IF Tok = TLPAR THEN
                     n = ElemNode(s)
                 ELSE
-                    ErrMsg nm$ + " is an array: an index expected"
+                    ErrRec 29, 0, 0, nm$   ' {s} is an array: an index expected
                     n = IConst(0)
                 END IF
             ELSE
@@ -976,14 +976,14 @@ FUNCTION Primary ()
         ELSE
             s = FindProc(nm$)
             IF s > 0 THEN
-                IF SKind(s) = SKSUB THEN ErrMsg nm$ + " is a SUB, not a FUNCTION"
+                IF SKind(s) = SKSUB THEN ErrRec 105, 0, 0, nm$   ' {s} is a SUB, not a FUNCTION
                 n = CallNode(s)
             ELSE
                 id = BuiltinId(nm$)
                 IF id > 0 THEN
                     n = Builtin(id, nm$)
                 ELSEIF Tok = TLPAR THEN
-                    ErrMsg nm$ + ": no such array or function"
+                    ErrRec 106, 0, 0, nm$   ' {s}: no such array or function
                     n = ParseArgs
                     n = IConst(0)
                 ELSE
@@ -992,7 +992,7 @@ FUNCTION Primary ()
             END IF
         END IF
     CASE ELSE
-        ErrMsg "an expression expected, not " + KwName$(Tok)
+        ErrRec 107, 0, Tok, ""   ' an expression expected, not {t}
         n = IConst(0)
         IF NOT AtEnd THEN GetTok
     END SELECT
@@ -1009,7 +1009,7 @@ FUNCTION ConstExpr (v)
     IF NOp(n) = NICON THEN
         v = NV(n)
     ELSEIF NOp(n) <> NRCON AND NOp(n) <> NSCON THEN
-        ErrMsg "a constant expression expected"
+        ErrNo 108   ' a constant expression expected
     END IF
     ConstExpr = n
 END FUNCTION
@@ -1566,7 +1566,7 @@ SUB GenCond (n, falselab)
         END IF
     END IF
     IF NTy(n) = TYSTR THEN
-        ErrMsg "type mismatch: a string as a condition"
+        ErrNo 27   ' type mismatch: a string as a condition
         EXIT SUB
     END IF
     GenValue n
@@ -1619,7 +1619,7 @@ SUB GenCall (n, want)
         IF pf AND PFARRAY THEN
             IF NOp(a) = NVAR THEN
                 IF SKind(NV(a)) = SKARRAY THEN
-                    IF SType(NV(a)) <> pt THEN ErrMsg "argument " + IStr$(i) + " of " + SName$(s) + ": an array of another type"
+                    IF SType(NV(a)) <> pt THEN ErrRec 109, i, 0, SName$(s)   ' argument {a} of {s}: an array of another type
                     GenSlot NV(a)
                 END IF
             END IF

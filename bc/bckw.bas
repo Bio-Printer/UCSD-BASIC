@@ -1,15 +1,12 @@
 ' BCKW -- the keywords: the lexer's table (BCLEX) and their names in
-' messages (BCGEN)
+' messages (BCERR)
 #INCLUDE "BCCOM"
 
 ' (KwCode's copy of the table, made at its first call)
 DIM SHARED KwT$(3)
 
 ' ---- keywords (the lexer's table: codes 1..NKEYWORD, 9 characters each),
-' and their names for messages: in a segment of their own, KWNAMES, which
-' BCGEN loads only for an error; BCLEX's KwCode keeps a copy of the table
-
-SEGMENT KWNAMES
+' and their names for messages
 
 FUNCTION KwTable$ (part)
     DIM tb$
@@ -70,8 +67,6 @@ FUNCTION KwName$ (k)
     CASE ELSE: KwName$ = "?"
     END SELECT
 END FUNCTION
-
-SEGMENT
 
 ' the keyword code of an upper-case word, 0 if it is not one
 FUNCTION KwCode (w$)

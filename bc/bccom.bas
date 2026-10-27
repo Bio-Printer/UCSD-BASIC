@@ -61,7 +61,7 @@ COMMON SHARED SrcName$, ModName$, ObjName$, LstName$, TokName$, LTmpName$, LCodN
 COMMON SHARED BcVol$
 ' ---- the job file (BCUTIL): where the programs are (#unit:), the options
 ' (JF...), the step being done
-COMMON SHARED JobHome$, JobFlags, JobCur$, JobName$
+COMMON SHARED JobHome$, JobFlags, JobCur$, JobName$, ErrName$
 CONST JFASK = 1, JFQUIET = 2, JFMEM = 4, CHJOB = 13, MAXSTEP = 300
 
 ' ---- the token reader (passes 2 and 3)

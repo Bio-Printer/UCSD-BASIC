@@ -25,7 +25,7 @@ SUB OB (b)
             CodeCap = Grown(CodeCap, MAXCODE)
             REDIM PRESERVE Code(CodeCap) AS BYTE
         ELSE
-            ErrMsg "procedure too large: split it"
+            ErrNo 110   ' procedure too large: split it
             PC = 0
         END IF
     END IF
@@ -102,7 +102,7 @@ FUNCTION NewLabel ()
             LabCap = Grown(LabCap, MAXLAB)
             REDIM PRESERVE LabPos(LabCap)
         ELSE
-            ErrMsg "procedure too large (labels): split it"
+            ErrNo 111   ' procedure too large (labels): split it
             NLab = 0
         END IF
     END IF
@@ -132,7 +132,7 @@ SUB MoreFix ()
         FixCap = Grown(FixCap, MAXFIX)
         REDIM PRESERVE FixPos(FixCap), FixLab(FixCap)
     ELSE
-        ErrMsg "procedure too large (jumps): split it"
+        ErrNo 112   ' procedure too large (jumps): split it
         NFix = 0
     END IF
 END SUB
@@ -163,7 +163,7 @@ SUB Reloc (ty, sym)
             RelCap = Grown(RelCap, MAXREL)
             REDIM PRESERVE RelPos(RelCap), RelType(RelCap) AS BYTE, RelSym(RelCap)
         ELSE
-            ErrMsg "procedure too large (calls): split it"
+            ErrNo 113   ' procedure too large (calls): split it
             NRel = 0
         END IF
     END IF
@@ -365,7 +365,7 @@ SEGMENT STMTA
 ' a GOSUB's return point: its number (RETURN goes back through a table)
 FUNCTION GosubSite (l)
     IF NGosub >= 100 THEN
-        ErrMsg "more than 100 GOSUBs in one procedure"
+        ErrNo 114   ' more than 100 GOSUBs in one procedure
         EXIT FUNCTION
     END IF
     IF NGosub = 0 THEN GosubOff = NewLocal(1)
@@ -496,7 +496,7 @@ SUB EndProc ()
     ' every label used is defined
     FOR s = ProcKeep + 1 TO NSym
         IF SKind(s) = SKLABEL AND (SFlags(s) AND SFSETLAB) = 0 THEN
-            ErrMsg "label " + MID$(SName$(s), 2) + " not defined"
+            ErrRec 115, 0, 0, MID$(SName$(s), 2)   ' label {s} not defined
         END IF
     NEXT s
     IF OptList THEN
@@ -522,7 +522,7 @@ SUB EndProc ()
             pos = FixPos(i)
             t = LabPos(FixLab(i))
             IF t < 0 THEN
-                ErrMsg "internal: a label not set"
+                ErrNo 116   ' internal: a label not set
                 t = 0
             END IF
             off = t - (pos + 1)
@@ -536,7 +536,7 @@ SUB EndProc ()
                 LOOP
                 IF k = NLong THEN
                     IF NLong >= 60 THEN
-                        ErrMsg "procedure too large (more than 60 long jumps): split it"
+                        ErrNo 117   ' procedure too large (more than 60 long jumps): split it
                         k = 0
                     ELSE
                         LongLab(NLong) = t

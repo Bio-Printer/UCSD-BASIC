@@ -1,0 +1,61 @@
+ERR1.BAS line 4: ) expected, not the end of the line
+  a = 1 +
+ERR1.BAS line 5: an expression expected, not the end of the line
+  IF a THEN PRINT "x" ELSE
+ERR1.BAS line 6: a FOR variable expected
+  FOR = 1 TO 3
+ERR1.BAS line 8: NEXT without its block
+  FOR i = 1 3
+ERR1.BAS line 8: TO expected, not a number
+  FOR i = 1 3
+ERR1.BAS line 14: type mismatch
+  a = "s"
+ERR1.BAS line 15: type mismatch
+  c = 4
+ERR1.BAS line 15: C is an array: an index expected
+  c = 4
+ERR1.BAS line 15: the end of the statement expected, not =
+  c = 4
+ERR1.BAS line 16: X: no such array (DIM it first)
+  x(3) = 1
+ERR1.BAS line 16: the end of the statement expected, not (
+  x(3) = 1
+ERR1.BAS line 19: a label expected
+  SELECT a
+ERR1.BAS line 19: the end of the statement expected, not SELECT
+  SELECT a
+ERR1.BAS line 20: WEND expected
+  CASE IS
+ERR1.BAS line 20: the end of the statement expected, not IS
+  CASE IS
+ERR1.BAS line 22: ? without its block
+  DIM SHARED q
+ERR1.BAS line 23: INPUT, OUTPUT, APPEND, BINARY or RANDOM expected
+  OPEN "F" FOR READING AS #1
+ERR1.BAS line 24: PRINT USING is not supported
+  PRINT USING "#"; a
+ERR1.BAS line 26: SWAP needs two variables of one type
+  LINE INPUT a
+ERR1.BAS line 27: LINE INPUT needs a string variable
+  MID$(a, 1) = "x"
+ERR1.BAS line 27: MID$ needs a string variable
+  MID$(a, 1) = "x"
+ERR1.BAS line 28: RETURN with a value outside a FUNCTION
+  RETURN 5
+ERR1.BAS line 30: not inside such a block
+  CONTINUE SELECT
+ERR1.BAS line 31: not inside such a block
+  RESTORE
+ERR1.BAS line 32: RESTORE without DATA
+  a = 99999
+ERR1.BAS line 33: the end of the statement expected, not a number
+  a = 1.5.5
+ERR1.BAS line 34: an expression expected, not &
+  a = &Q
+ERR1.BAS line 34: the end of the statement expected, not a name
+  a = &Q
+ERR1.BAS line 36: a constant expression expected
+  k2 = VARPTR(3)
+ERR1.BAS line 37: VARPTR needs a variable
+  END
+34 error(s): no ERR1.OBJ

@@ -113,11 +113,12 @@ SUB TS (s$)
     IF LEN(s$) > 0 THEN PUT #CHTOK, , s$
 END SUB
 
-SUB LexErr (msg$)
+' error n of the line being read (s$: its {s})
+SUB LexErr (n, s$)
     TokFile$ = LxFile$
     TokLine = LxLineNo
     TokText$ = LxLine$
-    ErrMsg msg$
+    ErrRec n, 0, 0, s$
 END SUB
 
 FUNCTION IsLetter (c)
@@ -206,7 +207,7 @@ SUB LexNumber ()
         ty = TYSNG
         LxPos = LxPos + 1
     ELSEIF c = 37 THEN
-        IF ty <> 0 THEN LexErr "an integer with a decimal point"
+        IF ty <> 0 THEN LexErr 2, ""   ' an integer with a decimal point
         ty = TYINT
         LxPos = LxPos + 1
     END IF
@@ -226,7 +227,7 @@ SUB LexNumber ()
             TW v
             EXIT SUB
         END IF
-        IF ty = TYINT THEN LexErr "integer too large"
+        IF ty = TYINT THEN LexErr 3, ""   ' integer too large
         ty = TYSNG
     END IF
     ' more than 7 significant digits: a DOUBLE
@@ -278,7 +279,7 @@ SUB LexRadix ()
         n = n + 1
         LxPos = LxPos + 1
     LOOP
-    IF n = 0 THEN LexErr "a number expected after &"
+    IF n = 0 THEN LexErr 4, ""   ' a number expected after &
     IF LxC = 37 THEN LxPos = LxPos + 1
     TB TINT
     TW v
@@ -444,7 +445,7 @@ SUB LexTokens ()
                 TB TCOLON
                 first = 3
             CASE ELSE
-                LexErr "unexpected character " + CHR$(c)
+                LexErr 5, CHR$(c)   ' unexpected character {s}
             END SELECT
             IF c <> 58 THEN first = 0
         END IF
@@ -462,7 +463,7 @@ SUB LexLine (l$)
         f$ = ""
         IF q > 0 THEN f$ = MID$(t$, q + 1, INSTR(q + 1, t$ + CHR$(34), CHR$(34)) - q - 1)
         IF f$ = "" THEN
-            LexErr "#INCLUDE " + CHR$(34) + "FILE" + CHR$(34) + " expected"
+            LexErr 6, ""   ' #INCLUDE "FILE" expected
         ELSE
             LexInclude f$
         END IF
@@ -506,7 +507,7 @@ END SUB
 SUB LexInclude (f$)
     DIM saveline, savefile$, g$
     IF LxDepth >= 3 THEN
-        LexErr "#INCLUDE files nest too deep"
+        LexErr 7, ""   ' #INCLUDE files nest too deep
         EXIT SUB
     END IF
     ' FILE.BAS or FILE.TEXT, beside the source first (its volume and
@@ -518,7 +519,7 @@ SUB LexInclude (f$)
         g$ = FindSource$(g$, "")
     END IF
     IF NOT FileExists(g$) THEN
-        LexErr "no file " + g$
+        LexErr 8, g$   ' no file {s}
         EXIT SUB
     END IF
     saveline = LxLineNo
