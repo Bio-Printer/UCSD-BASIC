@@ -325,9 +325,11 @@ links and runs PI in both.  What makes that fit:
   procedure's code, labels, jumps, calls, expression nodes) start small,
   as large as a program like PI needs, and BCLINK's (names, procedures,
   modules, references, COMMON variables; its buffer is the largest
-  procedure's size) too; each is doubled by REDIM PRESERVE when it is full
-  (Grown), up to its MAX constant.  (Doubled, so in few steps: the old
-  table's memory is left as a hole too small for the next one.)
+  procedure's size) too.  When one is full, REDIM PRESERVE makes it larger,
+  up to its MAX constant: BCGEN's by 100 entries (Grown), BCLINK's twice
+  as large (LinkGrown) -- they grow far, the references to thousands, and
+  each step leaves the old table's memory behind as a hole too small for
+  the next one.
 
 Compiling PI, BCGEN has at least 1360 words left in Z80 mode and BCLINK
 3550 (5280 and 7470 in P-Code mode without the Harvard layout).  BC's own

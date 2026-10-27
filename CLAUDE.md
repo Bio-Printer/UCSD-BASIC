@@ -41,7 +41,9 @@
   section 10: what the other layouts leave).  PSYS_MODE=z80 needs the Z80
   interpreter pascal.bin (setup.sh copies UCSD-TinyC's).
 - The linker links procedures, not modules; BCGEN's and BCLINK's tables
-  start small and grow (Grown, REDIM PRESERVE: bas2c's ar_dimp).  The
+  start small and grow (REDIM PRESERVE: bas2c's ar_dimp): BCGEN's by 100
+  entries (Grown), BCLINK's double (LinkGrown; by 100 it ran out of memory
+  linking BCGEN on the P-System).  The
   library's segment RTSELDOM holds what is done seldom (OPEN, CHAIN, the
   sub-volumes, _ARGS; BCUTIL's job and file-name code; EndProc).
 - BASIC:INSTALL.TEXT (mkvolume) is a batch file of Tiny-C's shell (BIGGY

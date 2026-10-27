@@ -157,12 +157,11 @@ END FUNCTION
 
 SEGMENT
 
-' a table's new size when cap entries were too few: twice as many, max at
-' most (BCGEN's tables, BCLINK's).  (REDIM PRESERVE leaves the old one's
-' memory behind, a hole too small for the next: few steps, few holes.)
+' a table's new size when cap entries were too few: 100 more, max at most
+' (BCGEN's tables; BCLINK's double: LinkGrown)
 FUNCTION Grown (cap, max)
     DIM n
-    n = cap * 2
+    n = cap + 100
     IF n > max THEN n = max
     Grown = n
 END FUNCTION

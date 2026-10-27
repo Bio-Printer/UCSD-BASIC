@@ -30,9 +30,20 @@ DIM SHARED RefNm(), NRefs, DWords(), DOff(), DLive() AS BYTE, NLD
 DIM SHARED LSeg$(16), LSegNum(16), LSegLen(16), LSegBlk(16), LSegProcs(16), NLSeg
 DIM SHARED LFile$(MAXLF), NLF, LBuf() AS BYTE, LErr, LEof
 DIM SHARED Entry() AS BYTE, NEntry, EntryJtab, GlobWords
-' the tables' sizes: small at first, grown (Grown) up to the MAX constants;
+' the tables' sizes: small at first, grown (LinkGrown) up to the MAX constants;
 ' the largest procedure (LBuf holds it)
 DIM SHARED CapLN, CapLP, CapLM, CapRefs, CapLD, MaxClen
+
+' a table's new size when cap entries were too few: twice as many, max at
+' most.  (The linker's tables grow far, the references to thousands: each
+' REDIM PRESERVE leaves the old table's memory behind, a hole too small
+' for the next, so in few steps.)
+FUNCTION LinkGrown (cap, max)
+    DIM n
+    n = cap * 2
+    IF n > max THEN n = max
+    LinkGrown = n
+END FUNCTION
 
 SUB LinkErrMsg (m$)
     LErr = LErr + 1
@@ -120,7 +131,7 @@ FUNCTION LNameIx (n$)
     LOOP
     IF NLName >= CapLN THEN
         IF CapLN >= MAXLN THEN Fatal "Link: too many names"
-        CapLN = Grown(CapLN, MAXLN)
+        CapLN = LinkGrown(CapLN, MAXLN)
         REDIM PRESERVE LName$(CapLN), LKind(CapLN) AS BYTE, LDef(CapLN), LNext(CapLN)
     END IF
     NLName = NLName + 1
@@ -174,7 +185,7 @@ SUB ReadProc1 (m)
     ELSE
         IF NLP >= CapLP THEN
             IF CapLP >= MAXLP THEN Fatal "Link: too many procedures"
-            CapLP = Grown(CapLP, MAXLP)
+            CapLP = LinkGrown(CapLP, MAXLP)
             REDIM PRESERVE PNm(CapLP), PMod(CapLP), PSg(CapLP) AS BYTE, PLen(CapLP), PFl(CapLP) AS BYTE, PNum(CapLP) AS BYTE
             REDIM PRESERVE PLive(CapLP) AS BYTE, PRef0(CapLP), PRefN(CapLP)
         END IF
@@ -210,7 +221,7 @@ SUB ReadProc1 (m)
             IF dup = 0 THEN
                 IF NRefs >= CapRefs THEN
                     IF CapRefs >= MAXREFS THEN Fatal "Link: too many references"
-                    CapRefs = Grown(CapRefs, MAXREFS)
+                    CapRefs = LinkGrown(CapRefs, MAXREFS)
                     REDIM PRESERVE RefNm(CapRefs)
                 END IF
                 RefNm(NRefs) = k
@@ -235,7 +246,7 @@ SUB Pass1 ()
             CASE 77
                 IF NLM >= CapLM THEN
                     IF CapLM >= MAXLM THEN Fatal "Link: too many modules"
-                    CapLM = Grown(CapLM, MAXLM)
+                    CapLM = LinkGrown(CapLM, MAXLM)
                     REDIM PRESERVE MNm$(CapLM), MStat(CapLM), MBase(CapLM), MLive(CapLM) AS BYTE, MBody(CapLM)
                 END IF
                 NLM = NLM + 1
@@ -261,7 +272,7 @@ SUB Pass1 ()
                 ELSE
                     IF NLD >= CapLD THEN
                         IF CapLD >= MAXLD THEN Fatal "Link: too many COMMON variables"
-                        CapLD = Grown(CapLD, MAXLD)
+                        CapLD = LinkGrown(CapLD, MAXLD)
                         REDIM PRESERVE DWords(CapLD), DOff(CapLD), DLive(CapLD) AS BYTE
                     END IF
                     NLD = NLD + 1
