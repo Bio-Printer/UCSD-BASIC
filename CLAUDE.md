@@ -34,6 +34,10 @@
   ~ BYTE -- not QuickBASIC's ! and # (BCLEX, BCUTIL's SuffixType and
   TypeChar$, bas2c's SUFFIX/TYPECHAR; a literal 1.5! is DOUBLE, 1.5#
   SINGLE).  tests/suffix.
+- Bitwise & and | (INTEGERs and BYTEs; & of strings joins): bcexpr's
+  ParseConcat and ParseBitOr (Logic KAND/KOR), the token TBAR; bas2c does
+  not translate them (BC's sources use AND and OR).  tests/bitwise,
+  tests/errors/err9.
 - BC's sources must stay within the part of the language tools/bas2c.py
   translates, and their lines under 250 characters.
 - Keep docs/LANGUAGE.md and docs/DESIGN.md current; they are on the volume.

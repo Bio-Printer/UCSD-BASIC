@@ -116,7 +116,7 @@ FUNCTION MsgC$ (n)
     CASE 83: t$ = "not BCLEX's token file: {s}"
     CASE 84: t$ = "expression too complex"
     CASE 85: t$ = "type mismatch"
-    CASE 86: t$ = "& needs strings"
+    CASE 86: t$ = "& needs strings, INTEGERs or BYTEs"
     CASE 87: t$ = "{s} not declared (OPTION EXPLICIT)"
     CASE 88: t$ = "real constant too large"
     CASE 89: t$ = "VARPTR needs a variable"
@@ -148,6 +148,7 @@ FUNCTION MsgC$ (n)
     CASE 115: t$ = "label {s} not defined"
     CASE 116: t$ = "internal: a label not set"
     CASE 117: t$ = "procedure too large (more than 60 long jumps): split it"
+    CASE 118: t$ = "| needs INTEGERs or BYTEs"
     END SELECT
     MsgC$ = t$
 END FUNCTION

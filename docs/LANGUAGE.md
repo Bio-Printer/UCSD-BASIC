@@ -148,7 +148,8 @@ Operators, from the highest priority to the lowest:
     \                   integer division, the result cut toward 0
     MOD                 remainder (the sign of the left operand)
     +  -                add, subtract; + also joins strings
-    &                   joins strings
+    &                   bitwise and of INTEGERs and BYTEs; joins strings
+    |                   bitwise or of INTEGERs and BYTEs
     =  <>  <  >  <=  >= comparisons (numbers or strings)
     NOT                 bitwise complement (of an INTEGER)
     AND  ANDALSO        bitwise and; ANDALSO: both conditions, the
@@ -157,7 +158,11 @@ Operators, from the highest priority to the lowest:
                         first is false
     XOR                 bitwise exclusive or
 
-The operands of \ MOD AND OR XOR NOT are converted to INTEGER.  Mixed
+The operands of \ MOD AND OR XOR NOT are converted to INTEGER; those of
+& and | must be INTEGERs or BYTEs (a SINGLE or DOUBLE is an error, not
+converted), and they bind tighter than the comparisons: `IF flags & 4 =
+4` is `IF (flags & 4) = 4`.  &H, &O and &B start a number only when a
+digit of that base follows: a&h is a AND h.  Mixed
 INTEGER, SINGLE and DOUBLE operands are converted to the widest.  Strings
 compare character by character (by their codes), a shorter string before
 a longer one it begins.  AND and OR evaluate both sides: write

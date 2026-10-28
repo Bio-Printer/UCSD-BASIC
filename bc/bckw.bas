@@ -64,6 +64,7 @@ FUNCTION KwName$ (k)
     CASE TSEMI: KwName$ = ";"
     CASE THASH: KwName$ = "#"
     CASE TAMP: KwName$ = "&"
+    CASE TBAR: KwName$ = "|"
     CASE TCOLON: KwName$ = ":"
     CASE TIDENT: KwName$ = "a name"
     CASE TINT, TSNG, TDBL: KwName$ = "a number"

@@ -137,7 +137,8 @@ FUNCTION BinNode (op, ty, a, b)
 END FUNCTION
 
 SEGMENT EXPR
-' + - * / \ MOD ^ & on two operands
+' + - * / \ MOD ^ & on two operands (& of strings joins them; of INTEGERs
+' and BYTEs it is a bitwise and: ParseConcat)
 FUNCTION Arith (op, a, b)
     DIM t, va, vb, r
     t = MaxType(a, b)
@@ -146,7 +147,7 @@ FUNCTION Arith (op, a, b)
         Arith = BinNode(TPLUS, TYSTR, a, b)
         EXIT FUNCTION
     END IF
-    IF op = TAMP THEN ErrNo 86   ' & needs strings
+    IF op = TAMP THEN ErrNo 86   ' & needs strings, INTEGERs or BYTEs
     IF op = TDIV AND t = TYINT THEN t = TYSNG
     IF op = TIDIV OR op = KMOD THEN t = TYINT
     IF op = TPOW THEN
@@ -457,23 +458,41 @@ END FUNCTION
 
 FUNCTION ParseCmp ()
     DIM a, b, op
-    a = ParseConcat
+    a = ParseBitOr
     DO WHILE Tok >= TEQ AND Tok <= TGE
         op = Tok
         GetTok
-        b = ParseConcat
+        b = ParseBitOr
         a = Compare(op, a, b)
     LOOP
     ParseCmp = a
 END FUNCTION
 
+' an INTEGER or a BYTE (& and |: no other type)
+FUNCTION IsIntNode (n)
+    IsIntNode = NTy(n) = TYINT OR NTy(n) = TYBYTE
+END FUNCTION
+
+' a | b: bitwise or, of INTEGERs and BYTEs
+FUNCTION ParseBitOr ()
+    DIM a, b
+    a = ParseConcat
+    DO WHILE Tok = TBAR
+        GetTok
+        b = ParseConcat
+        IF IsIntNode(a) AND IsIntNode(b) THEN a = Logic(KOR, a, b) ELSE ErrNo 118   ' | needs INTEGERs or BYTEs
+    LOOP
+    ParseBitOr = a
+END FUNCTION
+
+' a & b: strings joined, or a bitwise and of INTEGERs and BYTEs
 FUNCTION ParseConcat ()
     DIM a, b
     a = ParseAdd
     DO WHILE Tok = TAMP
         GetTok
         b = ParseAdd
-        a = Arith(TAMP, a, b)
+        IF IsIntNode(a) AND IsIntNode(b) THEN a = Logic(KAND, a, b) ELSE a = Arith(TAMP, a, b)
     LOOP
     ParseConcat = a
 END FUNCTION

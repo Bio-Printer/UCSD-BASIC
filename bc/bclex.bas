@@ -248,6 +248,22 @@ SUB LexNumber ()
 END SUB
 
 ' &H, &O, &B numbers: 16 bits
+' &H, &O, &B and a digit of that base next: a number (else & is the
+' operator: a&b, a & h)
+FUNCTION RadixAhead ()
+    DIM r, d
+    r = INSTR("HhOoBb", CHR$(ASC(LxLine$, LxPos + 1)))
+    IF r = 0 OR ASC(LxLine$, LxPos + 1) = 0 THEN EXIT FUNCTION
+    d = ASC(LxLine$, LxPos + 2)
+    IF r <= 2 THEN
+        RadixAhead = IsDigit(d) OR (d >= 65 AND d <= 70) OR (d >= 97 AND d <= 102)
+    ELSEIF r <= 4 THEN
+        RadixAhead = d >= 48 AND d <= 55
+    ELSE
+        RadixAhead = d = 48 OR d = 49
+    END IF
+END FUNCTION
+
 SUB LexRadix ()
     DIM base, c, v, d, n
     c = ASC(LxLine$, LxPos + 1)
@@ -391,7 +407,7 @@ SUB LexTokens ()
             LxStrBytes q - LxPos - 1
             LxPos = q + 1
             first = 0
-        ELSEIF c = 38 AND INSTR("HhOoBb", CHR$(ASC(LxLine$, LxPos + 1))) > 0 AND ASC(LxLine$, LxPos + 1) <> 0 THEN
+        ELSEIF c = 38 AND RadixAhead THEN
             LexRadix
             first = 0
         ELSE
@@ -444,6 +460,7 @@ SUB LexTokens ()
             CASE 59: TB TSEMI
             CASE 35: TB THASH
             CASE 38: TB TAMP
+            CASE 124: TB TBAR
             CASE 63: TB KPRINT
             CASE 58
                 ' (a label is only at the start of a line)

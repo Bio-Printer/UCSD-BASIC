@@ -1,0 +1,7 @@
+ERR9.BAS line 3: & needs strings, INTEGERs or BYTEs
+  PRINT x# & 1
+ERR9.BAS line 4: | needs INTEGERs or BYTEs
+  PRINT 1 | x#
+ERR9.BAS line 5: | needs INTEGERs or BYTEs
+  PRINT "a" | "b"
+3 error(s): no ERR9.OBJ
