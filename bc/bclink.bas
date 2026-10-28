@@ -32,9 +32,8 @@ DIM SHARED RefNm(), NRefs, DWords(), DOff(), DLive() AS BYTE, NLD
 DIM SHARED LSeg$(16), LSegNum(16), LSegLen(16), LSegBlk(16), LSegProcs(16), NLSeg
 DIM SHARED LFile$(MAXLF), NLF, LBuf() AS BYTE, LErr, LEof
 DIM SHARED Entry() AS BYTE, NEntry, EntryJtab, GlobWords
-' the line tables: where each procedure's record is (PLt); the source
-' files' names (LtF$)
-DIM SHARED PLt(), LtF$(MAXDF), NLtF
+' the line tables: the source files' names
+DIM SHARED LtF$(MAXDF), NLtF
 ' the tables' sizes: small at first, grown (LinkGrown) up to the MAX constants;
 ' the largest procedure (LBuf holds it)
 DIM SHARED CapLN, CapLP, CapLM, CapRefs, CapLD, MaxClen
@@ -202,7 +201,7 @@ SUB ReadProc1 (m)
             IF CapLP >= MAXLP THEN Fatal "Link: too many procedures"
             CapLP = LinkGrown(CapLP, MAXLP)
             REDIM PRESERVE PNm(CapLP), PMod(CapLP), PSg(CapLP) AS BYTE, PLen(CapLP), PFl(CapLP) AS BYTE, PNum(CapLP) AS BYTE
-            REDIM PRESERVE PLive(CapLP) AS BYTE, PRef0(CapLP), PRefN(CapLP), PLt(CapLP)
+            REDIM PRESERVE PLive(CapLP) AS BYTE, PRef0(CapLP), PRefN(CapLP)
         END IF
         NLP = NLP + 1
         PNm(NLP) = x
@@ -214,7 +213,6 @@ SUB ReadProc1 (m)
         PLive(NLP) = 0
         PRef0(NLP) = NRefs
         PRefN(NLP) = 0
-        PLt(NLP) = 0
         p = NLP
         LKind(x) = 1
         LDef(x) = NLP
@@ -478,21 +476,22 @@ SUB MakeEntry ()
     EB 0
 END SUB
 
-' ---- the line tables, after the segments (the library's _RTWHERE reads
-' them), and NAME.MAP: written at the end, a segment of their own
-' (LINES), in memory only then.  Where things are in the tables: a word's
-' number from their start (the first block after the segments: block 0's
-' word 255; word 254 LTMAGIC, word 253 where the header is).  They are:
-' each procedure's record (not the library's): its name, then its lines,
-' where each one's code starts (the procedure's offset) and its number --
+' ---- the line tables, after the segments (BCDEBUG reads them: where a
+' program's run-time error was), from the first block after them (block
+' 0's word 255; word 254 LTMAGIC): written at the end, a segment of their
+' own (LINES), in memory only then.  They are, in words, where the
+' records start and where each segment's table is (16: segments 1..15, 0
+' none; a place: a word's number from the tables' start); each segment's
+' table:
+' its number of procedures, then each one's record's number (1, 2 ... in
+' the order of the records; 0 none, the library's); then, in bytes, the
+' records one after another: a procedure's name, then its lines, where
+' each one's code starts (the procedure's offset) and its number --
 '   d l       d < 253: the offset d bytes on, the line l lines on
 '   253 o l   o and l (words, low byte first)
 '   254 f     the next lines are in file f (1, 2 ...)
-'   255       the end
-' then the source files' names; each segment's table: its number of
-' procedures, where each one's record is (0: none, the library's); the
-' header (18 words): the number of files, where their names are, where each
-' segment's table is (segments 0..15; 0: none).
+'   255       the record's end
+' -- a 0 after the last; then the number of source files, their names.
 
 SEGMENT LINES
 
@@ -505,6 +504,11 @@ FUNCTION LtName$ (p, nm$)
     ELSE
         LtName$ = "module " + MNm$(PMod(p))
     END IF
+END FUNCTION
+
+' does procedure p have a record (linked, not the library's)
+FUNCTION LtHas (p)
+    IF PLive(p) <> 0 THEN LtHas = LEFT$(LName$(PNm(p)), 1) <> "_"
 END FUNCTION
 
 ' a source file's number (entered if new; 0 when there are too many)
@@ -554,13 +558,15 @@ FUNCTION LineTab ()
     LineTab = cnt + 1
 END FUNCTION
 
-SUB OutStr (s$)
+' a string: its bytes
+FUNCTION OutStr (s$)
     DIM i
     OutB LEN(s$)
     FOR i = 1 TO LEN(s$)
         OutB ASC(s$, i)
     NEXT i
-END SUB
+    OutStr = 1 + LEN(s$)
+END FUNCTION
 
 ' a P record after its name: its segment, sizes, code and relocations
 ' skipped (its line table is next)
@@ -582,102 +588,123 @@ SUB SkipProc ()
     NEXT i
 END SUB
 
-' the line tables written (after the segments): the number of words, and
-' where the header is (hw)
-FUNCTION WriteLines (BYREF hw)
-    DIM w, f, c, nm$, x, i, n, p, k, s, j, fw, b, sw(15), pn(255)
+' the segments' tables: their bytes
+FUNCTION LtHead ()
+    DIM k, s, w, p, n
     NLtF = 0
-    ' (word 0: none)
-    OutW 0
-    w = 1
-    ' the records: the object files read again
-    FOR f = 1 TO NLF
-        OPEN LFile$(f) FOR BINARY AS #CHIN
-        LEof = 0
-        DO
-            c = NextRec
-            SELECT CASE c
-            CASE 0
-                EXIT DO
-            CASE 77
-                nm$ = RdS$
-            CASE 80
-                x = RdB
-                nm$ = RdS$
-                p = LDef(LNameIx(nm$))
-                SkipProc
-                IF PLive(p) <> 0 AND LEFT$(nm$, 1) <> "_" AND w < 30000 THEN
-                    PLt(p) = w
-                    nm$ = LtName$(p, nm$)
-                    OutStr nm$
-                    n = 1 + LEN(nm$) + LineTab
-                    IF n AND 1 THEN
-                        OutB 0
-                        n = n + 1
-                    END IF
-                    w = w + n \ 2
-                ELSE
-                    SkipLines
-                END IF
-            CASE 68
-                x = RdB
-                nm$ = RdS$
-                x = RdW
-            CASE 71
-                x = RdW
-            CASE 69
-            CASE ELSE
-                EXIT DO
-            END SELECT
-        LOOP
-        CLOSE #CHIN
-    NEXT f
-    ' the files' names
-    fw = w
-    b = 0
-    FOR f = 1 TO NLtF
-        OutStr LtF$(f)
-        b = b + 1 + LEN(LtF$(f))
-    NEXT f
-    IF b AND 1 THEN OutB 0
-    w = w + (b + 1) \ 2
-    ' each segment's table
-    FOR k = 0 TO 15
-        sw(k) = 0
+    ' (word 0: where the records start)
+    w = 16
+    FOR s = 1 TO NLSeg
+        IF LSegNum(s) > 0 THEN w = w + 1 + LSegProcs(s)
+    NEXT s
+    OutW w
+    w = 16
+    FOR k = 1 TO 15
+        n = 0
         FOR s = 1 TO NLSeg
-            IF LSegNum(s) = k AND k > 0 THEN
-                FOR j = 1 TO LSegProcs(s)
-                    pn(j) = 0
-                NEXT j
-                FOR p = 1 TO NLP
-                    IF PLive(p) <> 0 AND PSg(p) = s THEN pn(PNum(p)) = PLt(p)
-                NEXT p
-                sw(k) = w
+            IF LSegNum(s) = k THEN n = s
+        NEXT s
+        IF n > 0 THEN
+            OutW w
+            w = w + 1 + LSegProcs(n)
+        ELSE
+            OutW 0
+        END IF
+    NEXT k
+    FOR k = 1 TO 15
+        FOR s = 1 TO NLSeg
+            IF LSegNum(s) = k THEN
+                ' (Layout numbered them in this order; segment 1's
+                ' procedure 1 is the startup one)
                 OutW LSegProcs(s)
-                FOR j = 1 TO LSegProcs(s)
-                    OutW pn(j)
-                NEXT j
-                w = w + 1 + LSegProcs(s)
+                IF k = 1 THEN OutW 0
+                n = 0
+                FOR p = 1 TO NLP
+                    IF LtHas(p) THEN n = n + 1
+                    IF PLive(p) <> 0 AND PSg(p) = s THEN
+                        IF LtHas(p) THEN OutW n ELSE OutW 0
+                    END IF
+                NEXT p
             END IF
         NEXT s
     NEXT k
-    ' the header
-    hw = w
-    OutW NLtF
-    OutW fw
-    FOR k = 0 TO 15
-        OutW sw(k)
-    NEXT k
-    w = w + 18
-    FOR i = 1 TO (256 - w MOD 256) MOD 256
-        OutW 0
-    NEXT i
-    WriteLines = w
+    LtHead = w * 2
 END FUNCTION
 
-' NAME.MAP (-MAP): each segment's procedures, by number
+' one object file's records (the file open): their bytes
+FUNCTION LtRecords ()
+    DIM c, nm$, x, n, p
+    DO
+        c = NextRec
+        SELECT CASE c
+        CASE 0
+            EXIT DO
+        CASE 77
+            nm$ = RdS$
+        CASE 80
+            x = RdB
+            nm$ = RdS$
+            p = LDef(LNameIx(nm$))
+            SkipProc
+            IF LtHas(p) THEN n = n + OutStr(LtName$(p, nm$)) + LineTab ELSE SkipLines
+        CASE 68
+            x = RdB
+            nm$ = RdS$
+            x = RdW
+        CASE 71
+            x = RdW
+        CASE 69
+        CASE ELSE
+            EXIT DO
+        END SELECT
+    LOOP
+    LtRecords = n
+END FUNCTION
+
+' after the records (b: the bytes in the last block): the 0, the files'
+' names, the last block filled
+SUB LtEnd (b)
+    DIM f
+    OutB 0
+    OutB NLtF
+    b = (b + 2) MOD 512
+    FOR f = 1 TO NLtF
+        b = (b + OutStr(LtF$(f))) MOD 512
+    NEXT f
+    DO WHILE b <> 0
+        OutB 0
+        b = (b + 1) MOD 512
+    LOOP
+END SUB
+
+SEGMENT
+
+' the line tables written (after the segments): their blocks.  (The object
+' files are opened here, in the main segment: LINES and RTSELDOM, which
+' opens them, not in memory together.)
+FUNCTION WriteLines ()
+    DIM b, f, k
+    b = LtHead
+    k = b \ 512
+    b = b MOD 512
+    FOR f = 1 TO NLF
+        OPEN LFile$(f) FOR BINARY AS #CHIN
+        LEof = 0
+        b = b + LtRecords
+        k = k + b \ 512
+        b = b MOD 512
+        CLOSE #CHIN
+    NEXT f
+    LtEnd b
+    WriteLines = k + 1
+END FUNCTION
+
+SEGMENT MAP
+
+' NAME.MAP (-MAP): each segment's procedures, by number (a segment of its
+' own: only with -MAP)
 SUB WriteMap (out$)
-    DIM k, s, p, j, m$, pn(255)
+    DIM k, s, p, m$
     m$ = DirOf$(out$) + ModOf$(out$) + ".MAP"
     OPEN m$ FOR OUTPUT AS #CHMAP
     PRINT #CHMAP, out$; ": its segments (S#) and procedures (P#)"
@@ -687,17 +714,10 @@ SUB WriteMap (out$)
                 IF k = 1 THEN m$ = ModOf$(out$) ELSE m$ = LSeg$(s)
                 PRINT #CHMAP, ""
                 PRINT #CHMAP, "S# " + IStr$(k) + " " + m$ + ", " + IStr$(LSegLen(s)) + " bytes, " + IStr$(LSegProcs(s)) + " procedures"
-                FOR j = 1 TO LSegProcs(s)
-                    pn(j) = 0
-                NEXT j
-                FOR p = 1 TO NLP
-                    IF PLive(p) <> 0 AND PSg(p) = s THEN pn(PNum(p)) = p
-                NEXT p
                 IF k = 1 THEN PRINT #CHMAP, "  P#   1  (the start)"
-                FOR j = 1 TO LSegProcs(s)
-                    p = pn(j)
-                    IF p > 0 THEN PRINT #CHMAP, "  P# " + RIGHT$("  " + IStr$(j), 3) + "  " + LName$(PNm(p)) + ", " + IStr$(PLen(p)) + " bytes"
-                NEXT j
+                FOR p = 1 TO NLP
+                    IF PLive(p) <> 0 AND PSg(p) = s THEN PRINT #CHMAP, "  P# " + RIGHT$("  " + IStr$(PNum(p)), 3) + "  " + LName$(PNm(p)) + ", " + IStr$(PLen(p)) + " bytes"
+                NEXT p
             END IF
         NEXT s
     NEXT k
@@ -854,7 +874,7 @@ SUB ObjFiles (objs$, addlib)
 END SUB
 
 FUNCTION LinkProg (out$, objs$)
-    DIM s, k, i, blk, n, j, len0, pn$, jt(256), slen, lw, hw
+    DIM s, k, i, blk, n, j, len0, pn$, jt(256), slen, lw
     LErr = 0
     NLName = 0
     NLP = 0
@@ -870,7 +890,7 @@ FUNCTION LinkProg (out$, objs$)
     MaxClen = 0
     REDIM LName$(CapLN), LKind(CapLN) AS BYTE, LDef(CapLN), LNext(CapLN), LHead(LHSIZE)
     REDIM PNm(CapLP), PMod(CapLP), PSg(CapLP) AS BYTE, PLen(CapLP), PFl(CapLP) AS BYTE, PNum(CapLP) AS BYTE
-    REDIM PLive(CapLP) AS BYTE, PRef0(CapLP), PRefN(CapLP), PLt(CapLP)
+    REDIM PLive(CapLP) AS BYTE, PRef0(CapLP), PRefN(CapLP)
     REDIM MNm$(CapLM), MStat(CapLM), MBase(CapLM), MLive(CapLM) AS BYTE, MBody(CapLM)
     REDIM RefNm(CapRefs), DWords(CapLD), DOff(CapLD), DLive(CapLD) AS BYTE
     s = SegIx("")
@@ -899,9 +919,7 @@ FUNCTION LinkProg (out$, objs$)
         NEXT s
     NEXT k
     IF OptQuiet = 0 THEN SayLn "Linking " + out$
-    ' (BINARY, a new file: block 0's word 253 is written at the end)
-    IF FileExists(out$) THEN KILL out$
-    OPEN out$ FOR BINARY AS #CHOUT
+    OPEN out$ FOR OUTPUT AS #CHOUT
     ' block 0: the segment dictionary
     FOR k = 0 TO 15
         n = 0
@@ -935,11 +953,10 @@ FUNCTION LinkProg (out$, objs$)
             NEXT j
         END IF
     NEXT k
-    FOR k = 1 TO 512 - 198
+    FOR k = 1 TO 512 - 196
         OutB 0
     NEXT k
-    ' where the line tables are (word 253: their header, at the end)
-    OutW 0
+    ' where the line tables are
     OutW LTMAGIC
     OutW blk
     ' the segments
@@ -977,16 +994,14 @@ FUNCTION LinkProg (out$, objs$)
         NEXT s
     NEXT k
     ERASE LBuf, Entry
-    lw = WriteLines(hw)
-    SEEK #CHOUT, 507
-    OutW hw
+    lw = WriteLines
     CLOSE #CHOUT
-    IF OptQuiet = 0 THEN SayLn "  globals " + IStr$(GlobWords - 3) + " words, lines " + IStr$((lw + 255) \ 256) + " blocks"
+    IF OptQuiet = 0 THEN SayLn "  globals " + IStr$(GlobWords - 3) + " words, lines " + IStr$(lw) + " blocks"
     IF JobFlags AND JFMAP THEN WriteMap out$
     IF OptMem THEN SayLn "  least free memory: " + IStr$(FRE(-1)) + " words"
     IF LErr = 0 THEN LinkProg = -1
 done:
-    ERASE LName$, LKind, LDef, LNext, LHead, PNm, PMod, PSg, PLen, PFl, PNum, PLive, PRef0, PRefN, PLt
+    ERASE LName$, LKind, LDef, LNext, LHead, PNm, PMod, PSg, PLen, PFl, PNum, PLive, PRef0, PRefN
     ERASE MNm$, MStat, MBase, MLive, MBody, RefNm, DWords, DOff, DLive
 END FUNCTION
 

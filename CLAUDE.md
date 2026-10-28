@@ -5,16 +5,17 @@
   `tools/mkself.sh`, `tools/mkvolume.py`.
   The sibling checkouts are expected in `../bio-printer/` (the emulator,
   UCSD-TinyC, UCSD-Pascal-Volumes); see setup.sh's variables.
-- BC is six programs that CHAIN to each other through the job file
-  :BCTEMP.JOB (docs/DESIGN.md section 1); tools/bcprogs.py lists each one's
+- BC is seven programs: six CHAIN to each other through the job file
+  :BCTEMP.JOB (docs/DESIGN.md section 1), and BCDEBUG is chained to by a
+  program's run-time error; tools/bcprogs.py lists each one's
   modules (the first its main one) for every build tool.  A new module goes
   there.  BCGEN's segments: DECL, STMT, STMTA, STMTD, STMTIO, EXPR, EXPRGEN,
-  RTSELDOM -- with the main one nine; a program has at most ten (one segment
+  RTSELDOM, RTWHERE -- with the main one ten, the most a program has (one segment
   holds at most 255 procedures and 32000 bytes).  The SEGMENT lines in
   bcgen/bcexpr/bcemit were placed by a call-graph analysis (DESIGN.md
   section 10): keep a call chain to three statement/expression segments.
 - After a change to the compiler or the library run `tools/runtests.py`,
-  `tools/selfcompile.py` (must say IDENTICAL seven times: BASLIB and the six programs), `tools/errtest.py` and, for the volume,
+  `tools/selfcompile.py` (must say IDENTICAL eight times: BASLIB and the seven programs), `tools/errtest.py` and, for the volume,
   `tools/voltest.py`, and for memory `tools/smalltest.py` (PI in Z80 mode
   and P-Code mode without the Harvard layout); for the console's line ends
   `tools/crtest.py` (a CR alone, CHR$(13), goes back to the line's start;
@@ -38,6 +39,15 @@
   ParseConcat and ParseBitOr (Logic KAND/KOR), the token TBAR; bas2c does
   not translate them (BC's sources use AND and OR).  tests/bitwise,
   tests/errors/err9.
+- Run-time error locations (docs/DESIGN.md sections 5, 8, 9): BCGEN
+  writes each procedure's line table into its P record (ListLine; file
+  names without their volume, or selfcompile differs); BCLINK writes the
+  tables after the segments (segment LINES; -MAP: NAME.MAP, segment MAP);
+  _RTERR gives back the heap and calls _RTWHERE (lib/rtwhere.bas, segment
+  RTWHERE), which follows the frames and chains to BCDEBUG
+  (bc/bcdebug.bas) with "unit block S#,P#,I# ...".  BCGEN is at ten
+  segments: no more.  tests/rterr*; runtests puts BCDEBUG.CODE and the
+  source beside the test; tools/objdump.py shows the line tables.
 - BC's sources must stay within the part of the language tools/bas2c.py
   translates, and their lines under 250 characters.
 - Keep docs/LANGUAGE.md and docs/DESIGN.md current; they are on the volume.

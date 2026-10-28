@@ -319,19 +319,22 @@ SUB ListDrop ()
 END SUB
 
 ' a line starts (Tok is its TLINE): where its code starts, into the line
-' table, and its record for the listing
+' table (a file's name there without its volume: the same wherever it was
+' compiled; BCDEBUG looks beside the code file first), and its record for
+' the listing
 SUB ListLine ()
-    DIM f
+    DIM f, n$
     IF LineFile$ <> LnCurF$ THEN
         LnCurF$ = LineFile$
+        n$ = MID$(LineFile$, INSTR(LineFile$, ":") + 1)
         f = 1
         DO WHILE f <= NLnFile
-            IF LnFile$(f) = LineFile$ THEN EXIT DO
+            IF LnFile$(f) = n$ THEN EXIT DO
             f = f + 1
         LOOP
         IF f > NLnFile AND NLnFile < MAXLNF THEN
             NLnFile = f
-            LnFile$(f) = LineFile$
+            LnFile$(f) = n$
         END IF
         IF f <= NLnFile THEN LineAt -1, f
     END IF

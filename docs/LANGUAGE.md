@@ -432,7 +432,28 @@ For system programming (the run-time library is written with them):
 
 ## 12. Run-time errors
 
-A run-time error prints "Run-time error N: text" and stops the program.
+A run-time error prints "Run-time error N: text" and stops the program,
+then says where it was: the line of the source, the procedure, and the
+P-System's segment, procedure and offset numbers (S#, P#, I#: I# is where
+the program would have gone on, in decimal; -S lists each statement's
+offsets in hexadecimal), then the line itself:
+
+    Run-time error 9: Subscript out of range
+    RTERR.BAS line 8, in FILL (S# 1, P# 3, I# 73):
+    x(a) = a
+
+The program chains to BCDEBUG.CODE for that (looked for beside the
+program, on the prefix or the shell's path, on the boot disk, on BASIC:),
+which reads the line tables the linker puts after the code file's
+segments and the source file (beside the code file first).  Without
+BCDEBUG the program says the numbers itself, the innermost call first
+(the library's procedures among them; -MAP's NAME.MAP names them):
+
+    S#,P#,I# from the innermost call out: 1,10,15 8,6,351 7,1,30 1,2,30
+
+The line tables cost the program nothing while it runs (they are on the
+disk only, about 2 bytes a line).  "Out of memory" is said this way too:
+the program's strings and arrays are given back first.
 
      3 RETURN without GOSUB        4 Out of DATA
      5 Illegal function call      6 Overflow
@@ -445,7 +466,8 @@ A run-time error prints "Run-time error N: text" and stops the program.
     64 Bad file name             67 Too many files
 
 Errors the P-machine finds itself (a stack overflow, for example) are
-reported by the operating system as usual.
+reported by the operating system as usual.  After a run-time error the
+exit status is 1.
 
 ## 13. Using the compiler
 
@@ -461,6 +483,8 @@ NAME may be a path into sub-volumes: BASIC:/DEMO/HELLO):
     -J LIB=A,B        join object files into one library LIB.OBJ
     @FILE             the commands in FILE.TEXT
     -Q                fewer messages;  -M  memory use
+    -MAP              with each link, NAME.MAP: each segment's
+                      procedures by number (S#, P#)
     (an empty line)   ends BC
 
 Several commands may be given on one line; the first that fails stops
@@ -483,15 +507,17 @@ The volume BASIC: holds:
     BC.CODE                     the compiler (and BCLEX, BCGEN, BCLIST,
                                 BCLINK, BCERR.CODE, the programs it chains
                                 to)
+    BCDEBUG.CODE                where a program's run-time error was
     README.TEXT LANGUAGE.TEXT DESIGN.TEXT
     ALL.TEXT                    @BASIC:ALL: the four batch files below
     INSTALL.TEXT                @BASIC:INSTALL in Tiny-C's shell (BIGGY 1.32),
                                 after @BASIC:/SRC/BUILD: BC2.CODE ...
-                                BCERR2.CODE become BC.CODE ... BCERR.CODE
+                                BCDEBUG2.CODE become BC.CODE ...
+                                BCDEBUG.CODE
     FILES.TEXT                  every file, the sub-volumes' too
     SRC/   BC*.BAS              the compiler's sources;
            BUILD.TEXT           @BASIC:/SRC/BUILD: BASIC:BC2.CODE ...
-                                BCERR2.CODE
+                                BCDEBUG2.CODE
     LIB/   BASLIB.OBJ           the run-time library, RT*.BAS its sources;
            LIBS.TEXT            @BASIC:/LIB/LIBS: BASIC:/LIB/BASLIB2.OBJ
     DEMO/  HELLO PRIMES HANOI MANDEL PI GUESS, STATS + STATLIB (two modules);
@@ -518,9 +544,11 @@ A program of several modules:
 The body (module-level statements) of every module runs when the program
 starts, the main program's (the first module's) last.
 
-BC is six programs, BC.CODE (the one you run), BCLEX, BCGEN, BCLIST,
-BCLINK and BCERR.CODE (it says a compile's errors); BC chains to the others (each in memory alone), and they
-must be on the same volume as BC.CODE, at its top (BASIC:).  BC keeps its
+BC is seven programs, BC.CODE (the one you run), BCLEX, BCGEN, BCLIST,
+BCLINK, BCERR.CODE (it says a compile's errors) and BCDEBUG.CODE (a
+program's run-time error chains to it); BC chains to the others (each in
+memory alone), and they must be on the same volume as BC.CODE, at its top
+(BASIC:).  BC keeps its
 work in the job file BCTEMP.JOB on the prefix volume while they run.
 
 BC is best in the emulator's Harvard layout (Options > Harvard Mode, the

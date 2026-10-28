@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""mkvolume.py -- build/BASIC.BLK: the volume BASIC: (4000 blocks)
+"""mkvolume.py -- build/BASIC.BLK: the volume BASIC: (4500 blocks)
 
     BC.CODE            the compiler: its driver; BCLEX.CODE, BCGEN.CODE, BCLIST.CODE,
-                       BCLINK.CODE and BCERR.CODE the programs it chains to (each in
+                       BCLINK.CODE, BCERR.CODE and BCDEBUG.CODE the programs it chains to (each in
                        memory alone)
     README.TEXT LANGUAGE.TEXT DESIGN.TEXT   the documentation
     ALL.TEXT           @BASIC:ALL runs the four batch files below
     INSTALL.TEXT       in the shell, after @BASIC:/SRC/BUILD: @BASIC:INSTALL puts
-                       BC2.CODE ... BCERR2.CODE in the places of BC.CODE ... BCERR.CODE
+                       BC2.CODE ... BCDEBUG2.CODE in the places of BC.CODE ... BCDEBUG.CODE
     FILES.TEXT         every file, the sub-volumes' too
     SRC/               the compiler's sources (BC*.BAS); BUILD.TEXT:
                        @BASIC:/SRC/BUILD rebuilds the compiler as BASIC:BC2.CODE,
-                       BCLEX2.CODE ... BCERR2.CODE
+                       BCLEX2.CODE ... BCDEBUG2.CODE
     LIB/               the run-time library BASLIB.OBJ, its sources (RT*.BAS);
                        LIBS.TEXT: @BASIC:/LIB/LIBS rebuilds it as BASIC:/LIB/BASLIB2.OBJ
     DEMO/              example programs; DEMOS.TEXT compiles them all
@@ -106,7 +106,7 @@ def host_sizes(srcs, links):
 
 
 def main(out=os.path.join(ROOT, 'build', 'BASIC.BLK')):
-    top = Dir('BASIC', 4000)
+    top = Dir('BASIC', 4500)
     for p, m in PROGS:
         top.binary(p + '.CODE', open(os.path.join(ROOT, 'build', p + '.CODE'), 'rb').read())
     top.text('README.TEXT', text(os.path.join(ROOT, 'README.md')))
@@ -121,8 +121,8 @@ def main(out=os.path.join(ROOT, 'build', 'BASIC.BLK')):
              ''.join('MOVE BASIC:%s2.CODE BASIC:%s.CODE\n' % (p, p) for p, m in PROGS))
 
     src = top.sub('SRC')
-    src.text('BUILD.TEXT', "' the compiler: its modules, linked into its six programs BASIC:BC2.CODE,\n"
-             "' BCLEX2, BCGEN2, BCLIST2, BCLINK2, BCERR2 (the first module of each its main one)\n" +
+    src.text('BUILD.TEXT', "' the compiler: its modules, linked into its seven programs BASIC:BC2.CODE,\n"
+             "' BCLEX2, BCGEN2, BCLIST2, BCLINK2, BCERR2, BCDEBUG2 (the first module of each its main one)\n" +
              ''.join('-C BASIC:/SRC/%s\n' % m for m in MODS) +
              ''.join('-L BASIC:%s2=%s\n' % (p, ','.join('BASIC:/SRC/' + x for x in m)) for p, m in PROGS))
     for f in sorted(glob.glob(os.path.join(ROOT, 'bc', '*.bas'))):
