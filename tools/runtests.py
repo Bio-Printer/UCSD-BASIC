@@ -5,7 +5,8 @@ compared with tests/NAME.expect (NAME.keys: what is typed, one line each;
 NAME.dirs: sub-volumes made on WORK: first, their files listed after it;
 NAME.progs: more programs, tests/PROG.bas each, compiled and put on WORK: too,
 for CHAIN).  NAME.bas is put on WORK: too (not with NAME.dirs), and
-build/BCDEBUG.CODE: a run-time error says its line.
+build/BCDEBUG.CODE and NAME.MAP (linked with -MAP, unless NAME.bas's first
+line says NOMAP): a run-time error says its line.
 
   runtests.py [NAME ...]        (-v: show the differences)
 """
@@ -22,7 +23,9 @@ def compile_host(src, work, extra=()):
     for e in extra:
         shutil.copy(e, work)
     shutil.copy(os.path.join(ROOT, 'build', 'BASLIB.OBJ'), work)
-    r = subprocess.run([os.path.join(ROOT, 'build', 'bc'), '-Q', base], cwd=work, capture_output=True, text=True)
+    # (-MAP: NAME.MAP, a run-time error's line; not when the first line says NOMAP)
+    opts = ['-Q'] if 'NOMAP' in open(src).readline() else ['-Q', '-MAP']
+    r = subprocess.run([os.path.join(ROOT, 'build', 'bc')] + opts + [base], cwd=work, capture_output=True, text=True)
     return base, r
 
 
@@ -47,6 +50,12 @@ def run_test(name, verbose=False):
             return False
         files.append(os.path.join(work, b + '.CODE'))
     files.append(os.path.join(ROOT, 'build', 'BCDEBUG.CODE'))   # (a run-time error chains to it)
+    mp = os.path.join(work, base + '.MAP')
+    if os.path.exists(mp):
+        # (the map's lines end in CR on the P-System)
+        data = open(mp, 'rb').read().replace(b'\r\n', b'\r').replace(b'\n', b'\r')
+        open(mp, 'wb').write(data)
+        files.append(mp)
     df = os.path.join(ROOT, 'tests', name + '.dirs')
     if os.path.exists(pf) or not os.path.exists(df):
         files.append(src)                       # (the source too: CHAIN of a text file, a run-time error's line)

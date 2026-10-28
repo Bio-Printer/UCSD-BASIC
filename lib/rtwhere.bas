@@ -4,15 +4,16 @@
 ' the code file's unit and first block, then each frame's caller, the
 ' innermost first, as many as the command line holds (the operating
 ' system's prompt line: 80 characters with the shell's path).  BCDEBUG
-' finds the first that is not the library's in the line tables BCLINK puts
-' after the code file's segments and says the source's line.  No BCDEBUG:
-' the numbers are said here.  A segment of its own, in memory only after
-' an error.
+' finds the first that is not the library's in NAME.MAP (BCLINK -MAP)
+' and says the source's line.  No BCDEBUG: the numbers are said here, as
+' s=S#,p=P#,i=I# each.  In the segment RTSELDOM.
 #INCLUDE "RTCOM"
 
-DECLARE SUB _CHAIN (cmd)
+DECLARE FUNCTION _XOR (a, b)
 
-SEGMENT RTWHERE
+CONST PXRUN = 25601, PXCHILD = 25602, PXARGS = 25604
+
+SEGMENT RTSELDOM
 
 ' a word of the code: in the Harvard layout the code is not in the data
 ' space, and unit 64 reads it (in the other layouts a bad unit: PEEK)
@@ -55,9 +56,8 @@ SUB _RTWHERE (f)
     POKEB a, 0
     _WNUM a, PEEK(sy + 102), 32
     _WNUM a, PEEK(sy + 104) - 1, 32
-    ' (room for the longest name, BASIC:BCDEBUG, and the shell's path)
-    lim = 80 - 13
-    IF _SVPWD THEN lim = lim - 1 - PEEKB(_SVPWD)
+    ' (the command line: BCDEBUG, then these, 80 characters at most)
+    lim = 80 - 7
     DO
         jt = PEEK(f + 4)
         s = _CODEW(PEEK(f + 6)) AND 255
@@ -73,8 +73,8 @@ SUB _RTWHERE (f)
         _WCAT b, c
         f = PEEK(f + 2)
     LOOP
-    ' BCDEBUG: beside the program, on the prefix (or the shell's path), the
-    ' boot disk, BASIC:
+    ' BCDEBUG: beside the program, on the prefix, the boot disk, BASIC:
+    _WCAT a, b
     FOR k = 1 TO 4
         POKEB c, 0
         SELECT CASE k
@@ -87,13 +87,71 @@ SUB _RTWHERE (f)
         CASE 4
             _WCAT c, SADD("BASIC:")
         END SELECT
-        _WCAT c, SADD("BCDEBUG")
-        _WCAT c, a
-        _WCAT c, b
-        _CHAIN c
+        _WCAT c, SADD("BCDEBUG.CODE")
+        _WRUN c, a
     NEXT k
-    ' (no BCDEBUG) S#,P#,I# of each frame: the innermost first
-    _PSTR 0, SADD("S#,P#,I# from the innermost call out:")
-    _PSTR 0, b
+    ' (no BCDEBUG) each frame's numbers: s=S#,p=P#,i=I#, the innermost first
+    _WSAY b
     _PNL 0
+END SUB
+
+' the code file c (a Pascal string: a title for FOPEN) run with the command
+' line BCDEBUG and a: this program ends (Tiny-C's pexec protocol, as
+' RTCHAIN's _CHAIN, without its search of the paths, the shell's path and
+' its check of the code file); back if there is no such code file
+SUB _WRUN (c, a)
+    DIM fib, u, first, kind, pl, k, sum, i, e
+    fib = _MALLOC(80)
+    OSCALL 3, fib, 0, -1
+    OSCALL 5, fib, c, 1, 0
+    IF CSP%(34) = 0 THEN
+        u = PEEK(fib + 14)
+        first = PEEK(fib + 32)
+        kind = PEEK(fib + 36) AND 15
+        OSCALL 6, fib, 0
+    END IF
+    _MFREE fib
+    IF kind <> 2 THEN EXIT SUB
+    pl = OSADDR(70)
+    CSP 2, SADD("BCDEBUG") + 1, 0, pl + 1, 0, 7
+    CSP 2, a + 1, 0, pl + 8, 0, PEEKB(a)
+    k = 7 + PEEKB(a)
+    POKEB pl, k
+    sum = k
+    FOR i = 1 TO k
+        sum = sum * 3 + PEEKB(pl + i)
+    NEXT i
+    e = OSVAR(1) + 36
+    POKE e + 12, PXARGS
+    POKE e + 14, _XOR(sum, &H5A5A)
+    POKE e + 2, u
+    POKE e + 4, first
+    IF PEEK(e) <> PXCHILD THEN POKE e + 6, 0
+    POKE e, PXRUN
+    _HALT 0
+END SUB
+
+' the frames' numbers (" 1,3,73 1,2,30") said as "s=1,p=3,i=73 s=1,p=2,i=30"
+SUB _WSAY (b)
+    DIM i, c, k, d
+    d = 1
+    FOR i = 1 TO PEEKB(b)
+        c = PEEKB(b + i)
+        IF c >= 48 AND c <= 57 THEN
+            IF d THEN
+                SELECT CASE k
+                CASE 0: _CONPUT 115
+                CASE 1: _CONPUT 112
+                CASE ELSE: _CONPUT 105
+                END SELECT
+                _CONPUT 61
+                k = (k + 1) MOD 3
+            END IF
+            d = 0
+        ELSE
+            IF i > 1 THEN _CONPUT c
+            d = 1
+        END IF
+        IF c >= 48 AND c <= 57 THEN _CONPUT c
+    NEXT i
 END SUB

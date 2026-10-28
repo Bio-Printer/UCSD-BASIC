@@ -442,18 +442,20 @@ offsets in hexadecimal), then the line itself:
     RTERR.BAS line 8, in FILL (S# 1, P# 3, I# 73):
     x(a) = a
 
-The program chains to BCDEBUG.CODE for that (looked for beside the
-program, on the prefix or the shell's path, on the boot disk, on BASIC:),
-which reads the line tables the linker puts after the code file's
-segments and the source file (beside the code file first).  Without
-BCDEBUG the program says the numbers itself, the innermost call first
-(the library's procedures among them; -MAP's NAME.MAP names them):
+The lines come from NAME.MAP, which the linker writes beside NAME.CODE
+when it is given -MAP (BC -MAP NAME): each segment's procedures by
+number, and where each line's code starts.  The program chains to
+BCDEBUG.CODE (looked for beside the program, on the prefix, on the boot
+disk, on BASIC:), which finds the program's map and source (beside the
+code file first, in a sub-volume too) and says the line.  Without the map,
+or without BCDEBUG, only the numbers of each call are said, the innermost
+first (the library's procedures among them):
 
-    S#,P#,I# from the innermost call out: 1,10,15 8,6,351 7,1,30 1,2,30
+    s=1,p=47,i=30 s=1,p=3,i=73 s=1,p=2,i=36 (no RTERR.MAP: link with -MAP)
 
-The line tables cost the program nothing while it runs (they are on the
-disk only, about 2 bytes a line).  "Out of memory" is said this way too:
-the program's strings and arrays are given back first.
+The map is a file on the disk: the program is the same with it or
+without.  "Out of memory" is said this way too: the program's strings and
+arrays are given back first.
 
      3 RETURN without GOSUB        4 Out of DATA
      5 Illegal function call      6 Overflow
@@ -484,7 +486,8 @@ NAME may be a path into sub-volumes: BASIC:/DEMO/HELLO):
     @FILE             the commands in FILE.TEXT
     -Q                fewer messages;  -M  memory use
     -MAP              with each link, NAME.MAP: each segment's
-                      procedures by number (S#, P#)
+                      procedures by number (S#, P#) and their lines
+                      (a run-time error's line: section 12)
     (an empty line)   ends BC
 
 Several commands may be given on one line; the first that fails stops

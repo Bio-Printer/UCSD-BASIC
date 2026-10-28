@@ -11,7 +11,8 @@
 '   -L OUT=A,B,...  link A.OBJ, B.OBJ ... (and BASLIB.OBJ) into OUT.CODE
 '   -J LIB=A,B,...  join object files into one library LIB.OBJ
 '   -MAP            with each link, NAME.MAP: the segments' procedures by
-'                   number (a run-time error's S# and P#)
+'                   number and their lines (BCDEBUG says a run-time
+'                   error's line from it)
 '   @FILE           the commands in FILE.TEXT, one or more a line
 '   -Q              fewer messages
 ' The compiler is seven programs, each in memory alone (CHAIN): this one,

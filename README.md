@@ -11,7 +11,7 @@ as the host build** (`tools/selfcompile.py`).
 
 | Path | What |
 |---|---|
-| `bc/` | the compiler, seven programs that chain to each other (each in memory alone): `bc` the driver (commands and batch files into a job file), `bclex` pass 1 (tokens, comments dropped), `bcgen` + `bcdecl` + `bcexpr` + `bcemit` + `bctok` passes 2 and 3 (declarations, code, the object file), `bclist` the listing (each BASIC statement with its P-code), `bclink` the linker, `bcerr` a compile's error messages (the others keep errors as numbers), `bcdebug` where a program's run-time error was (the library chains to it; the linker puts line tables after the code file's segments); `bcutil`, `bckw` shared (`tools/bcprogs.py` says which module goes where) |
+| `bc/` | the compiler, seven programs that chain to each other (each in memory alone): `bc` the driver (commands and batch files into a job file), `bclex` pass 1 (tokens, comments dropped), `bcgen` + `bcdecl` + `bcexpr` + `bcemit` + `bctok` passes 2 and 3 (declarations, code, the object file), `bclist` the listing (each BASIC statement with its P-code), `bclink` the linker, `bcerr` a compile's error messages (the others keep errors as numbers), `bcdebug` where a program's run-time error was (the library runs it; it reads the NAME.MAP the linker writes with -MAP); `bcutil`, `bckw` shared (`tools/bcprogs.py` says which module goes where) |
 | `lib/` | the run-time library BASLIB, in BASIC (heap, strings, arrays, PRINT/INPUT, UCSD text and byte files, DATA, CHAIN; a run-time error's frames for BCDEBUG) |
 | `tests/` | test programs and their expected output (`subvol.dirs`: the sub-volumes that test needs) |
 | `demos/` | the example programs of the volume's DEMO/ |

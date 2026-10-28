@@ -186,9 +186,11 @@ The line table: for each line (a statement's TLINE: ListLine) where its
 code starts, and the line's number, kept for the procedure (LnPC, LnNo;
 sized from the token file's header, THLINES: BCLEX counts the longest
 procedure's lines), and the file's name when it changes (without its
-volume: the same on the host and the P-System); written into the P record
+volume and path: the same on the host and the P-System, and in BUILD's
+sub-volumes); written into the P record
 after the relocations, the offsets moved by the entry code put in front.
-BCDEBUG finds a run-time error's line in it (sections 8, 9).
+The linker writes it into NAME.MAP (-MAP), where BCDEBUG finds a
+run-time error's line (sections 8, 9).
 
 The listing: for each statement the offset its code starts at and its
 text go to :BCTEMP.LST, and when a procedure is finished its code (in hex),
@@ -277,22 +279,27 @@ The startup procedure (segment 1 procedure 1, lex level 0) clears the
 globals, calls _RTINIT, the bodies of the modules (the main program's
 last) and _HALT(0).
 
-The line tables (WriteLines, at the end, in a segment of its own, LINES;
-the object files opened in the main segment, so that LINES and RTSELDOM
-are not in memory together) go after the last segment; block 0's word
-255 says where they start, word 254 is LTMAGIC.  In words: where the
-records start, where each segment's table is (segments 1..15, 0 none);
-each segment's table: its number of procedures, each one's record's
-number (1, 2 ... in the records' order; 0 none: the library's procedures,
-whose names start with an underscore, and the startup one).  Then the
-records, in bytes, one after another: the procedure's name (a module's
-body: "the main program", "module X"), its lines -- d l (d < 253: the
-offset d bytes on, the line l on), 253 offset line (two words), 254 f
-(the file f's lines), 255 the end; a 0 after the last record, then the
-number of files and their names.  Nothing in them is a place that is
-known only later, so they are written straight on, as is block 0.  -MAP
-writes NAME.MAP (WriteMap, a segment of its own, MAP): each segment's
-procedures by number, with their names and lengths.
+-MAP writes NAME.MAP beside the code file (WriteMap; what reads the
+object files for it is a segment of its own, MAP, and the files are opened
+in the main segment, so that MAP and RTSELDOM are not in memory together),
+a text file:
+
+    PI.CODE: its segments (S#), procedures (P#) and lines (I#:N)
+
+    S# 1 PI, 5998 bytes, 57 procedures
+      P#   1  (the start)
+      P#   2  the main program (PI'BODY), 70 bytes
+        FILE PI.BAS
+        0:2 13:4 13:12 28:13 37:14
+      P#   3  FILL, 116 bytes
+    ...
+
+each segment, its procedures by number with their names and lengths, and
+the lines of the program's own (not of the library's, whose names start
+with an underscore): "FILE name", then where each line's code starts and
+its number.  Each segment's procedures are read from the object files in
+the order Layout numbered them, so the map is written in one pass over the
+files a segment.  The code file is as without -MAP.
 
 ## 9. The run-time library
 
@@ -320,8 +327,8 @@ and OSCALL (FINIT, FOPEN, FCLOSE, FBLOCKIO).
   memory still has its message.
 - A run-time error (_RTERR): its message; every file closed; the heap
   given back (RELEASE to its start: memory for what follows, after "Out
-  of memory" too) and the string work area; then _RTWHERE (RTWHERE, a
-  segment of its own, in memory only then) follows the frames from
+  of memory" too) and the string work area; then _RTWHERE (RTSELDOM)
+  follows the frames from
   _RTERR's own (its parameter's address less 12: the mark stack control
   word) out to the startup procedure's: for each, the caller's S# (the
   byte SEGP points at), P# (the byte JTAB points at) and I# (the IPC less
@@ -330,14 +337,19 @@ and OSCALL (FINIT, FOPEN, FCLOSE, FBLOCKIO).
   PEEK elsewhere (unit 64 is a bad unit there) -- and chains to "BCDEBUG
   unit block S#,P#,I# ...": the code file's unit and first block
   (SYSCOM^.SEGTABLE[1]: segment 1 is block 1), the frames the innermost
-  first, as many as the operating system's 80-character prompt line holds
-  with the shell's path.  BCDEBUG is looked for beside the program, as
-  named (the prefix, the shell's path), on the boot disk and on BASIC:;
-  not found, _RTWHERE says the numbers.  BCDEBUG reads the code file's
-  line tables (section 8) with UNITREAD, skips the frames whose procedure
-  has no record (the library's), and says the first one's file, line,
-  procedure and numbers, and the line, read from the source (beside the
-  code file first: "#unit:NAME"); it ends with status 1.
+  first, as many as the operating system's 80-character prompt line
+  holds.  BCDEBUG.CODE is looked for beside the program (#unit:), on the
+  prefix, on the boot disk (*) and on BASIC:, with FOPEN, and run by
+  Tiny-C's pexec protocol as _CHAIN does it (_WRUN: not _CHAIN itself,
+  whose paths and sub-volumes would be in every program); not found,
+  _RTWHERE says each frame's numbers, s=S#,p=P#,i=I#.  BCDEBUG finds the
+  code file's name in the unit's directory (UNITREAD of blocks 2..5), and
+  in the sub-volumes' on the way (a data file the block is in: its own
+  directory, its blocks from its first), reads NAME.MAP beside it, and
+  says the first frame with lines there (not the library's): its file,
+  line, procedure and numbers, and the line, read from the source (beside
+  the code file first: "#unit:/A/NAME"); without the map, each frame's
+  numbers.  It ends with status 1.
 - Sub-volumes (RTSUBV): a path VOL:/A/B/NAME is
   followed as Tiny-C's library does it, but the first step is the OS's:
   FOPEN of VOL:A gives its unit (FIB word 7) and first block (FHEADER's
@@ -439,14 +451,15 @@ links and runs PI in both.  What makes that fit:
   step leaves the old table's memory behind as a hole too small for the
   next one.
 
-Compiling PI, BCGEN has at least 1590 words left in Z80 mode and BCLINK
-3190 (5510 and 7100 in P-Code mode without the Harvard layout).  The
-run-time errors' lines took 340 and 320 of them: BCGEN's line table and
-ListLine, BCLINK's reading over the line tables, and _RTERR's few more
-bytes in every program; what finds the line is a program of its own
-(BCDEBUG), what writes the tables a segment of BCLINK's own (LINES), and
-_RTWHERE one of the library's (RTWHERE), none of them in memory until
-used.  BC's own
+Compiling PI, BCGEN has at least 1540 words left in Z80 mode and BCLINK
+3240 (5460 and 7150 in P-Code mode without the Harvard layout).  The
+run-time errors' lines took 390 and 270 of them: BCGEN's line table and
+ListLine, BCLINK's reading over the line tables (and _RTERR's few more
+bytes, in every program); what finds the line is a program of its own
+(BCDEBUG), what writes the map a segment of BCLINK's own (MAP), and
+_RTWHERE is in RTSELDOM.  BCLINK's tables start at 300 names and 200
+procedures: PI and the library need about 210 and 170, and doubling 200
+and 160 left holes that took 1400 words.  BC's own
 modules need more than either has, in the symbol table (up to 640
 symbols, 8 words each) and in their deeper statements: compiling itself
 needs the Harvard layout.  BC does not check the layout; out of memory, it

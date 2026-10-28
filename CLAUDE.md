@@ -10,7 +10,7 @@
   program's run-time error; tools/bcprogs.py lists each one's
   modules (the first its main one) for every build tool.  A new module goes
   there.  BCGEN's segments: DECL, STMT, STMTA, STMTD, STMTIO, EXPR, EXPRGEN,
-  RTSELDOM, RTWHERE -- with the main one ten, the most a program has (one segment
+  RTSELDOM -- with the main one nine; a program has at most ten (one segment
   holds at most 255 procedures and 32000 bytes).  The SEGMENT lines in
   bcgen/bcexpr/bcemit were placed by a call-graph analysis (DESIGN.md
   section 10): keep a call chain to three statement/expression segments.
@@ -41,13 +41,17 @@
   tests/errors/err9.
 - Run-time error locations (docs/DESIGN.md sections 5, 8, 9): BCGEN
   writes each procedure's line table into its P record (ListLine; file
-  names without their volume, or selfcompile differs); BCLINK writes the
-  tables after the segments (segment LINES; -MAP: NAME.MAP, segment MAP);
-  _RTERR gives back the heap and calls _RTWHERE (lib/rtwhere.bas, segment
-  RTWHERE), which follows the frames and chains to BCDEBUG
-  (bc/bcdebug.bas) with "unit block S#,P#,I# ...".  BCGEN is at ten
-  segments: no more.  tests/rterr*; runtests puts BCDEBUG.CODE and the
-  source beside the test; tools/objdump.py shows the line tables.
+  names without volume and path, or selfcompile and voltest differ); BCLINK -MAP writes
+  them into NAME.MAP (segment MAP), never into the code file; _RTERR gives
+  back the heap and calls _RTWHERE (lib/rtwhere.bas, RTSELDOM), which
+  follows the frames and runs BCDEBUG (bc/bcdebug.bas: its own small
+  pexec, _WRUN, not _CHAIN) with "unit block S#,P#,I# ..."; BCDEBUG finds
+  the code file in the directory (sub-volumes too) and its map.  Without
+  the map: s=,p=,i= each.  tests/rterr* (rterr4: NOMAP); runtests links
+  with -MAP and puts NAME.MAP, BCDEBUG.CODE and the source beside the test;
+  chaintest: one in a sub-volume; tools/objdump.py shows the line tables.
+  BCLINK's tables start at 300 names, 200 procedures (doubling from less
+  left holes: smalltest).
 - BC's sources must stay within the part of the language tools/bas2c.py
   translates, and their lines under 250 characters.
 - Keep docs/LANGUAGE.md and docs/DESIGN.md current; they are on the volume.
