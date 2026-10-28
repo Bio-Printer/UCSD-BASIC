@@ -17,12 +17,14 @@ DIM SHARED LxDepth, LxLine$, LxPos, LxLen, LxLineNo, LxFile$
 ' tokens and its
 ' strings' bytes, the keywords that make labels and jumps; the parameters
 ' of SUB, FUNCTION and DECLARE lines (and the most of one line), the names
-' in CONST lines, the tokens of the longest statement.  LxProc is the procedure being read (0: none),
+' in CONST lines, the tokens of the longest statement, the lines of the
+' longest procedure (BCGEN's line table: LxLines).  LxProc is the procedure being read (0: none),
 ' LxLead the keyword the statement starts with, LxParen its ( depth.
 DIM SHARED NmTxt$(), NmGlob() AS BYTE, NmProc(), NmNext(), NmHead(127), NNm, NmCap
 DIM SHARED LxProc, LxNProc, LxProcName, LxLead, LxParen, LxStmtTok, LxDecl
 DIM SHARED LxGlob, LxParams, LxConsts, LxLoc, LxCode, LxStrB, LxCtl, LxHdrPar, LxMaxPar
 DIM SHARED LxMaxLoc, LxMaxCode, LxMaxCtl, LxMaxStmt, LxBodyCode, LxBodyStrB, LxBodyCtl
+DIM SHARED LxLines, LxMaxLines, LxBodyLines
 
 SUB TB (v)
     DIM b AS BYTE
@@ -91,6 +93,7 @@ SUB ProcMark (start)
         IF LxLoc > LxMaxLoc THEN LxMaxLoc = LxLoc
         IF 3 * LxCode + LxStrB > LxMaxCode THEN LxMaxCode = 3 * LxCode + LxStrB
         IF LxCtl > LxMaxCtl THEN LxMaxCtl = LxCtl
+        IF LxLines > LxMaxLines THEN LxMaxLines = LxLines
     END IF
     LxProc = 0
     IF start THEN
@@ -101,6 +104,7 @@ SUB ProcMark (start)
         LxCode = 0
         LxStrB = 0
         LxCtl = 0
+        LxLines = 0
     END IF
 END SUB
 
@@ -494,6 +498,7 @@ SUB LexLine (l$)
     TB TLINE
     TW LxLineNo
     TS t$
+    IF LxProc THEN LxLines = LxLines + 1 ELSE LxBodyLines = LxBodyLines + 1
     LxLine$ = t$
     LxPos = 1
     LxLen = LEN(t$)
@@ -508,7 +513,8 @@ SUB LexLines (f$, ch)
     TB TFILE
     TS f$
     LxLineNo = 0
-    DO WHILE NOT EOF(ch)
+    ' (MAXERR errors: no more -- ErrRec)
+    DO WHILE NOT EOF(ch) AND ErrCount < MAXERR
         LINE INPUT #ch, l$
         LxLineNo = LxLineNo + 1
         ' a line ending in " _" goes on in the next one
@@ -575,6 +581,7 @@ SUB LexFile (f$)
     ' (the module's body: one more procedure)
     IF 3 * LxBodyCode + LxBodyStrB > LxMaxCode THEN LxMaxCode = 3 * LxBodyCode + LxBodyStrB
     IF LxBodyCtl > LxMaxCtl THEN LxMaxCtl = LxBodyCtl
+    IF LxBodyLines > LxMaxLines THEN LxMaxLines = LxBodyLines
     SEEK #CHTOK, 1
     TW TOKMAGIC
     TW LxGlob
@@ -585,6 +592,7 @@ SUB LexFile (f$)
     TW LxMaxCtl
     TW LxMaxStmt
     TW LxMaxPar
+    TW LxMaxLines
     CLOSE #CHTOK
     ERASE NmTxt$, NmGlob, NmProc, NmNext
 END SUB

@@ -318,13 +318,47 @@ SUB ListDrop ()
     IF PendSet AND PendPC = PC THEN PendSet = 0
 END SUB
 
+' a line starts (Tok is its TLINE): where its code starts, into the line
+' table (a file's name there without its volume and path: the same
+' wherever it was compiled; BCDEBUG looks beside the code file first), and
+' its record for the listing
 SUB ListLine ()
+    DIM f, n$, k
+    IF LineFile$ <> LnCurF$ THEN
+        LnCurF$ = LineFile$
+        n$ = LineFile$
+        FOR k = LEN(n$) TO 1 STEP -1
+            IF MID$(n$, k, 1) = ":" OR MID$(n$, k, 1) = "/" THEN EXIT FOR
+        NEXT k
+        n$ = MID$(n$, k + 1)
+        f = 1
+        DO WHILE f <= NLnFile
+            IF LnFile$(f) = n$ THEN EXIT DO
+            f = f + 1
+        LOOP
+        IF f > NLnFile AND NLnFile < MAXLNF THEN
+            NLnFile = f
+            LnFile$(f) = n$
+        END IF
+        IF f <= NLnFile THEN LineAt -1, f
+    END IF
+    LineAt PC, TokLine
     IF OptList = 0 THEN EXIT SUB
     ListFlush
     PendPC = PC
     PendLine = TokLine
     PendText$ = TokText$
     PendSet = 1
+END SUB
+
+SUB LineAt (pc, l)
+    IF NLn >= LnCap THEN
+        LnCap = Grown(LnCap, 32000)
+        REDIM PRESERVE LnPC(LnCap), LnNo(LnCap)
+    END IF
+    LnPC(NLn) = pc
+    LnNo(NLn) = l
+    NLn = NLn + 1
 END SUB
 
 ' ---- procedures
@@ -345,6 +379,8 @@ SUB BeginProc (s)
     NFor = 0
     PendNext = 0
     PendSet = 0
+    NLn = 0
+    LnCurF$ = ""
     ProcKeep = NSym
     CurLocal = NParamWords
     MaxLocal = NParamWords
@@ -597,6 +633,18 @@ SUB EndProc ()
             ObjWord RelPos(i)
             ObjByte RelType(i)
             ObjStr LinkName$(RelSym(i))
+        NEXT i
+        ' the line table: (where a line's code starts, the line), a file
+        ' change -1 and the file's name (the entry code before them all)
+        ObjWord NLn
+        FOR i = 0 TO NLn - 1
+            IF LnPC(i) < 0 THEN
+                ObjWord -1
+                ObjStr LnFile$(LnNo(i))
+            ELSE
+                ObjWord LnPC(i) + EntryBytes
+                ObjWord LnNo(i)
+            END IF
         NEXT i
     END IF
     IF OptList THEN ListSave nm$

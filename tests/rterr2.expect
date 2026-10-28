@@ -1,0 +1,6 @@
+start
+opening NOSUCH.TXT
+
+Run-time error 53: File not found
+RTERR2.BAS line 6, in OPENIT (S# 7, P# 1, I# 30):
+OPEN f$ FOR INPUT AS #1

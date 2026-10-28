@@ -1,0 +1,30 @@
+start
+ 1 
+ 2 
+ 3 
+ 4 
+ 5 
+ 6 
+ 7 
+ 8 
+ 9 
+ 10 
+ 11 
+ 12 
+ 13 
+ 14 
+ 15 
+ 16 
+ 17 
+ 18 
+ 19 
+ 20 
+ 21 
+ 22 
+ 23 
+ 24 
+ 25 
+ 26 
+
+Run-time error 9: Subscript out of range
+s=1,p=47,i=30 s=1,p=3,i=73 s=1,p=2,i=36 (no RTERR4.MAP: link with -MAP)

@@ -6,13 +6,13 @@ DEFINT A-Z
 ' ---- limits
 CONST MAXSYM = 640, HSIZE = 128, MAXPAR = 600
 CONST MAXNODE = 120, MAXCODE = 3200, MAXLAB = 260, MAXFIX = 320, MAXREL = 360
-CONST MAXSEG = 12, MAXCTL = 40
+CONST MAXSEG = 12, MAXCTL = 40, MAXLNF = 16
 
 ' ---- file numbers
 ' the token file's header: THWORDS words, what BCLEX counted (THxxx: the
 ' word's index) -- BCGEN sizes its tables from it
 CONST THWORDS = 16, THMAGIC = 0, THGLOB = 1, THLOC = 2, THPARAMS = 3, THCONSTS = 4
-CONST THCODE = 5, THCTL = 6, THSTMT = 7, THMAXPAR = 8, TOKMAGIC = 16980
+CONST THCODE = 5, THCTL = 6, THSTMT = 7, THMAXPAR = 8, THLINES = 9, TOKMAGIC = 16980
 CONST CHSRC = 1, CHTOK = 2, CHOBJ = 3, CHLST = 4, CHLTMP = 5, CHBAT = 6, CHINC = 7
 ' (the listing's two temporary files, written by pass 3, read by LIST)
 CONST CHLREC = 11, CHLCOD = 12
@@ -65,7 +65,7 @@ COMMON SHARED BcVol$
 ' (JF...), the step being done
 COMMON SHARED JobHome$, JobFlags, JobCur$, JobName$, ErrName$
 CONST MAXERR = 10
-CONST JFASK = 1, JFQUIET = 2, JFMEM = 4, CHJOB = 13, MAXSTEP = 300
+CONST JFASK = 1, JFQUIET = 2, JFMEM = 4, JFMAP = 8, CHJOB = 13, MAXSTEP = 300
 
 ' ---- the token reader (passes 2 and 3)
 COMMON SHARED Tok, TokS$, TokV, TokLine, TokFile$, TokText$, TokNewLine

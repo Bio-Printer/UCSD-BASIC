@@ -5,8 +5,9 @@
   `tools/mkself.sh`, `tools/mkvolume.py`.
   The sibling checkouts are expected in `../bio-printer/` (the emulator,
   UCSD-TinyC, UCSD-Pascal-Volumes); see setup.sh's variables.
-- BC is six programs that CHAIN to each other through the job file
-  :BCTEMP.JOB (docs/DESIGN.md section 1); tools/bcprogs.py lists each one's
+- BC is seven programs: six CHAIN to each other through the job file
+  :BCTEMP.JOB (docs/DESIGN.md section 1), and BCDEBUG is chained to by a
+  program's run-time error; tools/bcprogs.py lists each one's
   modules (the first its main one) for every build tool.  A new module goes
   there.  BCGEN's segments: DECL, STMT, STMTA, STMTD, STMTIO, EXPR, EXPRGEN,
   RTSELDOM -- with the main one nine; a program has at most ten (one segment
@@ -14,7 +15,7 @@
   bcgen/bcexpr/bcemit were placed by a call-graph analysis (DESIGN.md
   section 10): keep a call chain to three statement/expression segments.
 - After a change to the compiler or the library run `tools/runtests.py`,
-  `tools/selfcompile.py` (must say IDENTICAL seven times: BASLIB and the six programs), `tools/errtest.py` and, for the volume,
+  `tools/selfcompile.py` (must say IDENTICAL eight times: BASLIB and the seven programs), `tools/errtest.py` and, for the volume,
   `tools/voltest.py`, and for memory `tools/smalltest.py` (PI in Z80 mode
   and P-Code mode without the Harvard layout); for the console's line ends
   `tools/crtest.py` (a CR alone, CHR$(13), goes back to the line's start;
@@ -38,6 +39,19 @@
   ParseConcat and ParseBitOr (Logic KAND/KOR), the token TBAR; bas2c does
   not translate them (BC's sources use AND and OR).  tests/bitwise,
   tests/errors/err9.
+- Run-time error locations (docs/DESIGN.md sections 5, 8, 9): BCGEN
+  writes each procedure's line table into its P record (ListLine; file
+  names without volume and path, or selfcompile and voltest differ); BCLINK -MAP writes
+  them into NAME.MAP (segment MAP), never into the code file; _RTERR gives
+  back the heap and calls _RTWHERE (lib/rtwhere.bas, RTSELDOM), which
+  follows the frames and runs BCDEBUG (bc/bcdebug.bas: its own small
+  pexec, _WRUN, not _CHAIN) with "unit block S#,P#,I# ..."; BCDEBUG finds
+  the code file in the directory (sub-volumes too) and its map.  Without
+  the map: s=,p=,i= each.  tests/rterr* (rterr4: NOMAP); runtests links
+  with -MAP and puts NAME.MAP, BCDEBUG.CODE and the source beside the test;
+  chaintest: one in a sub-volume; tools/objdump.py shows the line tables.
+  BCLINK's tables start at 300 names, 200 procedures (doubling from less
+  left holes: smalltest).
 - BC's sources must stay within the part of the language tools/bas2c.py
   translates, and their lines under 250 characters.
 - Keep docs/LANGUAGE.md and docs/DESIGN.md current; they are on the volume.

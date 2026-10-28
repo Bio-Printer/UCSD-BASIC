@@ -8,7 +8,7 @@ sources are byte for byte the ones the host build makes (tools/selfcompile
 
 ## 1. The pieces
 
-BC is six programs, each in memory alone: one CHAINs to the next (the
+BC is seven programs, each in memory alone: one CHAINs to the next (the
 library's CHAIN, Tiny-C's pexec protocol: section 9), so each has all of
 memory for its own code and tables.
 
@@ -23,6 +23,8 @@ memory for its own code and tables.
     BCLIST.CODE  the listing and its disassembler: bclist.bas
     BCLINK.CODE  the linker and -J: bclink.bas
     BCERR.CODE   a compile step's error messages: bcerr.bas, bckw.bas
+    BCDEBUG.CODE where a program's run-time error was: bcdebug.bas (the
+                 library's _RTERR chains to it; section 9)
 
 Each also has bcutil.bas (messages, file names, the job file, ChainTo; what
 is done once in the library's segment RTSELDOM),
@@ -37,7 +39,7 @@ programs of the volume's DEMO/.
 The job.  BC turns its command line -- or a line typed at its prompt --
 with the batch files it names into steps, and writes them to the job file
 :BCTEMP.JOB (on the prefix volume): where the programs are ("#u:", the
-unit BC's own code file came from: SYSCOM^.SEGTABLE[1].CODEUNIT; the six
+unit BC's own code file came from: SYSCOM^.SEGTABLE[1].CODEUNIT; the seven
 must be on one volume, at its top), the options (-Q, -M, and whether BC
 asks for the next command), the step being done, and the steps after it:
 
@@ -53,7 +55,7 @@ then runs the next step; after a failure it drops the rest (as one failing
 command stopped its batch file and its line).  When there are no more,
 BC asks for the next command, or -- started with its commands as its
 command line -- ends with the last step's status (the shell's exit
-status).  A program of the six run by itself finds no job file and says
+status).  A program of the first six run by itself finds no job file and says
 so.  Nothing else passes between them: the token file, :BCTEMP.DAT (DATA),
 the listing's two temporary files and the object file are all files.
 
@@ -180,6 +182,16 @@ The P-machine as BC uses it:
 - SINGLE is the P-machine's real (ADR, SBR ... and its comparisons);
   DOUBLE the emulator's CSP 100..137.
 
+The line table: for each line (a statement's TLINE: ListLine) where its
+code starts, and the line's number, kept for the procedure (LnPC, LnNo;
+sized from the token file's header, THLINES: BCLEX counts the longest
+procedure's lines), and the file's name when it changes (without its
+volume and path: the same on the host and the P-System, and in BUILD's
+sub-volumes); written into the P record
+after the relocations, the offsets moved by the entry code put in front.
+The linker writes it into NAME.MAP (-MAP), where BCDEBUG finds a
+run-time error's line (sections 8, 9).
+
 The listing: for each statement the offset its code starts at and its
 text go to :BCTEMP.LST, and when a procedure is finished its code (in hex),
 its sizes and its relocations (with their names) to :BCTEMP.LCD
@@ -197,8 +209,11 @@ error 1, "{k} expected, not {t}"; LexErr n, s$; FatalRec n, s$ for one
 after which the step cannot go on), each with a comment that gives its
 text.  BCUTIL's ErrRec keeps them with where they were (the file, the
 line's number and text), in arrays made at the first one; the 10th
-(MAXERR) ends the step at once, so the first ones do not scroll off the
-screen.  Where: the line of the token being read -- but while it is TLINE
+(MAXERR) ends the step, so the first ones do not scroll off the screen:
+BCLEX reads no more lines and BCGEN's GetTok gives TEOF from then on, so
+the passes end and the program, back at its top, sees ErrCount and
+chains to BCERR from there (from deep in pass 3, with its segments on the
+stack, too little memory was left for CHAIN outside the Harvard layout).  Where: the line of the token being read -- but while it is TLINE
 (the end of a statement: "the end of the statement expected", "TO
 expected, not ...") the line before, which GetTok keeps (PrevLine,
 PrevText$, PrevFile$) when it reads the next line's TLINE.  When the
@@ -233,7 +248,9 @@ copy; a FUNCTION's string result is copied to the caller's work area
     'P' flags, name, segment, parameter bytes, result words, length,
         jtab, the procedure's bytes, then its relocations (position,
         kind, name): 1 a call (CXP), 3 a module static's operand, 4 a
-        COMMON variable's operand
+        COMMON variable's operand; then its line table: the number of
+        entries, each the offset a line's code starts at and the line's
+        number, or -1 and a file's name (the next lines are in it)
     'D' 0, name, words      a COMMON variable
     'G' words               the module's statics
     'E'
@@ -262,6 +279,28 @@ The startup procedure (segment 1 procedure 1, lex level 0) clears the
 globals, calls _RTINIT, the bodies of the modules (the main program's
 last) and _HALT(0).
 
+-MAP writes NAME.MAP beside the code file (WriteMap; what reads the
+object files for it is a segment of its own, MAP, and the files are opened
+in the main segment, so that MAP and RTSELDOM are not in memory together),
+a text file:
+
+    PI.CODE: its segments (S#), procedures (P#) and lines (I#:N)
+
+    S# 1 PI, 5998 bytes, 57 procedures
+      P#   1  (the start)
+      P#   2  the main program (PI'BODY), 70 bytes
+        FILE PI.BAS
+        0:2 13:4 13:12 28:13 37:14
+      P#   3  FILL, 116 bytes
+    ...
+
+each segment, its procedures by number with their names and lengths, and
+the lines of the program's own (not of the library's, whose names start
+with an underscore): "FILE name", then where each line's code starts and
+its number.  Each segment's procedures are read from the object files in
+the order Layout numbered them, so the map is written in one pass over the
+files a segment.  The code file is as without -MAP.
+
 ## 9. The run-time library
 
 BASLIB is BASIC compiled by BC.  It works on addresses with PEEK, POKE,
@@ -286,6 +325,31 @@ and OSCALL (FINIT, FOPEN, FCLOSE, FBLOCKIO).
   (_ARGS); BC's seldom parts too (bcutil.bas, the end of a procedure in
   bcemit.bas).  _ERRTEXT stays in the main one: an error for want of
   memory still has its message.
+- A run-time error (_RTERR): its message; every file closed; the heap
+  given back (RELEASE to its start: memory for what follows, after "Out
+  of memory" too) and the string work area; then _RTWHERE (RTSELDOM)
+  follows the frames from
+  _RTERR's own (its parameter's address less 12: the mark stack control
+  word) out to the startup procedure's: for each, the caller's S# (the
+  byte SEGP points at), P# (the byte JTAB points at) and I# (the IPC less
+  the procedure's entry: JTAB-2 less the word there) -- the code read
+  with unit 64 in the Harvard layout (the emulator's I-space as data), with
+  PEEK elsewhere (unit 64 is a bad unit there) -- and chains to "BCDEBUG
+  unit block S#,P#,I# ...": the code file's unit and first block
+  (SYSCOM^.SEGTABLE[1]: segment 1 is block 1), the frames the innermost
+  first, as many as the operating system's 80-character prompt line
+  holds.  BCDEBUG.CODE is looked for beside the program (#unit:), on the
+  prefix, on the boot disk (*) and on BASIC:, with FOPEN, and run by
+  Tiny-C's pexec protocol as _CHAIN does it (_WRUN: not _CHAIN itself,
+  whose paths and sub-volumes would be in every program); not found,
+  _RTWHERE says each frame's numbers, s=S#,p=P#,i=I#.  BCDEBUG finds the
+  code file's name in the unit's directory (UNITREAD of blocks 2..5), and
+  in the sub-volumes' on the way (a data file the block is in: its own
+  directory, its blocks from its first), reads NAME.MAP beside it, and
+  says the first frame with lines there (not the library's): its file,
+  line, procedure and numbers, and the line, read from the source (beside
+  the code file first: "#unit:/A/NAME"); without the map, each frame's
+  numbers.  It ends with status 1.
 - Sub-volumes (RTSUBV): a path VOL:/A/B/NAME is
   followed as Tiny-C's library does it, but the first step is the OS's:
   FOPEN of VOL:A gives its unit (FIB word 7) and first block (FHEADER's
@@ -387,8 +451,15 @@ links and runs PI in both.  What makes that fit:
   step leaves the old table's memory behind as a hole too small for the
   next one.
 
-Compiling PI, BCGEN has at least 2180 words left in Z80 mode and BCLINK
-3530 (6100 and 7440 in P-Code mode without the Harvard layout).  BC's own
+Compiling PI, BCGEN has at least 1540 words left in Z80 mode and BCLINK
+3240 (5460 and 7150 in P-Code mode without the Harvard layout).  The
+run-time errors' lines took 390 and 270 of them: BCGEN's line table and
+ListLine, BCLINK's reading over the line tables (and _RTERR's few more
+bytes, in every program); what finds the line is a program of its own
+(BCDEBUG), what writes the map a segment of BCLINK's own (MAP), and
+_RTWHERE is in RTSELDOM.  BCLINK's tables start at 300 names and 200
+procedures: PI and the library need about 210 and 170, and doubling 200
+and 160 left holes that took 1400 words.  BC's own
 modules need more than either has, in the symbol table (up to 640
 symbols, 8 words each) and in their deeper statements: compiling itself
 needs the Harvard layout.  BC does not check the layout; out of memory, it
@@ -405,7 +476,9 @@ statement as nothing and CSP%() as 0.)
   before it reports, so the two do not call each other until the stack
   overflows.
 - tools/runtests.py: tests/NAME.bas compiled by the host build, run on
-  the emulator, compared with NAME.expect (NAME.keys: what is typed;
+  the emulator (with NAME.bas and build/BCDEBUG.CODE beside it: a
+  run-time error's line, tests/rterr, rterr2, rterr3), compared with
+  NAME.expect (NAME.keys: what is typed;
   NAME.dirs: sub-volumes made on the work disk first and listed by the
   host afterwards: tests/subvol).
 - tools/selfcompile.py: BC and BASLIB rebuilt on the P-System, compared

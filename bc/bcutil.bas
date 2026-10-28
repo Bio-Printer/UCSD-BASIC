@@ -23,9 +23,11 @@ END FUNCTION
 
 ' an error in the source: where, what, and the line
 ' ---- errors: BCLEX's and BCGEN's are numbers (their texts are BCERR's),
-' kept with where they were until the step ends -- the 10th ends it at
-' once (MAXERR: more would scroll the first off the screen); then the
-' program chains to BCERR, which says them all (CompileFailed).  n: the
+' kept with where they were until the step ends -- the 10th ends it
+' (MAXERR: more would scroll the first off the screen): BCLEX reads no more
+' lines, BCGEN's GetTok gives TEOF, and the passes, back at the top, see
+' ErrCount; then the program chains to BCERR, which says them all
+' (CompileFailed: from the top, where the stack is short).  n: the
 ' message (n < 0: a fatal error, the end at once), a: a number in it, t:
 ' a token, s$: a string (its text's {a}, {t} or {k}, {s}).
 
@@ -33,6 +35,7 @@ DIM SHARED ErN(), ErA(), ErT(), ErL(), ErF$(), ErX$(), ErS$()
 
 SUB ErrRec (n, a, t, s$)
     DIM i
+    IF ErrCount >= MAXERR THEN EXIT SUB
     ErrCount = ErrCount + 1
     i = ErrCount
     IF i = 1 THEN REDIM ErN(MAXERR), ErA(MAXERR), ErT(MAXERR), ErL(MAXERR), ErF$(MAXERR), ErX$(MAXERR), ErS$(MAXERR)
@@ -51,7 +54,6 @@ SUB ErrRec (n, a, t, s$)
         ErX$(i) = TokText$
     END IF
     ErS$(i) = s$
-    IF i >= MAXERR THEN CompileFailed
 END SUB
 
 SUB ErrNo (n)

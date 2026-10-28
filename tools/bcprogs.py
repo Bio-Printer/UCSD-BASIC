@@ -12,7 +12,8 @@ PROGS = [('BC', ['BC', 'BCUTIL']),                                       # the d
          ('BCGEN', ['BCGEN', 'BCDECL', 'BCEXPR', 'BCEMIT', 'BCTOK', 'BCUTIL']),   # passes 2, 3
          ('BCLIST', ['BCLIST', 'BCUTIL']),                               # the listing
          ('BCLINK', ['BCLINK', 'BCUTIL']),                               # the linker
-         ('BCERR', ['BCERR', 'BCKW', 'BCUTIL'])]                         # a compile's errors
+         ('BCERR', ['BCERR', 'BCKW', 'BCUTIL']),                         # a compile's errors
+         ('BCDEBUG', ['BCDEBUG'])]                                       # a run-time error's line
 MODS = []
 for _p, _m in PROGS:
     MODS += [m for m in _m if m not in MODS]

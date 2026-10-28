@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """objdump.py -- show a BC object file (NAME.OBJ, BASLIB.OBJ): its modules,
-procedures (disassembled), relocations, COMMON variables and statics.
+procedures (disassembled), relocations, line tables (each line's code
+offset:number, a file change), COMMON variables and statics.
 
-  objdump.py FILE.OBJ [-q]      (-q: no disassembly)
+  objdump.py FILE.OBJ [-q] [--old]   (-q: no disassembly; --old: an object
+                                     file without line tables)
 """
 import os, struct, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -53,6 +55,11 @@ def dump(path, quiet=False):
             r.p += clen
             nrel = r.w()
             rels = [(r.w(), r.b(), r.s()) for _ in range(nrel)]
+            lines = []
+            if '--old' not in sys.argv:
+                for _ in range(r.w()):
+                    pc = r.w()
+                    lines.append(('file', r.s()) if pc == 0xFFFF else (pc, r.w()))
             print('\n  PROC %s%s seg %r parmsz %d rw %d len %d jtab %d' %
                   (nm, ' (body)' if fl == 1 else ' (private)' if fl == 2 else '', sg, parmsz, rw, clen, jtab))
             ent = (jtab - 2 - struct.unpack_from('<H', code, jtab - 2)[0]) & 0xFFFF
@@ -68,6 +75,8 @@ def dump(path, quiet=False):
             else:
                 for pos, ty, t in rels:
                     print('    rel %04X %s %s' % (pos, RTYPES.get(ty, ty), t))
+            if lines:
+                print('    lines ' + ' '.join('%s' % l[1] if l[0] == 'file' else '%04X:%d' % l for l in lines))
         elif c == 'D':
             strong, nm, words = r.b(), r.s(), r.w()
             print('  COMMON %s %d words' % (nm, words))

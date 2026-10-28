@@ -13,15 +13,17 @@
 '   segments (the main one is 1, the others 7, 8, ...) and the procedure
 '   numbers;
 '   2. once for each segment: its procedures, their calls and global
-'      operands filled in, written to the code file after block 0.
+'      operands filled in, written to the code file after block 0;
+'   3. with -MAP, NAME.MAP: the segments' procedures, the lines of the
+'      program's own (BCDEBUG says a run-time error's line from it).
 ' Segment 1 procedure 1 is the startup code made here: zero the globals,
 ' _RTINIT, the bodies of the linked modules (the main program's last),
 ' _HALT(0).
 #INCLUDE "BCCOM"
 
-CONST MAXLN = 700, MAXLP = 520, MAXLM = 90, MAXREFS = 4000, MAXLD = 160
+CONST MAXLN = 700, MAXLP = 520, MAXLM = 90, MAXREFS = 4000, MAXLD = 200
 CONST MAXLF = 24, LHSIZE = 128
-CONST CHIN = 1, CHOUT = 2
+CONST CHIN = 1, CHOUT = 2, CHMAP = 3
 
 DIM SHARED LName$(), LKind() AS BYTE, LDef(), LNext(), LHead(), NLName
 DIM SHARED PNm(), PMod(), PSg() AS BYTE, PLen(), PFl() AS BYTE, PNum() AS BYTE, PLive() AS BYTE, PRef0(), PRefN(), NLP
@@ -161,6 +163,24 @@ FUNCTION SegIx (n$)
     SegIx = NLSeg
 END FUNCTION
 
+' a P record's line table skipped
+SUB SkipLines ()
+    DIM n, i, pc, x, j
+    n = RdW
+    FOR i = 1 TO n
+        pc = RdW
+        IF pc = -1 THEN
+            ' (a file's name: no string made of it)
+            x = RdB
+            FOR j = 1 TO x
+                pc = RdB
+            NEXT j
+        ELSE
+            x = RdW
+        END IF
+    NEXT i
+END SUB
+
 ' ---- pass 1
 
 ' a P record (the letter read): its procedure entered, with the names it
@@ -230,6 +250,7 @@ SUB ReadProc1 (m)
             END IF
         END IF
     NEXT i
+    SkipLines
 END SUB
 
 SUB Pass1 ()
@@ -461,6 +482,129 @@ SUB MakeEntry ()
     EB 0
 END SUB
 
+' ---- NAME.MAP (-MAP): beside the code file, a text file: each segment
+' (S#) and its procedures by number (P#), with their names and lengths,
+' and -- the program's own, not the library's -- their lines: where each
+' line's code starts (the procedure's offset, I#) and its number, "I#:N",
+' after "FILE name" for the file they are in.  A run-time error's I# is
+' after the call, so its line is the last that starts before it (BCDEBUG
+' looks it up there).  Written at the end, in a segment of its own (MAP),
+' with the object files opened in the main segment (MAP and RTSELDOM, which
+' opens them, not in memory together).
+
+SEGMENT MAP
+
+' the map's line for the start of segment s (k its number)
+SUB MapSeg (k, s, out$)
+    DIM m$
+    IF k = 1 THEN m$ = ModOf$(out$) ELSE m$ = LSeg$(s)
+    PRINT #CHMAP, ""
+    PRINT #CHMAP, "S# " + IStr$(k) + " " + m$ + ", " + IStr$(LSegLen(s)) + " bytes, " + IStr$(LSegProcs(s)) + " procedures"
+    IF k = 1 THEN PRINT #CHMAP, "  P#   1  (the start)"
+END SUB
+
+' a P record after its name: its segment, sizes, code and relocations
+' skipped (its line table is next)
+SUB SkipProc ()
+    DIM sg$, clen, i, x, nrel
+    sg$ = RdS$
+    x = RdW
+    x = RdB
+    clen = RdW
+    x = RdW
+    FOR i = 1 TO clen
+        x = RdB
+    NEXT i
+    nrel = RdW
+    FOR i = 1 TO nrel
+        x = RdW
+        x = RdB
+        sg$ = RdS$
+    NEXT i
+END SUB
+
+' a P record's line table into the map: "FILE name", "I#:N I#:N ..."
+SUB MapLines ()
+    DIM n, i, pc, l$
+    n = RdW
+    FOR i = 1 TO n
+        pc = RdW
+        IF pc = -1 THEN
+            IF l$ <> "" THEN PRINT #CHMAP, l$
+            PRINT #CHMAP, "    FILE " + RdS$
+            l$ = ""
+        ELSE
+            IF l$ = "" THEN l$ = "   "
+            l$ = l$ + " " + IStr$(pc) + ":" + IStr$(RdW)
+            IF LEN(l$) > 64 THEN
+                PRINT #CHMAP, l$
+                l$ = ""
+            END IF
+        END IF
+    NEXT i
+    IF l$ <> "" THEN PRINT #CHMAP, l$
+END SUB
+
+' one object file's procedures of segment s (the file open), in the order
+' of their numbers (Layout numbered them in this order)
+SUB MapFile (s)
+    DIM c, nm$, x, p
+    DO
+        c = NextRec
+        SELECT CASE c
+        CASE 0
+            EXIT DO
+        CASE 77
+            nm$ = RdS$
+        CASE 80
+            x = RdB
+            nm$ = RdS$
+            p = LDef(LNameIx(nm$))
+            SkipProc
+            IF PLive(p) <> 0 AND PSg(p) = s THEN
+                IF PFl(p) = 1 AND PMod(p) = 1 THEN nm$ = "the main program (" + nm$ + ")"
+                PRINT #CHMAP, "  P# " + RIGHT$("  " + IStr$(PNum(p)), 3) + "  " + nm$ + ", " + IStr$(PLen(p)) + " bytes"
+                IF LEFT$(nm$, 1) = "_" THEN SkipLines ELSE MapLines
+            ELSE
+                SkipLines
+            END IF
+        CASE 68
+            x = RdB
+            nm$ = RdS$
+            x = RdW
+        CASE 71
+            x = RdW
+        CASE 69
+        CASE ELSE
+            EXIT DO
+        END SELECT
+    LOOP
+END SUB
+
+SEGMENT
+
+SUB WriteMap (out$)
+    DIM k, s, f, m$
+    m$ = DirOf$(out$) + ModOf$(out$) + ".MAP"
+    OPEN m$ FOR OUTPUT AS #CHMAP
+    PRINT #CHMAP, out$; ": its segments (S#), procedures (P#) and lines (I#:N)"
+    FOR k = 1 TO 15
+        FOR s = 1 TO NLSeg
+            IF LSegNum(s) = k THEN
+                MapSeg k, s, out$
+                FOR f = 1 TO NLF
+                    OPEN LFile$(f) FOR BINARY AS #CHIN
+                    LEof = 0
+                    MapFile s
+                    CLOSE #CHIN
+                NEXT f
+            END IF
+        NEXT s
+    NEXT k
+    CLOSE #CHMAP
+    IF OptQuiet = 0 THEN SayLn "  map " + m$
+END SUB
+
 ' ---- pass 2: one segment's procedures
 
 ' a procedure's image patched: its calls, global operands, number
@@ -540,11 +684,13 @@ SUB WriteSeg (s, jt(), BYREF slen)
                         x = RdB
                         sg$ = RdS$
                     NEXT i
+                    SkipLines
                 ELSE
                     FOR i = 0 TO clen - 1
                         LBuf(i) = RdB
                     NEXT i
                     PatchProc p, clen, jtab
+                    SkipLines
                     IF clen AND 1 THEN
                         LBuf(clen) = 0
                         clen = clen + 1
@@ -614,8 +760,8 @@ FUNCTION LinkProg (out$, objs$)
     NRefs = 0
     NLD = 0
     NLSeg = 0
-    CapLN = 200
-    CapLP = 160
+    CapLN = 300
+    CapLP = 200
     CapLM = 24
     CapRefs = 800
     CapLD = 40
@@ -625,9 +771,11 @@ FUNCTION LinkProg (out$, objs$)
     REDIM PLive(CapLP) AS BYTE, PRef0(CapLP), PRefN(CapLP)
     REDIM MNm$(CapLM), MStat(CapLM), MBase(CapLM), MLive(CapLM) AS BYTE, MBody(CapLM)
     REDIM RefNm(CapRefs), DWords(CapLD), DOff(CapLD), DLive(CapLD) AS BYTE
+    MemNote "entry"
     s = SegIx("")
     ObjFiles objs$, 1
     IF LErr = 0 THEN Pass1
+    MemNote "Pass1"
     IF LErr = 0 THEN MarkAll
     IF LErr = 0 THEN Layout
     IF LErr > 0 THEN
@@ -637,6 +785,7 @@ FUNCTION LinkProg (out$, objs$)
     ' (LBuf: the largest procedure, and a byte to make it even)
     REDIM LBuf(MaxClen + 1) AS BYTE, Entry(600) AS BYTE
     MakeEntry
+    MemNote "MakeEntry"
     s = SegIx("")
     LSegLen(s) = LSegLen(s) + NEntry
     ' the blocks: each segment from a block boundary, after block 0
@@ -652,6 +801,7 @@ FUNCTION LinkProg (out$, objs$)
     NEXT k
     IF OptQuiet = 0 THEN SayLn "Linking " + out$
     OPEN out$ FOR OUTPUT AS #CHOUT
+    MemNote "open"
     ' block 0: the segment dictionary
     FOR k = 0 TO 15
         n = 0
@@ -701,6 +851,7 @@ FUNCTION LinkProg (out$, objs$)
                     slen = NEntry
                 END IF
                 WriteSeg s, jt(), slen
+                MemNote "seg"
                 ' the procedure dictionary: self-relative, the highest first
                 FOR j = LSegProcs(s) TO 1 STEP -1
                     OutW slen - jt(j)
@@ -723,9 +874,10 @@ FUNCTION LinkProg (out$, objs$)
         NEXT s
     NEXT k
     CLOSE #CHOUT
-    IF OptQuiet = 0 THEN SayLn "  globals " + IStr$(GlobWords - 3) + " words"
-    IF OptMem THEN SayLn "  least free memory: " + IStr$(FRE(-1)) + " words"
     ERASE LBuf, Entry
+    IF OptQuiet = 0 THEN SayLn "  globals " + IStr$(GlobWords - 3) + " words"
+    IF JobFlags AND JFMAP THEN WriteMap out$
+    IF OptMem THEN SayLn "  least free memory: " + IStr$(FRE(-1)) + " words"
     IF LErr = 0 THEN LinkProg = -1
 done:
     ERASE LName$, LKind, LDef, LNext, LHead, PNm, PMod, PSg, PLen, PFl, PNum, PLive, PRef0, PRefN
@@ -741,6 +893,7 @@ FUNCTION JoinLib (out$, objs$)
     IF LErr > 0 THEN EXIT FUNCTION
     IF OptQuiet = 0 THEN SayLn "Joining " + out$
     OPEN out$ FOR OUTPUT AS #CHOUT
+    MemNote "open"
     FOR f = 1 TO NLF
         OPEN LFile$(f) FOR BINARY AS #CHIN
         LEof = 0

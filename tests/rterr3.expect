@@ -1,0 +1,5 @@
+start
+
+Run-time error 7: Out of memory
+RTERR3.BAS line 6, in the main program (S# 1, P# 2, I# 92):
+a$(i) = SPACE$(250)

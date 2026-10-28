@@ -11,8 +11,8 @@ as the host build** (`tools/selfcompile.py`).
 
 | Path | What |
 |---|---|
-| `bc/` | the compiler, six programs that chain to each other (each in memory alone): `bc` the driver (commands and batch files into a job file), `bclex` pass 1 (tokens, comments dropped), `bcgen` + `bcdecl` + `bcexpr` + `bcemit` + `bctok` passes 2 and 3 (declarations, code, the object file), `bclist` the listing (each BASIC statement with its P-code), `bclink` the linker, `bcerr` a compile's error messages (the others keep errors as numbers); `bcutil`, `bckw` shared (`tools/bcprogs.py` says which module goes where) |
-| `lib/` | the run-time library BASLIB, in BASIC (heap, strings, arrays, PRINT/INPUT, UCSD text and byte files, DATA) |
+| `bc/` | the compiler, seven programs that chain to each other (each in memory alone): `bc` the driver (commands and batch files into a job file), `bclex` pass 1 (tokens, comments dropped), `bcgen` + `bcdecl` + `bcexpr` + `bcemit` + `bctok` passes 2 and 3 (declarations, code, the object file), `bclist` the listing (each BASIC statement with its P-code), `bclink` the linker, `bcerr` a compile's error messages (the others keep errors as numbers), `bcdebug` where a program's run-time error was (the library runs it; it reads the NAME.MAP the linker writes with -MAP); `bcutil`, `bckw` shared (`tools/bcprogs.py` says which module goes where) |
+| `lib/` | the run-time library BASLIB, in BASIC (heap, strings, arrays, PRINT/INPUT, UCSD text and byte files, DATA, CHAIN; a run-time error's frames for BCDEBUG) |
 | `tests/` | test programs and their expected output (`subvol.dirs`: the sub-volumes that test needs) |
 | `demos/` | the example programs of the volume's DEMO/ |
 | `tools/` | `bas2c.py` + `hostrt.h` (the bootstrap: BC's BASIC translated to C), `buildhost.sh`, `mklib.sh`, `mkself.sh`, `runtests.py`, `selfcompile.py`, `brun.py`, `objdump.py`, `pdis.py` |
@@ -25,12 +25,12 @@ BLK_format), laid out in sub-volumes (Tiny-C's: data files holding a volume,
 
 | File | What |
 |---|---|
-| `BC.CODE` | the compiler (the driver: run it); `BCLEX.CODE`, `BCGEN.CODE`, `BCLIST.CODE`, `BCLINK.CODE`, `BCERR.CODE` the programs it chains to, each in memory alone |
+| `BC.CODE` | the compiler (the driver: run it); `BCLEX.CODE`, `BCGEN.CODE`, `BCLIST.CODE`, `BCLINK.CODE`, `BCERR.CODE` the programs it chains to, each in memory alone; `BCDEBUG.CODE` says where a program's run-time error was (file, line, procedure, the line) |
 | `README.TEXT`, `LANGUAGE.TEXT`, `DESIGN.TEXT` | the manuals |
 | `ALL.TEXT` | `@BASIC:ALL`: the four batch files below |
-| `INSTALL.TEXT` | after `@BASIC:/SRC/BUILD`, in Tiny-C's shell (BIGGY 1.32: `@FILE` runs a batch file): `@BASIC:INSTALL` moves BC2.CODE ... BCERR2.CODE onto BC.CODE ... BCERR.CODE (each old file goes, the new one takes its name; nothing goes when the new one is missing) |
+| `INSTALL.TEXT` | after `@BASIC:/SRC/BUILD`, in Tiny-C's shell (BIGGY 1.32: `@FILE` runs a batch file): `@BASIC:INSTALL` moves BC2.CODE ... BCDEBUG2.CODE onto BC.CODE ... BCDEBUG.CODE (each old file goes, the new one takes its name; nothing goes when the new one is missing) |
 | `FILES.TEXT` | every file, the sub-volumes' too |
-| `SRC/` | the compiler's sources; `BUILD.TEXT`: `@BASIC:/SRC/BUILD` rebuilds the compiler's six programs as BASIC:BC2.CODE, BCLEX2.CODE ... BCERR2.CODE |
+| `SRC/` | the compiler's sources; `BUILD.TEXT`: `@BASIC:/SRC/BUILD` rebuilds the compiler's seven programs as BASIC:BC2.CODE, BCLEX2.CODE ... BCDEBUG2.CODE |
 | `LIB/` | `BASLIB.OBJ`, the run-time library, and its sources; `LIBS.TEXT`: `@BASIC:/LIB/LIBS` rebuilds it as BASIC:/LIB/BASLIB2.OBJ |
 | `DEMO/` | HELLO, PRIMES, HANOI, MANDEL, PI (Archimedes' method, from Tiny-C's PI.C), GUESS and STATS (two modules: STATS + STATLIB); `DEMOS.TEXT` compiles them |
 | `TEST/` | the compiler's tests; `TESTS.TEXT` compiles them; `EXPECT/` what each prints |

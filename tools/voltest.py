@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """voltest.py -- build/BASIC.BLK on the P-System (unit #5): BC runs
 @BASIC:ALL, which rebuilds the compiler from BASIC:/SRC (BUILD -> BASIC:BC2.CODE,
-BCLEX2 ... BCERR2, each the same as BC.CODE ... BCERR.CODE but for segment 1's
+BCLEX2 ... BCDEBUG2, each the same as BC.CODE ... BCDEBUG.CODE but for segment 1's
 name) and the library in BASIC:/LIB
 (LIBS -> BASLIB2.OBJ, the same as BASLIB.OBJ), and compiles every demo and
 test in their sub-volumes, and then PI again with a listing (-S: DEMO/PI.LST,
@@ -33,7 +33,7 @@ def main(a):
               'TYPE "X"\nWAIT "Execute what file?"\nTYPE "BASIC:/DEMO/STATS\\r"\nWAIT "Command:"\n'
               'TYPE "X"\nWAIT "Execute what file?"\nTYPE "BASIC:/DEMO/PI\\r"\nWAIT "Command:"\n'
               'TYPE "X"\nWAIT "Execute what file?"\nTYPE "BASIC:/TEST/PROCS\\r"\nWAIT "Command:"\n'
-              'TYPE "S"\nWAIT "> "\nTYPE "@BASIC:INSTALL\\r"\nWAIT "BCERR.CODE"\nWAIT "> "\n'
+              'TYPE "S"\nWAIT "> "\nTYPE "@BASIC:INSTALL\\r"\nWAIT "BCDEBUG.CODE"\nWAIT "> "\n'
               'TYPE "bc -q basic:/demo/hello\\r"\nWAIT "exit status"\nWAIT "> "\n'
               'TYPE "basic:/demo/hello\\r"\nWAIT "exit status"\nWAIT "> "\nTYPE "bye\\r"\nWAIT "Command:"\n')
     ok, tr, info = ps.run_script(script, 3000)

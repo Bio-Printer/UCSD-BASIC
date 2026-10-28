@@ -10,9 +10,12 @@
 '                   P-code made for them) in NAME.LST; -S -C NAME too
 '   -L OUT=A,B,...  link A.OBJ, B.OBJ ... (and BASLIB.OBJ) into OUT.CODE
 '   -J LIB=A,B,...  join object files into one library LIB.OBJ
+'   -MAP            with each link, NAME.MAP: the segments' procedures by
+'                   number and their lines (BCDEBUG says a run-time
+'                   error's line from it)
 '   @FILE           the commands in FILE.TEXT, one or more a line
 '   -Q              fewer messages
-' The compiler is six programs, each in memory alone (CHAIN): this one,
+' The compiler is seven programs, each in memory alone (CHAIN): this one,
 ' the driver, turns a command line (batch files and all) into steps, puts
 ' them into the job file and chains to the program of the first; BCLEX
 ' (pass 1) chains to BCGEN (passes 2 and 3), which chains to BCLIST for a
@@ -20,7 +23,8 @@
 ' BCERR, which says them.  The last of them chains to BC -Z
 ' (with 0, or 1 for a failure), which runs the next step, and at the end
 ' asks for the next command, or ends with that status when it was given
-' its commands as its command line.
+' its commands as its command line.  The seventh, BCDEBUG, is not BC's: a
+' program's run-time error chains to it (it says the source's line).
 #INCLUDE "BCCOM"
 
 DIM SHARED CmdLine$, CmdPos, Steps$(MAXSTEP), NSteps
@@ -102,6 +106,8 @@ FUNCTION AddCmds (l$)
             JobFlags = JobFlags OR JFQUIET
         ELSEIF w$ = "-M" THEN
             JobFlags = JobFlags OR JFMEM
+        ELSEIF w$ = "-MAP" THEN
+            JobFlags = JobFlags OR JFMAP
         ELSEIF w$ = "-L" THEN
             ok = AddStep("L " + UCASE$(NextWord$))
         ELSEIF w$ = "-J" THEN

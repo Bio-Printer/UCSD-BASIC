@@ -1747,6 +1747,8 @@ SUB GenPass ()
     REDIM NOp(NodeCap) AS BYTE, NTy(NodeCap) AS BYTE, NA(NodeCap), NB(NodeCap)
     REDIM NV(NodeCap), NX(NodeCap), NN(NodeCap), NS$(NodeCap), NIsBool(NodeCap) AS BYTE
     REDIM CtlKind(MAXCTL), CtlExit(MAXCTL), CtlCont(MAXCTL), ConstText$(ConstCap)
+    REDIM LnPC(LnCap), LnNo(LnCap), LnFile$(MAXLNF)
+    NLnFile = 0
     NNode = 0
     NConst = 0
     MemNote "gen arrays"
@@ -1822,7 +1824,7 @@ SUB GenPass ()
         Say "  [high: code " + IStr$(HiPC) + ", jumps " + IStr$(HiFix) + ", labels " + IStr$(HiLab) + ", calls " + IStr$(HiRel) + ", nodes " + IStr$(HiNode)
         SayLn ", names " + IStr$(HiSym) + ", parameters " + IStr$(NPar) + ", constants " + IStr$(NConst) + "; tables grown " + IStr$(NGrown) + " times]"
     END IF
-    ERASE Code, LabPos, FixPos, FixLab, RelPos, RelType, RelSym
+    ERASE Code, LabPos, FixPos, FixLab, RelPos, RelType, RelSym, LnPC, LnNo, LnFile$
     ERASE NOp, NTy, NA, NB, NV, NX, NN, NS$, NIsBool, CtlKind, CtlExit, CtlCont, ConstText$
 END SUB
 
@@ -1851,9 +1853,11 @@ LabCap = Capped(3 * TokHead(THCTL) + 8, MAXLAB)
 FixCap = Capped(2 * TokHead(THCTL) + 8, MAXFIX)
 RelCap = Capped(TokHead(THCODE) \ 8 + 24, MAXREL)
 NodeCap = Capped(TokHead(THSTMT) \ 2 + 16, MAXNODE)
+' (a procedure's lines, its header and its files' changes)
+LnCap = Capped(TokHead(THLINES) + 8, 32000)
 IF OptMem THEN
     Say "  [tables: " + IStr$(SymCap) + " names, " + IStr$(ParCap) + " parameters, " + IStr$(ConstCap) + " constants, code " + IStr$(CodeCap)
-    SayLn ", jumps " + IStr$(FixCap) + ", labels " + IStr$(LabCap) + ", calls " + IStr$(RelCap) + ", nodes " + IStr$(NodeCap) + "]"
+    SayLn ", jumps " + IStr$(FixCap) + ", labels " + IStr$(LabCap) + ", calls " + IStr$(RelCap) + ", nodes " + IStr$(NodeCap) + ", lines " + IStr$(LnCap) + "]"
 END IF
 REDIM SName$(SymCap), SKind(SymCap) AS BYTE, SType(SymCap) AS BYTE, SCls(SymCap) AS BYTE
 REDIM SOff(SymCap), SFlags(SymCap) AS BYTE, SScope(SymCap) AS BYTE, SNext(SymCap)
