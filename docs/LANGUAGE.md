@@ -308,7 +308,8 @@ Program
   with the shell's path, is over 80 characters; ON ERROR RESUME NEXT
   catches them.  It needs BIGGY's operating system (SYSTEM.PASCAL 1.10 or
   later, or SYSTEM.C): it uses Tiny-C's pexec.
-- `RANDOMIZE n` -- start RND's sequence from n.
+- `RANDOMIZE n` -- start RND's sequence from n, any number (RANDOMIZE
+  TIMER: a different sequence each run).
 - `CLS` clears the screen; `LOCATE row, column` moves the cursor (from 1).
 - `ON ERROR RESUME NEXT` -- a failing file operation sets ERR instead of
   stopping the program; `ON ERROR GOTO 0` stops that.

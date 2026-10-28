@@ -1550,7 +1550,8 @@ SUB GenStmt ()
         GenSwap
     CASE KRANDOMIZE
         GetTok
-        IF AtEnd THEN Ldc 0 ELSE GenValueAs Expr, TYINT
+        ' (a DOUBLE: RANDOMIZE TIMER, beyond an INTEGER)
+        IF AtEnd THEN GenValueAs IConst(0), TYDBL ELSE GenValueAs Expr, TYDBL
         CallRt "_RANDOMIZE"
     CASE KCLS
         GetTok

@@ -146,8 +146,15 @@ FUNCTION _RND! ()
     _RND! = _SEED# / 16777216#
 END FUNCTION
 
-SUB _RANDOMIZE (n)
-    _SEED# = n + 32768#
+' RANDOMIZE n (any number: TIMER too): a whole n -32768..32767 starts the
+' sequence at n + 32768, as it always did; any other its 64ths (TIMER's
+' fraction counts) modulo 2^24
+SUB _RANDOMIZE (n#)
+    IF n# = INT(n#) AND n# >= -32768# AND n# <= 32767# THEN
+        _SEED# = n# + 32768#
+    ELSE
+        _SEED# = CSP#(127, INT(ABS(n#) * 64#), 16777216#)
+    END IF
 END SUB
 
 ' TIMER: seconds (the P-machine's clock counts 60ths)

@@ -1,0 +1,14 @@
+' RANDOMIZE with any number: TIMER (not an INTEGER), a large or a real one;
+' a small whole one starts the sequence it always did
+RANDOMIZE TIMER
+RANDOMIZE 100000
+PRINT INT(RND * 1000)
+RANDOMIZE 40000.5
+PRINT INT(RND * 1000)
+RANDOMIZE -7.25
+PRINT INT(RND * 1000)
+RANDOMIZE 5
+PRINT INT(RND * 100000); INT(RND * 100000)
+RANDOMIZE
+PRINT INT(RND * 1000)
+PRINT "done"
