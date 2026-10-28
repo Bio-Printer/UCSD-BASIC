@@ -27,4 +27,4 @@ start
  26 
 
 Run-time error 9: Subscript out of range
-s=1,p=47,i=30 s=1,p=3,i=73 s=1,p=2,i=36 (no RTERR4.MAP: link with -MAP)
+s=1,p=48,i=30 s=1,p=3,i=73 s=1,p=2,i=36 (no RTERR4.MAP: link with -MAP)

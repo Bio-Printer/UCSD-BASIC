@@ -32,8 +32,8 @@ SUB _RTINIT ()
     CSP 10, _FREETAB, 0, 20, 0
     _CONBUF = _NEWBLK(41)
     _INBUF = _NEWBLK(129)
-    _FTAB = _NEWBLK(256)
-    CSP 10, _FTAB, 0, 512, 0
+    _FTAB = _NEWBLK(288)
+    CSP 10, _FTAB, 0, 576, 0
     _ABUF = _NEWBLK(9)
     _AIXB = _NEWBLK(9)
     _SCRATCH = _NEWBLK(41)
@@ -45,6 +45,7 @@ SUB _RTINIT ()
     i = _NEWBLK(1)
     _HEAPLO = i
     _HEAPTOP = i + 2
+    IF _REDIR THEN _REDOPEN
 END SUB
 
 SEGMENT RTSELDOM
@@ -54,7 +55,7 @@ SEGMENT RTSELDOM
 ' system's prompt line PL while SYSCOM's expansion words say so (EXPANSION[0]
 ' = PX_CHILD, [6] = PX_ARGS, [7] its checksum), taken once, at the start
 SUB _ARGS ()
-    DIM e, pl, n, sum, i, k
+    DIM e, pl, n, sum, i, k, j, w, c, s, d, t
     e = OSVAR(1) + 36
     pl = OSADDR(70)
     n = PEEKB(pl)
@@ -92,18 +93,91 @@ SUB _ARGS ()
         IF PEEKB(pl + i) <> 32 THEN EXIT DO
         i = i + 1
     LOOP
-    n = n - i + 1
-    IF n > 0 THEN
-        _CMDLINE = _NEWBLK(41)
-        CSP 2, pl + i, 0, _CMDLINE + 1, 0, n
-        POKEB _CMDLINE, n
+    IF i > n THEN EXIT SUB
+    t = _NEWBLK(41)
+    ' the arguments, i .. n, as they are -- unless a word starts with > or
+    ' <: Tiny-C's redirections are taken off them (a word >NAME, >>NAME or
+    ' <NAME, or the name in the next word: _REDNAME), the other words kept
+    ' with a blank between them
+    c = 0
+    FOR j = i TO n
+        IF PEEKB(pl + j) = 62 OR PEEKB(pl + j) = 60 THEN
+            IF j = i THEN
+                c = 1
+            ELSEIF PEEKB(pl + j - 1) = 32 THEN
+                c = 1
+            END IF
+        END IF
+    NEXT j
+    IF c = 0 THEN
+        _CMDLINE = t
+        CSP 2, pl + i, 0, t + 1, 0, n - i + 1
+        POKEB t, n - i + 1
+        EXIT SUB
     END IF
+    k = 0
+    j = i
+    DO WHILE j <= n
+        w = j
+        DO WHILE w <= n
+            IF PEEKB(pl + w) = 32 THEN EXIT DO
+            w = w + 1
+        LOOP
+        c = PEEKB(pl + j)
+        IF c = 62 OR c = 60 THEN
+            IF _REDNAME = 0 THEN _REDNAME = _NEWBLK(82)
+            s = j + 1
+            IF c = 60 THEN
+                d = _REDNAME + 82
+                _REDIR = _REDIR OR 2
+            ELSE
+                d = _REDNAME
+                _REDIR = (_REDIR OR 1) AND NOT 4
+                IF s < w THEN
+                    IF PEEKB(pl + s) = 62 THEN
+                        _REDIR = _REDIR OR 4
+                        s = s + 1
+                    END IF
+                END IF
+            END IF
+            IF s >= w THEN
+                ' (the name in the next word)
+                s = w
+                DO WHILE s <= n
+                    IF PEEKB(pl + s) <> 32 THEN EXIT DO
+                    s = s + 1
+                LOOP
+                w = s
+                DO WHILE w <= n
+                    IF PEEKB(pl + w) = 32 THEN EXIT DO
+                    w = w + 1
+                LOOP
+            END IF
+            POKEB d, w - s
+            IF w > s THEN CSP 2, pl + s, 0, d + 1, 0, w - s
+        ELSE
+            IF k > 0 THEN
+                k = k + 1
+                POKEB t + k, 32
+            END IF
+            CSP 2, pl + j, 0, t + k + 1, 0, w - j
+            k = k + w - j
+        END IF
+        j = w
+        DO WHILE j <= n
+            IF PEEKB(pl + j) <> 32 THEN EXIT DO
+            j = j + 1
+        LOOP
+    LOOP
+    POKEB t, k
+    IF k > 0 THEN _CMDLINE = t
 END SUB
 
 SEGMENT
 
 ' ---- the end
 SUB _HALT (code)
+    _REDCLOSE
     _CLOSE 0
     _CONFLUSH
     ' the exit status (Tiny-C's pexec_status, SYSCOM^.EXPANSION[5])
@@ -148,6 +222,8 @@ SUB _RTERR (code)
     ' looks for the place: out at once)
     IF inerr THEN CSP 4, 1, 1
     inerr = 1
+    ' (the message on the console, the redirected output's file closed)
+    _REDCLOSE
     _CONFLUSH
     _PNL 0
     _PSTR 0, SADD("Run-time error ")
@@ -508,10 +584,28 @@ END FUNCTION
 ' CR, CHR$(13), goes back to the line's start; the end of a PRINT line is
 ' CR and LF, _PNL)
 SUB _CONFLUSH ()
+    DIM i, c
     IF _CONLEN > 0 THEN
-        CSP 6, 1, _CONBUF, 0, _CONLEN, 0, 8
+        IF _REDIR AND 1 THEN
+            ' (redirected: into the file, its lines ending in CR)
+            FOR i = 0 TO _CONLEN - 1
+                c = PEEKB(_CONBUF + i)
+                IF c <> 10 THEN _FPUTC CHROUT, c
+            NEXT i
+        ELSE
+            CSP 6, 1, _CONBUF, 0, _CONLEN, 0, 8
+        END IF
         _CONLEN = 0
     END IF
+END SUB
+
+' the redirections ended: what is written flushed, their files closed
+SUB _REDCLOSE ()
+    IF _REDIR = 0 THEN EXIT SUB
+    _CONFLUSH
+    _REDIR = 0
+    _CLOSE1 CHROUT
+    _CLOSE1 CHRIN
 END SUB
 
 SUB _CONPUT (c)

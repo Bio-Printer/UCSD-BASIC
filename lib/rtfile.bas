@@ -9,9 +9,9 @@
 ' RTSUBV's.
 #INCLUDE "RTCOM"
 
-' the entry of channel ch (1..15)
+' the entry of channel ch (1..15; 16, 17 the redirections')
 FUNCTION _FENTRY (ch)
-    IF ch < 1 OR ch > 15 THEN _RTERR 52
+    IF ch < 1 OR ch > CHRIN THEN _RTERR 52
     _FENTRY = _FTAB + ch * 32
 END FUNCTION
 
@@ -199,7 +199,9 @@ END FUNCTION
 SUB _OPEN (name, mode, ch, reclen)
     DIM e, fl, old, ok, n, bsz, fib, buf, p
     _ERRCODE = 0
-    e = _FENTRY(ch)
+    ' (ch < 0: the library's own, -CHROUT or -CHRIN)
+    IF ch > 15 THEN _RTERR 52
+    e = _FENTRY(ABS(ch))
     IF PEEK(e + FFL) THEN
         _IOERR 55
         EXIT SUB
@@ -303,6 +305,33 @@ SUB _OPEN (name, mode, ch, reclen)
         POKE e + FBLK, -1
         p = _LOADBLK(e, n)
         POKE e + FPOS, 0
+    END IF
+END SUB
+
+' the shell's redirections (_ARGS took them): the console's output to
+' _REDNAME (mode 3: appended; a file not there yet made), its input from
+' _REDNAME + 82; a file that cannot be opened: its name, and the end
+SUB _REDOPEN ()
+    DIM m, f
+    _ERRTRAP = -1
+    IF _REDIR AND 1 THEN
+        IF _REDIR AND 4 THEN m = 3 ELSE m = 2
+        _OPEN _REDNAME, m, -CHROUT, 0
+        IF _ERRCODE <> 0 AND m = 3 THEN _OPEN _REDNAME, 2, -CHROUT, 0
+        IF _ERRCODE <> 0 THEN f = _REDNAME
+    END IF
+    IF (_REDIR AND 2) <> 0 AND f = 0 THEN
+        _OPEN _REDNAME + 82, 1, -CHRIN, 0
+        IF _ERRCODE <> 0 THEN f = _REDNAME + 82
+    END IF
+    _ERRTRAP = 0
+    _ERRCODE = 0
+    IF f THEN
+        _REDCLOSE
+        _PSTR 0, f
+        _PSTR 0, SADD(": cannot open it")
+        _PNL 0
+        _HALT 1
     END IF
 END SUB
 

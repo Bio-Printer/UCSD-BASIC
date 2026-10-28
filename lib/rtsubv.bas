@@ -194,7 +194,7 @@ FUNCTION _SVROOM (e, d)
         av = ge - gs
         ast = gs
         avic = 0
-        FOR ch = 1 TO 15
+        FOR ch = 1 TO CHRIN
             o = _FTAB + ch * 32
             IF o <> e AND (PEEK(o + FFL) AND FWRITE) <> 0 AND PEEK(o + FSVU) = PEEK(e + FSVU) AND PEEK(o + FSVB) = PEEK(e + FSVB) THEN
                 f = PEEK(o + FSVF) - PEEK(o + FSVB)

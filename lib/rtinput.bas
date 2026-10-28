@@ -16,10 +16,24 @@ SUB _ECHO (c)
 END SUB
 
 ' a line typed at the console into _INBUF (a Pascal string); backspace
-' rubs out
+' rubs out.  With <NAME on the command line, a line of that file
 SUB _CONLINE ()
     DIM c, n
     n = 0
+    IF _REDIR AND 2 THEN
+        ' (redirected: a line of the file, not echoed; its end: error 62)
+        c = _FGETC(CHRIN)
+        IF c < 0 THEN _IOERR 62
+        DO WHILE c >= 0 AND c <> 13
+            IF c <> 10 AND n < 250 THEN
+                n = n + 1
+                POKEB _INBUF + n, c
+            END IF
+            c = _FGETC(CHRIN)
+        LOOP
+        POKEB _INBUF, n
+        EXIT SUB
+    END IF
     DO
         c = _CONRAW
         IF c = 8 OR c = 127 THEN

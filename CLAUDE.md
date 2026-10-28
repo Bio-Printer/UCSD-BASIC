@@ -92,6 +92,10 @@
 - Code space (Harvard): BCGEN is the largest program; LIST is a program of
   its own (BCLIST, after BCGEN).
   voltest compares the P-System's listing (-S) with the host's.
+- The shell's >FILE, >>FILE, <FILE and | for BASIC programs: _ARGS takes
+  them off COMMAND$ (only then are its words re-joined: tests/chain wants
+  its blanks kept), _REDOPEN opens channels 16/17, _CONFLUSH / _CONLINE use
+  them, _REDCLOSE in _HALT and _RTERR.  tools/chaintest.py checks them.
 - CHAIN: lib/rtchain.bas (_CHAIN), the pexec protocol of BIGGY's GETCMD;
   tests/chain (+ chain.progs) and tools/chaintest.py (from the shell; also
   --pascal).  bas2c translates CHAIN (hostrt.h b_chain: execv of the host

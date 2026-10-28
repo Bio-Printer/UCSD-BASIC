@@ -388,7 +388,17 @@ and OSCALL (FINIT, FOPEN, FCLOSE, FBLOCKIO).
 - COMMAND$ follows Tiny-C's pexec protocol (SYSCOM^.EXPANSION, the OS's
   prompt line PL); the exit status goes to EXPANSION[5].  _RTINIT takes
   the line once, at the start (_ARGS): the arguments for COMMAND$, and
-  the shell's path (CD) after them (a byte 30 before it).  _OPEN and
+  the shell's path (CD) after them (a byte 30 before it), and the
+  shell's redirections, as Tiny-C's __redirect takes them (a word >NAME,
+  >>NAME or <NAME, or the name in the next word: taken off COMMAND$,
+  whose other words are then joined by one blank).  _RTINIT opens them
+  once the heap is there (_REDOPEN, RTSELDOM) on channels 16 and 17
+  (_FTAB has 18 entries; a program's are 1..15; _OPEN takes the library's
+  as -16, -17): _CONFLUSH writes the console's buffer into the one (LF
+  left out: lines end in CR), _CONLINE reads a line of the other, not
+  echoed.  _HALT and _RTERR end them first (_REDCLOSE), so an error's
+  message is on the screen.  A file that cannot be opened: "NAME: cannot
+  open it", exit status 1.  _OPEN and
   _KILL put that path before a name without a volume (_FNAME, as Tiny-C's
   library does), so a program run after CD BASIC:/DEMO finds PI.BAS there.
   _FNAME also takes a size off the end of a name, [n] or [*], which only
@@ -451,9 +461,10 @@ links and runs PI in both.  What makes that fit:
   step leaves the old table's memory behind as a hole too small for the
   next one.
 
-Compiling PI, BCGEN has at least 1540 words left in Z80 mode and BCLINK
-3240 (5460 and 7150 in P-Code mode without the Harvard layout).  The
-run-time errors' lines took 390 and 270 of them: BCGEN's line table and
+Compiling PI, BCGEN has at least 1410 words left in Z80 mode and BCLINK
+2790 (5330 and 6710 in P-Code mode without the Harvard layout).  The
+run-time errors' lines took 390 and 270 of them, the shell's redirections
+(section 9) 130 and 440 more: BCGEN's line table and
 ListLine, BCLINK's reading over the line tables (and _RTERR's few more
 bytes, in every program); what finds the line is a program of its own
 (BCDEBUG), what writes the map a segment of BCLINK's own (MAP), and

@@ -356,7 +356,13 @@ Other
   console's column)
 - INKEY$ (a key that was typed, or "")
 - COMMAND$: the command line, when the program was started by Tiny-C's
-  shell (e.g. `BC @BUILD`), without the program's name; "" otherwise
+  shell (e.g. `BC @BUILD`), without the program's name; "" otherwise.
+  The shell's redirections are taken off it and done, as for Tiny-C's
+  programs: `AMAZING 10 10 >MAZE.TEXT` puts what the program PRINTs to
+  the console into MAZE.TEXT (`>>` appends), `PROG <IN.TEXT` makes INPUT
+  and LINE INPUT read IN.TEXT's lines (past its end: error 62), and
+  `AMAZING 15 15 | MORE` pipes.  A run-time error's message still goes to
+  the screen.
 - ERR: the error of the last failing file operation under ON ERROR
   RESUME NEXT (0: none)
 - FRE(0): the words of memory free; FRE(-1): the fewest there have been
@@ -451,7 +457,7 @@ code file first, in a sub-volume too) and says the line.  Without the map,
 or without BCDEBUG, only the numbers of each call are said, the innermost
 first (the library's procedures among them):
 
-    s=1,p=47,i=30 s=1,p=3,i=73 s=1,p=2,i=36 (no RTERR.MAP: link with -MAP)
+    s=1,p=48,i=30 s=1,p=3,i=73 s=1,p=2,i=36 (no RTERR.MAP: link with -MAP)
 
 The map is a file on the disk: the program is the same with it or
 without.  "Out of memory" is said this way too: the program's strings and

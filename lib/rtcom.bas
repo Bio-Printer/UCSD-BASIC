@@ -17,8 +17,12 @@ COMMON SHARED _HEAPLO, _HEAPTOP, _FREETAB, _BIGFREE
 COMMON SHARED _ERRTRAP, _ERRCODE
 ' ---- the console: its output buffer, column; the INPUT line
 COMMON SHARED _CONBUF, _CONLEN, _CONCOL, _INBUF, _INPOS
-' ---- the files: 16 entries of 16 words (channel 1..15)
+' ---- the files: 18 entries of 16 words (channel 1..15; 16 and 17 the
+' console's output and input redirected: _REDIR)
 COMMON SHARED _FTAB
+' ---- the shell's redirections (>NAME, >>NAME, <NAME): _REDIR 1 output, 2
+' input, 4 appending; their names (_REDNAME: output, +82 input)
+COMMON SHARED _REDIR, _REDNAME
 ' ---- the command line and the shell's path (CD) Tiny-C's shell gave (Pascal
 ' strings; 0: none); a file name as opened (on that path) and its size, [n]
 ' or [*], which only the operating system sees
@@ -33,7 +37,7 @@ CONST FDLE = 14, FLST = 16, FCOL = 18, FUNG = 20
 ' (a file in a sub-volume: RTSUBV)
 CONST FSVU = 22, FSVF = 24, FSVR = 26, FSVH = 28, FSVB = 30
 CONST FREAD = 1, FWRITE = 2, FTEXT = 4, FEOF = 8, FDIRTY = 16, FNEW = 32
-CONST FCON = 64, FERR = 128, FZEND = 256
+CONST FCON = 64, FERR = 128, FZEND = 256, CHROUT = 16, CHRIN = 17
 
 DECLARE SUB _RTERR (code)
 DECLARE SUB _RTWHERE (f)
@@ -55,6 +59,9 @@ DECLARE SUB _FPUTC (ch, c)
 DECLARE FUNCTION _FOPENED (ch)
 DECLARE FUNCTION _FGETC (ch)
 DECLARE SUB _CLOSE (ch)
+DECLARE SUB _CLOSE1 (ch)
+DECLARE SUB _REDCLOSE ()
+DECLARE SUB _REDOPEN ()
 DECLARE FUNCTION _CONGETC ()
 DECLARE FUNCTION _ISTR (v, lead)
 DECLARE FUNCTION _VAL! (s)
