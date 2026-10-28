@@ -34,7 +34,7 @@ import ucsdvol
 from bcprogs import PROGS, MODS
 LIBS = ['RTCORE', 'RTFILE', 'RTSTR', 'RTNUM', 'RTARR', 'RTINPUT', 'RTDATA', 'RTSUBV', 'RTCHAIN', 'RTWHERE']
 # the demos: NAME, or (NAME, [the modules linked with it])
-DEMOS = ['HELLO', 'PRIMES', 'HANOI', 'MANDEL', 'PI', 'GUESS', ('STATS', ['STATLIB'])]
+DEMOS = ['HELLO', 'PRIMES', 'HANOI', 'MANDEL', 'PI', 'GUESS', 'AMAZING', ('STATS', ['STATLIB'])]
 # the tests on the volume (not SUBVOL: it needs the sub-volumes runtests makes; not CHAIN:
 # its programs are on #5 as runtests puts them)
 NOTEST = ['SUBVOL', 'CHAIN']

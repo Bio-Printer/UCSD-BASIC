@@ -523,7 +523,8 @@ The volume BASIC: holds:
                                 BCDEBUG2.CODE
     LIB/   BASLIB.OBJ           the run-time library, RT*.BAS its sources;
            LIBS.TEXT            @BASIC:/LIB/LIBS: BASIC:/LIB/BASLIB2.OBJ
-    DEMO/  HELLO PRIMES HANOI MANDEL PI GUESS, STATS + STATLIB (two modules);
+    DEMO/  HELLO PRIMES HANOI MANDEL PI GUESS AMAZING (from the shell: AMAZING
+           13 10, its size), STATS + STATLIB (two modules);
            DEMOS.TEXT           @BASIC:/DEMO/DEMOS compiles them
     TEST/  the compiler's tests; TESTS.TEXT compiles them,
            EXPECT/NAME.TEXT     what each prints

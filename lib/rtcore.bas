@@ -172,6 +172,8 @@ SUB _RTERR (code)
         _RTWHERE VARPTR(code) - 12
         _CONFLUSH
     END IF
+    ' (the exit status 1, as BCDEBUG's)
+    POKE OSVAR(1) + 46, 1
     CSP 4, 1, 1
 END SUB
 
