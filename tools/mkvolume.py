@@ -32,7 +32,7 @@ sys.path.insert(0, HERE)
 import ucsdvol
 
 from bcprogs import PROGS, MODS
-LIBS = ['RTCORE', 'RTFILE', 'RTSTR', 'RTNUM', 'RTARR', 'RTINPUT', 'RTDATA', 'RTSUBV', 'RTCHAIN']
+LIBS = ['RTCORE', 'RTFILE', 'RTSTR', 'RTNUM', 'RTARR', 'RTINPUT', 'RTDATA', 'RTSUBV', 'RTCHAIN', 'RTWHERE']
 # the demos: NAME, or (NAME, [the modules linked with it])
 DEMOS = ['HELLO', 'PRIMES', 'HANOI', 'MANDEL', 'PI', 'GUESS', ('STATS', ['STATLIB'])]
 # the tests on the volume (not SUBVOL: it needs the sub-volumes runtests makes; not CHAIN:

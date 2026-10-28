@@ -1,0 +1,31 @@
+start
+ 1 
+ 2 
+ 3 
+ 4 
+ 5 
+ 6 
+ 7 
+ 8 
+ 9 
+ 10 
+ 11 
+ 12 
+ 13 
+ 14 
+ 15 
+ 16 
+ 17 
+ 18 
+ 19 
+ 20 
+ 21 
+ 22 
+ 23 
+ 24 
+ 25 
+ 26 
+
+Run-time error 9: Subscript out of range
+RTERR.BAS line 8, in FILL (S# 1, P# 3, I# 73):
+x(a) = a

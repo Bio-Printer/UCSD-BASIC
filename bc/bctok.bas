@@ -31,6 +31,11 @@ END FUNCTION
 SUB GetTok ()
     DIM b AS BYTE, v
     TokNewLine = 0
+    ' (MAXERR errors: the end, for the passes to end -- ErrRec)
+    IF ErrCount >= MAXERR THEN
+        Tok = TEOF
+        EXIT SUB
+    END IF
     DO
         GET #CHTOK, , b
         Tok = b

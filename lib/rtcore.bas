@@ -143,7 +143,9 @@ END SUB
 
 SUB _RTERR (code)
     STATIC inerr
-    ' (an error while the files are closed after one: out at once)
+    DIM np
+    ' (an error while the files are closed after one, or while RTWHERE
+    ' looks for the place: out at once)
     IF inerr THEN CSP 4, 1, 1
     inerr = 1
     _CONFLUSH
@@ -155,6 +157,21 @@ SUB _RTERR (code)
     _PNL 0
     _CONFLUSH
     _CLOSE 0
+    IF _HEAPLO THEN
+        ' the program's strings, arrays and temporaries given back (memory
+        ' for _RTWHERE and its segment, after "Out of memory" too); where
+        ' the error was, from this procedure's frame (its parameter is the
+        ' frame's word 6, after the mark stack control word)
+        np = _HEAPLO + 2
+        CSP 33, VARPTR(np)
+        _HEAPTOP = np
+        _BIGFREE = 0
+        CSP 10, _FREETAB, 0, 20, 0
+        _TTOP = _TBASE
+        _ERRTRAP = -1
+        _RTWHERE VARPTR(code) - 12
+        _CONFLUSH
+    END IF
     CSP 4, 1, 1
 END SUB
 

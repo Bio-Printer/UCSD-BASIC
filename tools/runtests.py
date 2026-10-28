@@ -4,7 +4,8 @@ host BC (build/bc, build/BASLIB.OBJ), run on the P-System, its output
 compared with tests/NAME.expect (NAME.keys: what is typed, one line each;
 NAME.dirs: sub-volumes made on WORK: first, their files listed after it;
 NAME.progs: more programs, tests/PROG.bas each, compiled and put on WORK: too,
-for CHAIN).
+for CHAIN).  NAME.bas is put on WORK: too (not with NAME.dirs): a run-time
+error says its line.
 
   runtests.py [NAME ...]        (-v: show the differences)
 """
@@ -45,9 +46,9 @@ def run_test(name, verbose=False):
             print('FAIL  %s (compile %s)\n%s%s' % (name, p, r.stdout, r.stderr))
             return False
         files.append(os.path.join(work, b + '.CODE'))
-    if os.path.exists(pf):
-        files.append(src)                       # (the source too: CHAIN of a text file)
     df = os.path.join(ROOT, 'tests', name + '.dirs')
+    if os.path.exists(pf) or not os.path.exists(df):
+        files.append(src)                       # (the source too: CHAIN of a text file, a run-time error's line)
     dirs = brun.read_dirs(df) if os.path.exists(df) else None
     ok, out, info, ps = brun.run(code, files, keys, dirs=dirs)
     if dirs:

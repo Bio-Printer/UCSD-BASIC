@@ -10,6 +10,8 @@
 '                   P-code made for them) in NAME.LST; -S -C NAME too
 '   -L OUT=A,B,...  link A.OBJ, B.OBJ ... (and BASLIB.OBJ) into OUT.CODE
 '   -J LIB=A,B,...  join object files into one library LIB.OBJ
+'   -MAP            with each link, NAME.MAP: the segments' procedures by
+'                   number (a run-time error's S# and P#)
 '   @FILE           the commands in FILE.TEXT, one or more a line
 '   -Q              fewer messages
 ' The compiler is six programs, each in memory alone (CHAIN): this one,
@@ -102,6 +104,8 @@ FUNCTION AddCmds (l$)
             JobFlags = JobFlags OR JFQUIET
         ELSEIF w$ = "-M" THEN
             JobFlags = JobFlags OR JFMEM
+        ELSEIF w$ = "-MAP" THEN
+            JobFlags = JobFlags OR JFMAP
         ELSEIF w$ = "-L" THEN
             ok = AddStep("L " + UCASE$(NextWord$))
         ELSEIF w$ = "-J" THEN
