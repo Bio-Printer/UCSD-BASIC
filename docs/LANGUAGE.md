@@ -50,8 +50,9 @@ header, was lost), and Export File writes it back as PC text.
 - `?` is short for PRINT.
 
 Names: a letter or _ first, then letters, digits and _, then optionally
-one type suffix: % INTEGER, ! SINGLE, # DOUBLE, $ STRING.  A name may not
-be a keyword (but a keyword with a suffix, as in STRING$, is a name).
+one type suffix: % INTEGER, # SINGLE, ! DOUBLE, $ STRING, ~ BYTE.  (Not
+QuickBASIC's: there ! is SINGLE and # DOUBLE.)  A name may not be a
+keyword (but a keyword with a suffix, as in STRING$, is a name).
 Names that start with an underscore are used by the run-time library.
 
 Keywords: AND ANDALSO APPEND AS BINARY BYREF BYTE BYVAL CALL CASE CHAIN CLOSE
@@ -68,8 +69,9 @@ Numbers:
 - &HFF, &O17, &B101: hexadecimal, octal, binary INTEGERs (16 bits:
   &HFFFF is -1).
 - 1.5, 2E10, .25: SINGLE.  A number with more than 7 significant digits,
-  a D exponent (1.5D300) or the suffix # is DOUBLE.  Suffix ! makes a
-  SINGLE, % an INTEGER.  A whole number too big for an INTEGER is SINGLE.
+  a D exponent (1.5D300) or the suffix ! is DOUBLE.  Suffix # makes a
+  SINGLE (however many digits), % an INTEGER.  A whole number too big for
+  an INTEGER is SINGLE.
 
 Strings: "text in double quotes".  There is no escape character: a
 quotation mark inside a string is CHR$(34).  A string not closed ends at
@@ -79,9 +81,9 @@ the end of the line.
 
 - INTEGER: 16 bits, -32768..32767.  Arithmetic wraps around (32767 + 1
   is -32768); there is no overflow error.
-- BYTE: 0..255.  A BYTE variable is stored in a word, a BYTE array
-  element in one byte; a value stored is cut to its low 8 bits.  In
-  expressions a BYTE is an INTEGER.
+- BYTE: 0..255 (suffix ~, or AS BYTE).  A BYTE variable is stored in a
+  word, a BYTE array element in one byte; a value stored is cut to its
+  low 8 bits (b~ = 300 makes 44).  In expressions a BYTE is an INTEGER.
 - SINGLE (also REAL): the P-machine's 4-byte real, about 7 digits,
   magnitude up to about 1.7E38.
 - DOUBLE: 8-byte IEEE floating point, 15-16 digits, up to about 1E308
@@ -90,7 +92,7 @@ the end of the line.
 - STRING: 0 to 255 characters.
 
 The type of a variable comes from, in this order: an AS clause
-(`DIM n AS INTEGER`), its suffix (`n%`), or the DEFtype statement for
+(`DIM n AS INTEGER`), its suffix (`n%`, `x#`, `d!`, `s$`, `b~`), or the DEFtype statement for
 its first letter:
 
     DEFINT A-Z          ' names without a suffix are INTEGERs
@@ -99,7 +101,8 @@ its first letter:
 
 Without any DEFtype a name without a suffix is SINGLE.  A name declared
 AS a type may also be written with that type's suffix (`DIM s AS STRING`:
-s and s$ are the same).  n%, n! and n$ are three different variables.
+s and s$ are the same; `DIM b AS BYTE`: b and b~).  n%, n!, n# and n$ are
+four different variables (n is n#, the SINGLE one, without a DEFtype).
 
 Truth: comparisons and the logical operators give -1 for true and 0 for
 false.  IF, WHILE, UNTIL and the other conditions take any number: 0 is
@@ -133,7 +136,7 @@ use of an undeclared variable an error.
 DIM declares variables explicitly:
 
     DIM i, j AS INTEGER, s$, buf AS STRING
-    DIM SHARED total#, names$(100)
+    DIM SHARED total!, names$(100)
 
 ## 4. Expressions
 
@@ -188,9 +191,9 @@ checked: one out of its range stops the program (run-time error 9).
         count = count + 1
     END SUB
 
-    FUNCTION Fact# (n)
+    FUNCTION Fact! (n)
         IF n <= 1 THEN RETURN 1
-        RETURN n * Fact#(n - 1)
+        RETURN n * Fact!(n - 1)
     END FUNCTION
 
     FUNCTION Pad (s$, n) AS STRING
@@ -333,7 +336,7 @@ Strings
 - STR$(x) (a blank before a number that is not negative), VAL(s$) (the
   number at the start of s$, blanks skipped, &H hexadecimal; a DOUBLE),
   HEX$(n)
-- MKI$(i), MKS$(x!), MKD$(d#): a number's bytes as a string; CVI, CVS,
+- MKI$(i), MKS$(x#), MKD$(d!): a number's bytes as a string; CVI, CVS,
   CVD: back.
 
 Numbers
@@ -414,7 +417,7 @@ For system programming (the run-time library is written with them):
   `POKEB a, v`.
 - VARPTR(var): a variable's address; SADD(s$): a string's address (its
   length byte, then its characters).
-- `CSP n, args` and CSP%(n, args), CSP!(...), CSP#(...): the P-machine's
+- `CSP n, args` and CSP%(n, args), CSP#(...), CSP!(...): the P-machine's
   standard procedure n (an INTEGER, SINGLE or DOUBLE result).
 - `OSCALL n, args`, OSCALL%(n, args): procedure n of the operating system
   (CXP 0,n).

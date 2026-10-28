@@ -1,7 +1,7 @@
 ' DATA, READ, RESTORE; WRITE
 DEFINT A-Z
-READ a, b$, c!, d#
-PRINT a; b$; c!; d#
+READ a, b$, c#, d!
+PRINT a; b$; c#; d!
 FOR i = 1 TO 3: READ n$: PRINT "["; n$; "]";: NEXT: PRINT
 RESTORE again
 READ x, y: PRINT x + y

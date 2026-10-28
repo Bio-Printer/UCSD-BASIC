@@ -309,13 +309,13 @@ END FUNCTION
 
 SEGMENT EXPRGEN
 ' the P-machine's 4-byte real of a double: [exp+128][sign|m22..m16][m15..m8][m7..m0]
-FUNCTION RealImage$ (d#)
+FUNCTION RealImage$ (d!)
     DIM b$, b3, b4, b5, b6, b7, e, m1, m2, m3, sg
-    IF d# = 0 THEN
+    IF d! = 0 THEN
         RealImage$ = STRING$(4, 0)
         EXIT FUNCTION
     END IF
-    b$ = MKD$(d#)
+    b$ = MKD$(d!)
     b3 = ASC(b$, 4)
     b4 = ASC(b$, 5)
     b5 = ASC(b$, 6)
@@ -353,12 +353,12 @@ FUNCTION RealImage$ (d#)
 END FUNCTION
 
 SUB GenRConst (n)
-    DIM d#, b$, i
-    d# = VAL(NS$(n))
-    IF NX(n) THEN d# = -d#
+    DIM d!, b$, i
+    d! = VAL(NS$(n))
+    IF NX(n) THEN d! = -d!
     OB OLDC
     IF NTy(n) = TYDBL THEN
-        b$ = MKD$(d#)
+        b$ = MKD$(d!)
         OB 4
         IF PC AND 1 THEN OB 0
         FOR i = 3 TO 0 STEP -1
@@ -366,7 +366,7 @@ SUB GenRConst (n)
             OB ASC(b$, 2 * i + 2)
         NEXT i
     ELSE
-        b$ = RealImage$(d#)
+        b$ = RealImage$(d!)
         OB 2
         IF PC AND 1 THEN OB 0
         OB ASC(b$, 3)
@@ -585,7 +585,7 @@ FUNCTION BuiltTable$ (part)
     CASE ELSE
         tb$ = "RND     TIMER   EOF     INKEY$  COMMAND$ERR     MKI$    CVI     MKS$    "
         tb$ = tb$ + "CVS     MKD$    CVD     LBOUND  UBOUND  FRE     VARPTR  PEEK    PEEKB   "
-        tb$ = tb$ + "CSP%    CSP!    CSP#    OSCALL% OSVAR   POS     FREEFILELOF     DVI%    "
+        tb$ = tb$ + "CSP%    CSP#    CSP!    OSCALL% OSVAR   POS     FREEFILELOF     DVI%    "
         tb$ = tb$ + "MDI%    SADD    OSADDR  "
     END SELECT
     BuiltTable$ = tb$

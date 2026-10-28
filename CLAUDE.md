@@ -30,6 +30,10 @@
   TLINE is reported on the line before (PrevLine: GetTok keeps it).  A new error: the next number, its text in bcerr.bas's
   MsgA$/MsgB$/MsgC$ (keep each under BC's 3200 bytes a procedure), and a
   case in tests/errors if it is easy to make.
+- Type suffixes: % INTEGER, # SINGLE (and no suffix), ! DOUBLE, $ STRING,
+  ~ BYTE -- not QuickBASIC's ! and # (BCLEX, BCUTIL's SuffixType and
+  TypeChar$, bas2c's SUFFIX/TYPECHAR; a literal 1.5! is DOUBLE, 1.5#
+  SINGLE).  tests/suffix.
 - BC's sources must stay within the part of the language tools/bas2c.py
   translates, and their lines under 250 characters.
 - Keep docs/LANGUAGE.md and docs/DESIGN.md current; they are on the volume.

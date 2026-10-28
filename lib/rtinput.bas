@@ -131,19 +131,19 @@ FUNCTION _INFS ()
     END IF
 END FUNCTION
 
-FUNCTION _INFD# ()
+FUNCTION _INFD! ()
     DIM t
     t = _TTOP
-    _INFD# = _VAL#(_INFS)
+    _INFD! = _VAL!(_INFS)
     _TTOP = t
 END FUNCTION
 
 FUNCTION _INFI ()
-    DIM d#, t
+    DIM d!, t
     t = _TTOP
-    d# = _VAL#(_INFS)
+    d! = _VAL!(_INFS)
     _TTOP = t
-    _INFI = d#
+    _INFI = d!
 END FUNCTION
 
 ' INKEY$: a key that is waiting, or ""

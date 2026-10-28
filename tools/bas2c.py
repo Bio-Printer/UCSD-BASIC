@@ -31,8 +31,9 @@ T_INT, T_SNG, T_DBL, T_STR, T_BYTE = 'I', 'F', 'D', 'S', 'B'
 CTYPE = {T_INT: 'bint', T_BYTE: 'bint', T_SNG: 'float', T_DBL: 'double', T_STR: 'bstr'}
 ELEMC = {T_INT: 'bint', T_BYTE: 'uint8_t', T_SNG: 'float', T_DBL: 'double', T_STR: 'bstr'}
 ZERO = {T_INT: '0', T_BYTE: '0', T_SNG: '0', T_DBL: '0', T_STR: '{0}'}
-SUFFIX = {'%': T_INT, '!': T_SNG, '#': T_DBL, '$': T_STR}
-TYPECHAR = {T_INT: '%', T_SNG: '!', T_DBL: '#', T_STR: '$', T_BYTE: '&'}
+# the type suffixes: % INTEGER, # SINGLE, ! DOUBLE, $ STRING, ~ BYTE
+SUFFIX = {'%': T_INT, '#': T_SNG, '!': T_DBL, '$': T_STR, '~': T_BYTE}
+TYPECHAR = {T_INT: '%', T_SNG: '#', T_DBL: '!', T_STR: '$', T_BYTE: '~'}
 
 
 class Err(Exception):
@@ -125,14 +126,14 @@ def lex_line(t, path, ln, out):
             while p < n and (t[p].isalnum() or t[p] == '_'):
                 p += 1
             w = t[s:p].upper()
-            if w in KW and not (p < n and t[p] in '%!$'):
+            if w in KW and not (p < n and t[p] in '%!$~'):
                 add('KW', w)
                 first = 2 if w in ('THEN', 'ELSE') else 0
                 continue
-            if p < n and t[p] in '%!#$':
+            if p < n and t[p] in '%!#$~':
                 w += t[p]
                 p += 1
-            if first == 1 and p < n and t[p] == ':' and w[-1] not in '%!#$':
+            if first == 1 and p < n and t[p] == ':' and w[-1] not in '%!#$~':
                 p += 1
                 add('LABEL', w)
                 continue
@@ -149,7 +150,7 @@ def lex_line(t, path, ln, out):
                 v = int(body)
                 add('INT', -32768 if v == 32768 else v)
             else:
-                ty = T_DBL if (suf == '#' or ex[:1] in 'Dd' and ex) else T_SNG
+                ty = T_DBL if (suf == '!' or ex[:1] in 'Dd' and ex) else T_SNG
                 add('REAL', (body + ex.upper().replace('D', 'E'), ty))
             first = 0
             continue
@@ -194,7 +195,7 @@ def lex_line(t, path, ln, out):
 # ---------------------------------------------------------------- symbols
 
 def mangle(name):
-    s = name.replace('$', '_S').replace('%', '_I').replace('!', '_F').replace('#', '_D').replace('&', '_B')
+    s = name.replace('$', '_S').replace('%', '_I').replace('#', '_F').replace('!', '_D').replace('~', '_B')
     s = s.replace("'", '_q_')
     return s
 

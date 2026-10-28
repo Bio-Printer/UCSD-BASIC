@@ -4,10 +4,10 @@
 
 ' a double as text in the style of BASIC: prec significant digits, no
 ' leading 0 before the point, E+nn; a blank before one that is not negative
-FUNCTION _FMTD (d#, prec)
+FUNCTION _FMTD (d!, prec)
     DIM b, n, i, c, o, t, neg
     b = _SCRATCH
-    CSP 133, d#, 103, prec, b
+    CSP 133, d!, 103, prec, b
     ' (a C string): copied, 0.5 -> .5, e -> E
     n = 0
     DO WHILE PEEKB(b + n) <> 0 AND n < 40
@@ -34,26 +34,26 @@ FUNCTION _FMTD (d#, prec)
     _FMTD = t
 END FUNCTION
 
-FUNCTION _STRS (x!)
-    _STRS = _FMTD(x!, 7)
+FUNCTION _STRS (x#)
+    _STRS = _FMTD(x#, 7)
 END FUNCTION
 
-FUNCTION _STRD (x#)
-    _STRD = _FMTD(x#, 15)
+FUNCTION _STRD (x!)
+    _STRD = _FMTD(x!, 15)
 END FUNCTION
 
-SUB _PSNG (ch, x!)
+SUB _PSNG (ch, x#)
     DIM t
     t = _TTOP
-    _PSTR ch, _FMTD(x!, 7)
+    _PSTR ch, _FMTD(x#, 7)
     _TTOP = t
     _PSPC ch, 1
 END SUB
 
-SUB _PDBL (ch, x#)
+SUB _PDBL (ch, x!)
     DIM t
     t = _TTOP
-    _PSTR ch, _FMTD(x#, 15)
+    _PSTR ch, _FMTD(x!, 15)
     _TTOP = t
     _PSPC ch, 1
 END SUB
@@ -61,8 +61,8 @@ END SUB
 
 
 ' VAL: the number at the start of s (blanks skipped; &H hexadecimal; D as E)
-FUNCTION _VAL# (s)
-    DIM b, n, i, c, j, r#, v, d, k
+FUNCTION _VAL! (s)
+    DIM b, n, i, c, j, r!, v, d, k
     n = _SLEN(s)
     i = 1
     DO WHILE i <= n
@@ -83,7 +83,7 @@ FUNCTION _VAL# (s)
                 END IF
                 v = ((v AND &HFFF) * 16) OR d
             NEXT k
-            _VAL# = v
+            _VAL! = v
             EXIT FUNCTION
         END IF
     END IF
@@ -97,73 +97,73 @@ FUNCTION _VAL# (s)
         i = i + 1
     LOOP
     POKEB b + j, 0
-    n = CSP%(135, b, VARPTR(r#))
-    _VAL# = r#
+    n = CSP%(135, b, VARPTR(r!))
+    _VAL! = r!
 END FUNCTION
 
 ' CINT of a double: rounded, half away from 0
-FUNCTION _DCINT (d#)
-    IF d# >= 0 THEN d# = d# + .5# ELSE d# = d# - .5#
-    IF d# >= 32768# OR d# <= -32769# THEN _RTERR 6
-    _DCINT = CSP%(109, d#)
+FUNCTION _DCINT (d!)
+    IF d! >= 0 THEN d! = d! + .5! ELSE d! = d! - .5!
+    IF d! >= 32768! OR d! <= -32769! THEN _RTERR 6
+    _DCINT = CSP%(109, d!)
 END FUNCTION
 
-FUNCTION _FIXD# (d#)
-    IF d# >= 0 THEN _FIXD# = CSP#(124, d#) ELSE _FIXD# = CSP#(125, d#)
+FUNCTION _FIXD! (d!)
+    IF d! >= 0 THEN _FIXD! = CSP!(124, d!) ELSE _FIXD! = CSP!(125, d!)
 END FUNCTION
 
-FUNCTION _FIXS! (x!)
-    _FIXS! = _FIXD#(x!)
+FUNCTION _FIXS# (x#)
+    _FIXS# = _FIXD!(x#)
 END FUNCTION
 
-FUNCTION _INTS! (x!)
-    DIM d#
-    d# = x!
-    _INTS! = CSP#(124, d#)
+FUNCTION _INTS# (x#)
+    DIM d!
+    d! = x#
+    _INTS# = CSP!(124, d!)
 END FUNCTION
 
 FUNCTION _SGNI (v)
     IF v > 0 THEN _SGNI = 1 ELSE IF v < 0 THEN _SGNI = -1
 END FUNCTION
 
-FUNCTION _SGNS (x!)
-    IF x! > 0 THEN _SGNS = 1 ELSE IF x! < 0 THEN _SGNS = -1
+FUNCTION _SGNS (x#)
+    IF x# > 0 THEN _SGNS = 1 ELSE IF x# < 0 THEN _SGNS = -1
 END FUNCTION
 
-FUNCTION _SGND (x#)
-    IF x# > 0 THEN _SGND = 1 ELSE IF x# < 0 THEN _SGND = -1
+FUNCTION _SGND (x!)
+    IF x! > 0 THEN _SGND = 1 ELSE IF x! < 0 THEN _SGND = -1
 END FUNCTION
 
-FUNCTION _TANS! (x!)
-    DIM d#
-    d# = x!
-    _TANS! = CSP#(115, d#)
+FUNCTION _TANS# (x#)
+    DIM d!
+    d! = x#
+    _TANS# = CSP!(115, d!)
 END FUNCTION
 
 ' RND: the next of the generator, 0 <= RND < 1
-FUNCTION _RND! ()
-    _SEED# = CSP#(127, _SEED# * 16598013# + 12820163#, 16777216#)
-    _RND! = _SEED# / 16777216#
+FUNCTION _RND# ()
+    _SEED! = CSP!(127, _SEED! * 16598013! + 12820163!, 16777216!)
+    _RND# = _SEED! / 16777216!
 END FUNCTION
 
 ' RANDOMIZE n (any number: TIMER too): a whole n -32768..32767 starts the
 ' sequence at n + 32768, as it always did; any other its 64ths (TIMER's
 ' fraction counts) modulo 2^24
-SUB _RANDOMIZE (n#)
-    IF n# = INT(n#) AND n# >= -32768# AND n# <= 32767# THEN
-        _SEED# = n# + 32768#
+SUB _RANDOMIZE (n!)
+    IF n! = INT(n!) AND n! >= -32768! AND n! <= 32767! THEN
+        _SEED! = n! + 32768!
     ELSE
-        _SEED# = CSP#(127, INT(ABS(n#) * 64#), 16777216#)
+        _SEED! = CSP!(127, INT(ABS(n!) * 64!), 16777216!)
     END IF
 END SUB
 
 ' TIMER: seconds (the P-machine's clock counts 60ths)
-FUNCTION _TIMER! ()
-    DIM hi, lo, d#
+FUNCTION _TIMER# ()
+    DIM hi, lo, d!
     CSP 9, VARPTR(hi), VARPTR(lo)
-    d# = hi * 65536# + lo
-    IF lo < 0 THEN d# = d# + 65536#
-    _TIMER! = d# / 60
+    d! = hi * 65536! + lo
+    IF lo < 0 THEN d! = d! + 65536!
+    _TIMER# = d! / 60
 END FUNCTION
 
 ' FRE(x): the words free; FRE(-1): the fewest there have been

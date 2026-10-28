@@ -72,12 +72,15 @@ END SUB
 ' ---- types by a name's suffix
 
 ' the type a name's suffix gives, 0 for none
+' the type a name's suffix says: % INTEGER, # SINGLE, ! DOUBLE, $ STRING,
+' ~ BYTE (0: no suffix)
 FUNCTION SuffixType (n$)
     SELECT CASE ASC(n$, LEN(n$))
     CASE 37: SuffixType = TYINT
-    CASE 33: SuffixType = TYSNG
-    CASE 35: SuffixType = TYDBL
+    CASE 35: SuffixType = TYSNG
+    CASE 33: SuffixType = TYDBL
     CASE 36: SuffixType = TYSTR
+    CASE 126: SuffixType = TYBYTE
     END SELECT
 END FUNCTION
 
@@ -88,10 +91,10 @@ END FUNCTION
 FUNCTION TypeChar$ (ty)
     SELECT CASE ty
     CASE TYINT: TypeChar$ = "%"
-    CASE TYSNG: TypeChar$ = "!"
-    CASE TYDBL: TypeChar$ = "#"
+    CASE TYSNG: TypeChar$ = "#"
+    CASE TYDBL: TypeChar$ = "!"
     CASE TYSTR: TypeChar$ = "$"
-    CASE TYBYTE: TypeChar$ = "%"
+    CASE TYBYTE: TypeChar$ = "~"
     END SELECT
 END FUNCTION
 

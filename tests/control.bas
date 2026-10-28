@@ -3,7 +3,7 @@ DEFINT A-Z
 FOR i = 1 TO 10 STEP 3: PRINT i;: NEXT: PRINT
 FOR i = 5 TO 1 STEP -2: PRINT i;: NEXT i: PRINT
 s = -1: FOR i = 3 TO 0 STEP s: PRINT i;: NEXT: PRINT
-FOR x! = 0 TO 1 STEP .25: PRINT x!;: NEXT: PRINT
+FOR x# = 0 TO 1 STEP .25: PRINT x#;: NEXT: PRINT
 i = 0
 DO WHILE i < 3: i = i + 1: PRINT "w"; i;: LOOP: PRINT
 DO: i = i - 1: PRINT "u"; i;: LOOP UNTIL i = 0: PRINT

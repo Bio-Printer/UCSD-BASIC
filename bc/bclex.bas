@@ -167,7 +167,7 @@ END FUNCTION
 
 ' a number: an integer (TINT) or the text of a real (TSNG, TDBL)
 SUB LexNumber ()
-    DIM s, digits$, ty, c, v, d, big, nsig, i
+    DIM s, digits$, ty, c, v, d, big, nsig, i, suf
     s = LxPos
     ty = 0
     DO WHILE IsDigit(LxC)
@@ -199,12 +199,15 @@ SUB LexNumber ()
             digits$ = digits$ + MID$(LxLine$, s, LxPos - s)
         END IF
     END IF
+    ' a suffix: ! DOUBLE, # SINGLE (kept SINGLE, however many digits), % INTEGER
     c = LxC
-    IF c = 35 THEN
+    suf = 0
+    IF c = 33 THEN
         ty = TYDBL
         LxPos = LxPos + 1
-    ELSEIF c = 33 THEN
+    ELSEIF c = 35 THEN
         ty = TYSNG
+        suf = 1
         LxPos = LxPos + 1
     ELSEIF c = 37 THEN
         IF ty <> 0 THEN LexErr 2, ""   ' an integer with a decimal point
@@ -231,7 +234,7 @@ SUB LexNumber ()
         ty = TYSNG
     END IF
     ' more than 7 significant digits: a DOUBLE
-    IF ty = TYSNG THEN
+    IF ty = TYSNG AND suf = 0 THEN
         nsig = 0
         FOR i = 1 TO LEN(digits$)
             c = ASC(digits$, i)
@@ -328,10 +331,12 @@ SUB LexTokens ()
                 c = LxC
             LOOP WHILE IsLetter(c) OR IsDigit(c)
             w$ = UCASE$(MID$(LxLine$, s, LxPos - s))
-            ' a keyword followed by $ % ! is a name (STRING$, INPUT$)
-            IF c = 36 OR c = 37 OR c = 33 THEN k = 0 ELSE k = KwCode(w$)
+            ' a keyword followed by $ % ! ~ is a name (STRING$, INPUT$); a #
+            ' after one is a file's number (PRINT#1)
+            IF c = 36 OR c = 37 OR c = 33 OR c = 126 THEN k = 0 ELSE k = KwCode(w$)
             IF k = 0 THEN
-                IF c = 37 OR c = 33 OR c = 35 OR c = 36 THEN
+                ' its type suffix: % INTEGER, # SINGLE, ! DOUBLE, $ STRING, ~ BYTE
+                IF c = 37 OR c = 33 OR c = 35 OR c = 36 OR c = 126 THEN
                     w$ = w$ + CHR$(c)
                     LxPos = LxPos + 1
                 END IF

@@ -576,13 +576,13 @@ SUB _PUTS (ch, s)
 END SUB
 
 ' SEEK #ch, pos (from 1): a byte file's position
-SUB _SEEK (ch, pos!)
-    DIM e, b, o, d#
+SUB _SEEK (ch, pos#)
+    DIM e, b, o, d!
     e = _FOPENED(ch)
     IF PEEK(e + FFL) AND FTEXT THEN _IOERR 54
-    d# = pos! - 1
-    b = CSP%(109, d# / 512)
-    o = CSP%(109, d# - b * 512#)
+    d! = pos# - 1
+    b = CSP%(109, d! / 512)
+    o = CSP%(109, d! - b * 512!)
     IF _LOADBLK(e, b) THEN _IOERR 61
     POKE e + FPOS, o
     POKE e + FUNG, -1

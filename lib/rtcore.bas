@@ -37,7 +37,7 @@ SUB _RTINIT ()
     _ABUF = _NEWBLK(9)
     _AIXB = _NEWBLK(9)
     _SCRATCH = _NEWBLK(41)
-    _SEED# = 327680
+    _SEED! = 327680
     _PATHBUF = _NEWBLK(64)
     _SIZESPEC = _NEWBLK(4)
     _ARGS
@@ -537,7 +537,7 @@ SUB _PNL (ch)
 END SUB
 
 ' (the number's text is a temporary the caller does not know of: given back
-' here, as in _PSNG, _PDBL, _INFI, _INFD#)
+' here, as in _PSNG, _PDBL, _INFI, _INFD!)
 SUB _PINT (ch, v)
     DIM t
     t = _TTOP

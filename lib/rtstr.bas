@@ -213,12 +213,12 @@ FUNCTION _MKI (v)
     _MKI = _MKN(VARPTR(v), 2)
 END FUNCTION
 
-FUNCTION _MKS (x!)
-    _MKS = _MKN(VARPTR(x!), 4)
+FUNCTION _MKS (x#)
+    _MKS = _MKN(VARPTR(x#), 4)
 END FUNCTION
 
-FUNCTION _MKD (x#)
-    _MKD = _MKN(VARPTR(x#), 8)
+FUNCTION _MKD (x!)
+    _MKD = _MKN(VARPTR(x!), 8)
 END FUNCTION
 
 SUB _CVN (s, addr, n)
@@ -235,14 +235,14 @@ FUNCTION _CVI (s)
     _CVI = v
 END FUNCTION
 
-FUNCTION _CVS! (s)
-    DIM x!
-    _CVN s, VARPTR(x!), 4
-    _CVS! = x!
+FUNCTION _CVS# (s)
+    DIM x#
+    _CVN s, VARPTR(x#), 4
+    _CVS# = x#
 END FUNCTION
 
-FUNCTION _CVD# (s)
-    DIM x#
-    _CVN s, VARPTR(x#), 8
-    _CVD# = x#
+FUNCTION _CVD! (s)
+    DIM x!
+    _CVN s, VARPTR(x!), 8
+    _CVD! = x!
 END FUNCTION

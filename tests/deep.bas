@@ -1,7 +1,7 @@
 ' recursion 50 deep with strings and numbers; GOSUB 50 deep; FOR 30 deep
 DEFINT A-Z
 PRINT Depth$(50, "")
-PRINT Sum#(50)
+PRINT Sum!(50)
 g = 0: GOSUB 100: PRINT "gosubs"; g
 DIM v(30)
 FOR a1 = 1 TO 1: FOR a2 = 1 TO 1: FOR a3 = 1 TO 1: FOR a4 = 1 TO 1: FOR a5 = 1 TO 1
@@ -21,7 +21,7 @@ FUNCTION Depth$ (n, s$)
   IF n = 0 THEN Depth$ = s$: EXIT FUNCTION
   Depth$ = Depth$(n - 1, s$ + CHR$(48 + n MOD 10))
 END FUNCTION
-FUNCTION Sum# (n)
+FUNCTION Sum! (n)
   IF n = 0 THEN RETURN 0
-  RETURN n + Sum#(n - 1)
+  RETURN n + Sum!(n - 1)
 END FUNCTION
