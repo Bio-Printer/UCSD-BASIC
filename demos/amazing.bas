@@ -181,10 +181,10 @@ prt_maze:
             end if
         Next C
 
-        print "   ";
-        for c = 1 to c9
-           print print_3_digits$( w(r,c) );
-        next c
+'        print "   ";					' These 4 lines will print out when the square was added to the path
+'        for c = 1 to c9				' The solution finding starts at the exit and looks for decreasing
+'           print print_3_digits$( w(r,c) );		' values in these numbers.   
+'        next c
 
         Print
         For C = 1 To C9
@@ -350,12 +350,14 @@ loopy:
 end sub
 
 Sub current_solution
+'     print "  ";
      For C7 = 1 To C9
-        If c7<10 Then Print C7; Else print right$( str$(c7),3);
+'       If c7<10 Then Print C7; Else print right$( "     "+str$(c7), 6);
+        print right$( "     "+str$(c7)+" ", 4);
      Next C7
      Print                            'PRINT TOP BORDER of solution
      For C7 = 1 To C9
-       If C7 = F Then  Print "+  "; Else  Print "+--";
+       If C7 = F Then  Print "+   "; Else  Print "+---";
      Next C7
      '
      Print "|"
@@ -364,16 +366,16 @@ Sub current_solution
         Print "|";
         For C7 = 1 To C9
            If V(R7,C7) < 2 Goto lab0
-           If s(r7,c7)=0 Then Print "   "; Else Print " # ";
+           If s(r7,c7)=0 Then Print "    "; Else Print " #  ";
            GoTo lab1
-lab0:      If s(r7,c7)=0 Then Print "  |"; Else Print " #|";
+lab0:      If s(r7,c7)=0 Then Print "   |"; Else Print " # |";
 lab1:   Next C7
         Print r7
         For C7 = 1 To C9
            If (v(r7,c7) Mod 2) = 0 Goto lab2
-           Print "+  ";
+           Print "+   ";
            GoTo lab3
-lab2:      Print "+--";
+lab2:      Print "+---";
 lab3:   Next C7
         Print "|"
      Next R7
