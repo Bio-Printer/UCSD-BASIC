@@ -523,8 +523,9 @@ links and runs PI in both.  What makes that fit:
   step leaves the old table's memory behind as a hole too small for the
   next one.
 
-Compiling PI, BCGEN has at least 1410 words left in Z80 mode and BCLINK
-2790 (5330 and 6710 in P-Code mode without the Harvard layout).  The
+Compiling PI, BCGEN has at least 3062 words left in Z80 mode, BCASM 5713
+and BCLINK 2805 (6977, 9628 and 6720 in P-Code mode without the Harvard
+layout; BCGEN had 1410 and 5330 before BCASM took the code out of it).  The
 run-time errors' lines took 390 and 270 of them, the shell's redirections
 (section 9) 130 and 440 more: BCGEN's line table and
 ListLine, BCLINK's reading over the line tables (and _RTERR's few more
