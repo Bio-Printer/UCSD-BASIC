@@ -440,6 +440,9 @@ IF OptList THEN
     CLOSE #CHLREC
     CLOSE #CHLCOD
 END IF
+' (and BCGEN's token file: KILL is in RTSELDOM, which BCGEN has no room
+' left for at its end)
+KILL TokName$
 KILL AsmName$
 IF ErrCount > 0 THEN CompileFailed
 IF OptList THEN ChainTo "BCLIST", ""

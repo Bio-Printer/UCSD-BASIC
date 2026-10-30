@@ -120,6 +120,7 @@ SUB EmitCsp (n)
     OB n
 END SUB
 
+SEGMENT EXPRGEN
 SUB Ind0 ()
     OB OSIND0
 END SUB
@@ -135,6 +136,7 @@ END SUB
 
 ' ---- labels and jumps
 
+SEGMENT
 FUNCTION NewLabel ()
     IF NLab >= MAXLAB THEN
         ErrNo 111   ' procedure too large (labels): split it
@@ -198,7 +200,8 @@ FUNCTION RtSym (n$)
     RtSym = s
 END FUNCTION
 
-SEGMENT RTSELDOM
+' a run-time library variable: its symbol (in the main segment: TempReset
+' calls it after most statements)
 FUNCTION RtVar (n$)
     DIM s
     s = FindSym(n$)
@@ -210,7 +213,6 @@ FUNCTION RtVar (n$)
     RtVar = s
 END FUNCTION
 
-SEGMENT
 ' a global variable's load, store or address: op with a 2-byte operand the
 ' linker fills in (a module static: its offset in the module's block; a
 ' COMMON variable: the offset in it)
@@ -355,7 +357,7 @@ SUB BeginProc (s)
     END IF
 END SUB
 
-SEGMENT STMTA
+SEGMENT DECL
 ' a GOSUB's return point: its number (RETURN goes back through a table)
 FUNCTION GosubSite (l)
     IF NGosub >= 100 THEN

@@ -493,14 +493,25 @@ links and runs PI in both.  What makes that fit:
   13K of code was in every program; now only what it calls is (BC's own
   programs are 5 to 6K smaller, PI 7K).
 - The segment RTSELDOM (section 9): the library's and BC's seldom parts.
-- BCGEN's pass 3 is six segments, a call chain holding three of them at
-  most: STMT (the statement loop: GenBlock, GenStmt, IF, FOR, DO, WHILE,
-  SELECT); one of STMTA (assignments, calls, GOTO, GOSUB, ON, EXIT),
-  STMTD (DIM, CONST, SHARED, STATIC) and STMTIO (PRINT, INPUT, the files,
-  READ); and EXPR (an expression parsed into a tree) or EXPRGEN (its
-  code): an expression is parsed, then made into code, so those two are
-  never in memory together.  What all of them use (the emitter, the
-  nodes, the symbol lookups, GenPass and GenProc) is in the main segment.
+- BCGEN's pass 3 is six segments, and DECL; a call chain holds three
+  of them at most: STMT (the statement loop: GenBlock, GenStmt, IF, FOR,
+  DO, WHILE, SELECT); one of STMTA (assignments, CALL, ON, OPEN, CLOSE),
+  STMTD (DIM, CONST, END, SWAP, READ), STMTIO (PRINT, INPUT, WRITE, GET,
+  PUT, RETURN) and DECL (pass 2, and what takes no expression: GOTO,
+  GOSUB, EXIT, the labels, SHARED, STATIC, RESTORE); and EXPR (an
+  expression parsed into a tree) or EXPRGEN (its code, and the
+  conditions' and FOR's): an expression is parsed, then made into code,
+  so those two are never in memory together.  What all of them use (the
+  emitter, the nodes, the symbol lookups, LValue, GenPass and GenProc,
+  RtVar: TempReset's) is in the main segment.  The places came from the
+  call graph (the objects' CALL references: the most code in memory along
+  any chain, the main segment's with it, RTSELDOM's too -- OPEN in pass 2
+  -- but not the errors') and the calls' counts compiling BC's sources and
+  the demos (the host build with gprof): a call into a segment not in
+  memory reads it from the disk.  Against the layout before, that is 1,460
+  bytes less at the most and 29% fewer segments read.  BCGEN leaves the
+  token file to BCASM to remove (KILL is RTSELDOM's: at its end BCGEN's
+  heap is at its largest).
   The error messages' texts and the keywords' names are BCERR's (section
   5): BCGEN holds none (BCLEX's KwCode keeps a copy of the keyword table);
   ProcHeader and CountDims, which only pass 2 uses, are in DECL.
@@ -527,10 +538,11 @@ links and runs PI in both.  What makes that fit:
   step leaves the old table's memory behind as a hole too small for the
   next one.
 
-Compiling PI, BCGEN has at least 3499 words left in Z80 mode, BCASM 5709
-and BCLINK 2801 (7414, 9624 and 6716 in P-Code mode without the Harvard
-layout; BCGEN had 1410 and 5330 before BCASM took the code out of it, and
-3062 and 6977 before _RTINIT, _KILL and _ERRTEXT went into RTSELDOM).  The
+Compiling PI, BCGEN has at least 4203 words left in Z80 mode, BCASM 5706
+and BCLINK 2801 (8118, 9621 and 6716 in P-Code mode without the Harvard
+layout; BCGEN had 1410 and 5330 before BCASM took the code out of it,
+3062 and 6977 before _RTINIT, _KILL and _ERRTEXT went into RTSELDOM, and
+3499 and 7414 before the segments above were placed again).  The
 run-time errors' lines took 390 and 270 of them, the shell's redirections
 (section 9) 130 and 440 more: BCGEN's line table and
 ListLine, BCLINK's reading over the line tables (and _RTERR's few more
@@ -545,11 +557,13 @@ statements.  What has been done for BC to compile itself in Z80 mode: the
 names a module includes and never uses are not BCGEN's symbols (section
 3); BCLEX's names are hashes, not strings (its peak compiling BCEXPR from
 15,900 words to 10,900); the code and its tables are BCASM's, not BCGEN's
-(section 5); BC's programs chain without opening a file (section 9).  In
-Z80 mode BCUTIL, BCTOK and BCDECL now compile (BCGEN leaves 1,250 to 1,550
-words); BCEMIT is about 500 words short, BCEXPR about 2,900 and BCGEN about
-3,900 (in the Harvard layout they leave 3,500, 5,900 and 7,000 words less
-than PI).  BC does not check the layout; out of memory, it
+(section 5); BC's programs chain without opening a file (section 9);
+BCGEN's segments are placed by the call graph and the calls' counts
+(above), and its seldom parts are RTSELDOM's (section 9).  In
+Z80 mode BCUTIL, BCTOK and BCDECL now compile (BCGEN leaves 2,150 to 2,550
+words); BCEMIT gets through pass 2 and its module's own code but not its
+procedures, and BCEXPR and BCGEN run out of memory after pass 2 (in the
+Harvard layout they leave 3,500, 5,900 and 7,000 words less than PI).  BC does not check the layout; out of memory, it
 says Run-time error 7, or the emulator *STK OFLOW*.  (bas2c takes the CSP
 statement as nothing and CSP%() as 0.)
 

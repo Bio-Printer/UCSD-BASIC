@@ -23,6 +23,7 @@ SUB StmtEnd ()
     END IF
 END SUB
 
+SEGMENT EXPRGEN
 ' a condition: jump to falselab when it is false; the temporaries it made
 ' are given back on the way through (and AtFalse does it at falselab)
 FUNCTION CondJ (c, falselab)
@@ -31,6 +32,7 @@ FUNCTION CondJ (c, falselab)
     TempReset
 END FUNCTION
 
+SEGMENT STMT
 SUB AtFalse (f)
     IF f THEN
         TempUsed = 1
@@ -38,6 +40,7 @@ SUB AtFalse (f)
     END IF
 END SUB
 
+SEGMENT DECL
 ' NOT c as a condition
 FUNCTION NotCond (c)
     DIM n
@@ -62,7 +65,6 @@ FUNCTION SymNode (s)
     SymNode = n
 END FUNCTION
 
-SEGMENT STMT
 ' the target of an assignment, INPUT, READ ...: a variable or an element
 ' (made if it is new); 0 after an error
 FUNCTION LValue ()
@@ -99,6 +101,7 @@ FUNCTION LValue ()
     LValue = SymNode(s)
 END FUNCTION
 
+SEGMENT EXPRGEN
 SUB Assign (lv, e)
     DIM ty
     ty = StoreType(lv)
@@ -110,6 +113,7 @@ END SUB
 
 ' ---- labels
 
+SEGMENT DECL
 FUNCTION LabelText$ ()
     SELECT CASE Tok
     CASE TINT
@@ -144,7 +148,6 @@ SUB DefineLabel (nm$)
     SetLabel SAux(s)
 END SUB
 
-SEGMENT STMTA
 SUB GenGoto ()
     DIM s
     s = LabelSym(LabelText$)
@@ -164,7 +167,7 @@ END SUB
 
 ' ---- control structures
 
-SEGMENT STMT
+SEGMENT EXPRGEN
 FUNCTION PushCtl (kind, ex, cont)
     IF NCtl >= MAXCTL THEN
         ErrNo 34   ' blocks nested too deep
@@ -177,7 +180,7 @@ FUNCTION PushCtl (kind, ex, cont)
     PushCtl = NCtl
 END FUNCTION
 
-SEGMENT STMTA
+SEGMENT DECL
 FUNCTION FindCtl (kind)
     DIM i
     FOR i = NCtl TO 1 STEP -1
@@ -275,6 +278,7 @@ SUB GenLineStmts ()
     LOOP
 END SUB
 
+SEGMENT EXPRGEN
 ' the comparison of a FOR: v <= limit (up) or v >= limit (down)
 SUB ForTest (k, up, lexit)
     DIM s, ty, w
@@ -314,6 +318,7 @@ SUB ForStep (k, ty)
     END IF
 END SUB
 
+SEGMENT STMT
 SUB GenFor ()
     DIM nm$, s, ty, e1, e2, e3, lv, w, k, ltop, lcont, lexit, lneg, lbody, t
     GetTok
@@ -570,7 +575,7 @@ SUB GenSelect ()
     END IF
 END SUB
 
-SEGMENT STMTA
+SEGMENT DECL
 SUB GenExitStmt (cont)
     DIM k, kind
     GetTok
@@ -600,6 +605,7 @@ SUB GenExitStmt (cont)
     END IF
 END SUB
 
+SEGMENT STMTIO
 SUB GenReturn ()
     DIM e
     GetTok
@@ -617,6 +623,7 @@ SUB GenReturn ()
     Jump OUJP, ExitLab
 END SUB
 
+SEGMENT STMTA
 ' ON n GOTO / GOSUB labels; ON ERROR GOTO 0 / RESUME NEXT
 SUB GenOn ()
     DIM e, isgosub, n, i, lafter, site, labs(50), stubs(50)
@@ -838,6 +845,7 @@ END SUB
 
 ' ---- files
 
+SEGMENT STMTA
 SUB GenOpen ()
     DIM f, mode, n, r
     GetTok
@@ -888,6 +896,7 @@ SUB GenClose ()
     LOOP
 END SUB
 
+SEGMENT EXPRGEN
 ' the bytes GET and PUT move for a type
 FUNCTION TypeBytes (ty)
     SELECT CASE ty
@@ -898,6 +907,7 @@ FUNCTION TypeBytes (ty)
     END SELECT
 END FUNCTION
 
+SEGMENT STMTIO
 ' GET #n, [pos], var  /  PUT #n, [pos], value
 SUB GenGetPut (isput)
     DIM n, p, lv, e, ty, t, x
@@ -1053,6 +1063,7 @@ SUB GenDim (isredim)
     LOOP
 END SUB
 
+SEGMENT DECL
 ' STATIC x [AS type], ...: kept between calls (a module static)
 SUB GenStatic ()
     DIM nm$, ty, s
@@ -1117,6 +1128,7 @@ SUB GenShared ()
     LOOP
 END SUB
 
+SEGMENT STMTD
 SUB GenConst ()
     DIM nm$, n, v, ty, s, t$, dead
     GetTok
@@ -1194,7 +1206,7 @@ SUB GenDataList ()
     KILL DatName$
 END SUB
 
-SEGMENT STMTIO
+SEGMENT STMTD
 SUB GenRead ()
     DIM lv, ty
     GetTok
@@ -1223,6 +1235,7 @@ SUB GenRead ()
     LOOP
 END SUB
 
+SEGMENT DECL
 SUB GenRestore ()
     DIM s, db
     GetTok
@@ -1240,6 +1253,7 @@ SUB GenRestore ()
     CallRt "_RESTORE"
 END SUB
 
+SEGMENT STMTIO
 ' WRITE [#n,] items: strings in quotes, numbers without blanks, commas
 SUB GenWrite ()
     DIM ch, e, ty, first
@@ -1291,7 +1305,7 @@ END SUB
 
 ' ---- other statements
 
-SEGMENT STMTA
+SEGMENT STMTD
 SUB GenSwap ()
     DIM a, b, ty
     GetTok
@@ -1311,6 +1325,7 @@ SUB GenSwap ()
     END IF
 END SUB
 
+SEGMENT STMTA
 ' a SUB called: name args / name(args) / CALL name(args)
 SUB GenCallStmt (s)
     DIM n, a, k, last, x
@@ -1426,6 +1441,7 @@ SUB GenIdentStmt ()
     Assign lv, Expr
 END SUB
 
+SEGMENT STMTD
 SUB GenEnd ()
     ' END [n]: the program stops (files closed)
     IF AtEnd THEN Ldc 0 ELSE GenValueAs Expr, TYINT
@@ -1854,6 +1870,5 @@ DeclPass
 MemNote "declared"
 IF ErrCount = 0 THEN GenPass
 IF ErrCount > 0 THEN CompileFailed
-KILL TokName$
 IF OptMem THEN SayLn "  least free memory: " + IStr$(FRE(-1)) + " words (BCGEN)"
 ChainTo "BCASM", ""

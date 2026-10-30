@@ -53,10 +53,12 @@ FUNCTION IntConst (n)
     IntConst = NOp(n) = NICON
 END FUNCTION
 
+SEGMENT EXPRGEN
 FUNCTION NodeWords (n)
     NodeWords = TypeWords(NTy(n))
 END FUNCTION
 
+SEGMENT
 ' a boolean used as a number: -1 / 0
 FUNCTION BoolToInt (n)
     DIM m
@@ -103,6 +105,7 @@ FUNCTION ToInt (n)
     ToInt = ConvNode(n, TYINT)
 END FUNCTION
 
+SEGMENT EXPR
 ' a converted argument keeps its place in the argument chain
 FUNCTION ConvKeep (a, ty)
     DIM m
@@ -114,6 +117,7 @@ FUNCTION ConvKeep (a, ty)
     ConvKeep = m
 END FUNCTION
 
+SEGMENT
 FUNCTION MaxType (a, b)
     DIM ta, tb
     ta = NTy(a)
@@ -185,6 +189,7 @@ FUNCTION Arith (op, a, b)
     Arith = BinNode(op, t, a, b)
 END FUNCTION
 
+SEGMENT
 FUNCTION Compare (op, a, b)
     DIM t, n
     t = MaxType(a, b)
@@ -198,6 +203,7 @@ FUNCTION Compare (op, a, b)
     Compare = n
 END FUNCTION
 
+SEGMENT EXPR
 ' AND OR XOR (and ANDALSO ORELSE, op 1 and 2)
 FUNCTION Logic (op, a, b)
     DIM n
@@ -468,11 +474,13 @@ FUNCTION ParseCmp ()
     ParseCmp = a
 END FUNCTION
 
+SEGMENT
 ' an INTEGER or a BYTE (& and |: no other type)
 FUNCTION IsIntNode (n)
     IsIntNode = NTy(n) = TYINT OR NTy(n) = TYBYTE
 END FUNCTION
 
+SEGMENT EXPR
 ' a | b: bitwise or, of INTEGERs and BYTEs
 FUNCTION ParseBitOr ()
     DIM a, b

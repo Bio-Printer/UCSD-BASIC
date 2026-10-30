@@ -13,7 +13,10 @@
   RTSELDOM -- with the main one nine; a program has at most ten (one segment
   holds at most 255 procedures and 32000 bytes).  The SEGMENT lines in
   bcgen/bcexpr/bcemit were placed by a call-graph analysis (DESIGN.md
-  section 10): keep a call chain to three statement/expression segments.
+  section 10: the code in memory along a chain, RTSELDOM's too, and the
+  calls' counts -- a call into another segment reads it from the disk):
+  keep a call chain to three statement/expression segments, and what pass
+  3 calls often out of RTSELDOM.
 - After a change to the compiler or the library run `tools/runtests.py`,
   `tools/selfcompile.py` (must say IDENTICAL nine times: BASLIB and the eight programs), `tools/errtest.py` and, for the volume,
   `tools/voltest.py`, and for memory `tools/smalltest.py` (PI in Z80 mode
