@@ -121,8 +121,8 @@ def main(out=os.path.join(ROOT, 'build', 'BASIC.BLK')):
              ''.join('MOVE BASIC:%s2.CODE BASIC:%s.CODE\n' % (p, p) for p, m in PROGS))
 
     src = top.sub('SRC')
-    src.text('BUILD.TEXT', "' the compiler: its modules, linked into its seven programs BASIC:BC2.CODE,\n"
-             "' BCLEX2, BCGEN2, BCLIST2, BCLINK2, BCERR2, BCDEBUG2 (the first module of each its main one)\n" +
+    src.text('BUILD.TEXT', "' the compiler: its modules, linked into its %d programs BASIC:BC2.CODE,\n" % len(PROGS) +
+             "' %s (the first module of each its main one)\n" % ', '.join(p + '2' for p, m in PROGS[1:]) +
              ''.join('-C BASIC:/SRC/%s\n' % m for m in MODS) +
              ''.join('-L BASIC:%s2=%s\n' % (p, ','.join('BASIC:/SRC/' + x for x in m)) for p, m in PROGS))
     for f in sorted(glob.glob(os.path.join(ROOT, 'bc', '*.bas'))):

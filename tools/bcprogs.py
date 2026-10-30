@@ -10,6 +10,7 @@ import sys
 PROGS = [('BC', ['BC', 'BCUTIL']),                                       # the driver
          ('BCLEX', ['BCLEX', 'BCKW', 'BCUTIL']),                         # pass 1
          ('BCGEN', ['BCGEN', 'BCDECL', 'BCEXPR', 'BCEMIT', 'BCTOK', 'BCUTIL']),   # passes 2, 3
+         ('BCASM', ['BCASM', 'BCUTIL']),                                 # pass 4: the object file
          ('BCLIST', ['BCLIST', 'BCUTIL']),                               # the listing
          ('BCLINK', ['BCLINK', 'BCUTIL']),                               # the linker
          ('BCERR', ['BCERR', 'BCKW', 'BCUTIL']),                         # a compile's errors

@@ -5,7 +5,7 @@
   `tools/mkself.sh`, `tools/mkvolume.py`.
   The sibling checkouts are expected in `../bio-printer/` (the emulator,
   UCSD-TinyC, UCSD-Pascal-Volumes); see setup.sh's variables.
-- BC is seven programs: six CHAIN to each other through the job file
+- BC is eight programs: seven CHAIN to each other through the job file
   :BCTEMP.JOB (docs/DESIGN.md section 1), and BCDEBUG is chained to by a
   program's run-time error; tools/bcprogs.py lists each one's
   modules (the first its main one) for every build tool.  A new module goes
@@ -15,7 +15,7 @@
   bcgen/bcexpr/bcemit were placed by a call-graph analysis (DESIGN.md
   section 10): keep a call chain to three statement/expression segments.
 - After a change to the compiler or the library run `tools/runtests.py`,
-  `tools/selfcompile.py` (must say IDENTICAL eight times: BASLIB and the seven programs), `tools/errtest.py` and, for the volume,
+  `tools/selfcompile.py` (must say IDENTICAL nine times: BASLIB and the eight programs), `tools/errtest.py` and, for the volume,
   `tools/voltest.py`, and for memory `tools/smalltest.py` (PI in Z80 mode
   and P-Code mode without the Harvard layout); for the console's line ends
   `tools/crtest.py` (a CR alone, CHR$(13), goes back to the line's start;
@@ -79,11 +79,20 @@
   written at the end with SEEK: bas2c's b_seek; DESIGN.md sections 3 and
   10); BCGEN sizes them from it, and grows one that was too small by 100
   entries (Grown, REDIM PRESERVE: bas2c's ar_dimp) -- -M says "tables grown
-  N times"; keep it 0 for the sources, the demos and the tests (the test
-  DATA: 1).  BCLINK's tables start small and double (LinkGrown; by 100 it
+  N times"; keep it 0 for the sources, the demos and the tests.  BCLINK's tables start small and double (LinkGrown; by 100 it
   ran out of memory linking BCGEN on the P-System).  The
-  library's segment RTSELDOM holds what is done seldom (OPEN, CHAIN, the
-  sub-volumes, _ARGS; BCUTIL's job and file-name code; EndProc).
+  library's segment RTSELDOM holds what is done seldom (OPEN, finding
+  CHAIN's code file, the sub-volumes, _ARGS; BCUTIL's job and file-name
+  code; GenExit).  _CHAIN itself is RTCHAIN (510 bytes): BC's ChainTo
+  runs "@unit,block NAME" (the driver's FindBlocks puts each program's
+  block into the job file), which opens no file -- a pass has little left.
+- Pass 4, BCASM (bcasm.bas): BCGEN's emitter writes the code as records to
+  :BCTEMP.ASM (BCGENCOM's AMxxx), BCASM assembles them (jumps, entry code,
+  P records, the listing's records).  The objects and listings must stay
+  byte for byte what BCGEN made in memory: compare every source's with the
+  old compiler's after a change there.  BCLEX's names are 15-bit hashes
+  (LxHashes), and it marks the CONSTs and DECLAREs a module never uses
+  (TDEADID, TSKIP; DESIGN.md section 3).
 - BASIC:INSTALL.TEXT (mkvolume) is a batch file of Tiny-C's shell (BIGGY
   1.32: @FILE; MOVE replaces): voltest runs it after BUILD.
 - The tests boot build/psys/data/Big_Disk.BLK (setup.sh copies BOOT_DISK);

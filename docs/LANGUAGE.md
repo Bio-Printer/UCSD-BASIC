@@ -504,8 +504,8 @@ Files: the source is NAME.BAS (or NAME.TEXT); the object NAME.OBJ is put
 beside it (on its volume, in its sub-volume); the code file NAME.CODE
 too, and the listing.  The library BASLIB.OBJ is looked for beside the
 first object, then on the prefix volume, in BASIC:/LIB, and on the boot
-volume.  BC writes its temporary files BCTEMP.TOK, BCTEMP.LST, BCTEMP.LCD and
-BCTEMP.DAT on the prefix volume (:), also when it was started after a CD.  The names in a batch file are as they
+volume.  BC writes its temporary files BCTEMP.TOK, BCTEMP.ASM, BCTEMP.LST,
+BCTEMP.LCD and BCTEMP.DAT on the prefix volume (:), also when it was started after a CD.  The names in a batch file are as they
 would be typed (BASIC:'s batch files name every file with its path).
 
 A code file in a sub-volume runs with X(ecute BASIC:/DEMO/HELLO (BIGGY's
@@ -554,8 +554,8 @@ A program of several modules:
 The body (module-level statements) of every module runs when the program
 starts, the main program's (the first module's) last.
 
-BC is seven programs, BC.CODE (the one you run), BCLEX, BCGEN, BCLIST,
-BCLINK, BCERR.CODE (it says a compile's errors) and BCDEBUG.CODE (a
+BC is eight programs, BC.CODE (the one you run), BCLEX, BCGEN, BCASM,
+BCLIST, BCLINK, BCERR.CODE (it says a compile's errors) and BCDEBUG.CODE (a
 program's run-time error chains to it); BC chains to the others (each in
 memory alone), and they must be on the same volume as BC.CODE, at its top
 (BASIC:).  BC keeps its

@@ -8,7 +8,7 @@ sources are byte for byte the ones the host build makes (tools/selfcompile
 
 ## 1. The pieces
 
-BC is seven programs, each in memory alone: one CHAINs to the next (the
+BC is eight programs, each in memory alone: one CHAINs to the next (the
 library's CHAIN, Tiny-C's pexec protocol: section 9), so each has all of
 memory for its own code and tables.
 
@@ -16,10 +16,14 @@ memory for its own code and tables.
     BCLEX.CODE   pass 1: bclex.bas (source -> token file), bckw.bas
     BCGEN.CODE   passes 2 and 3: bcgen.bas (statements, procedures),
                  bcdecl.bas (declarations; segment DECL), bcexpr.bas
-                 (expressions), bcemit.bas (the emitter, jumps, entry and
-                 exit code, the object file), bctok.bas (the token reader,
-                 the symbol table), bckw.bas; pass 3 in the segments STMT,
-                 STMTA, STMTD, STMTIO, EXPR and EXPRGEN (section 10)
+                 (expressions), bcemit.bas (the emitter: the code as a
+                 stream for BCASM; entry and exit code), bctok.bas (the
+                 token reader, the symbol table), bckw.bas; pass 3 in the
+                 segments STMT, STMTA, STMTD, STMTIO, EXPR and EXPRGEN
+                 (section 10)
+    BCASM.CODE   pass 4: bcasm.bas (BCGEN's stream assembled: jumps, the
+                 jump table, the entry code in front, the object file, the
+                 listing's records; section 5)
     BCLIST.CODE  the listing and its disassembler: bclist.bas
     BCLINK.CODE  the linker and -J: bclink.bas
     BCERR.CODE   a compile step's error messages: bcerr.bas, bckw.bas
@@ -39,8 +43,11 @@ programs of the volume's DEMO/.
 The job.  BC turns its command line -- or a line typed at its prompt --
 with the batch files it names into steps, and writes them to the job file
 :BCTEMP.JOB (on the prefix volume): where the programs are ("#u:", the
-unit BC's own code file came from: SYSCOM^.SEGTABLE[1].CODEUNIT; the seven
-must be on one volume, at its top), the options (-Q, -M, and whether BC
+unit BC's own code file came from: SYSCOM^.SEGTABLE[1].CODEUNIT; the eight
+must be on one volume, at its top), where each program's code file starts
+on it (" BCLEX=123 BCGEN=200 ...": BC reads the volume's directory when it
+starts, FindBlocks; ChainTo then runs "@unit,block NAME", which the
+library's CHAIN does without opening a file: section 9), the options (-Q, -M, and whether BC
 asks for the next command), the step being done, and the steps after it:
 
     C lst NAME       a compile (lst: 1 with a listing)
@@ -49,8 +56,9 @@ asks for the next command), the step being done, and the steps after it:
 
 BC takes the first step off, writes the file and chains to BCLEX (a
 compile) or BCLINK.  BCLEX makes the token file and chains to BCGEN; BCGEN
-compiles (its tables are arrays made with REDIM) and chains to BCLIST for
-a listing; each of them, done or failed, chains to "BC -Z 0" or "-Z 1".  BC
+compiles (its tables are arrays made with REDIM) into a stream of the code
+(:BCTEMP.ASM) and chains to BCASM, which makes the object file and chains
+to BCLIST for a listing; each of them, done or failed, chains to "BC -Z 0" or "-Z 1".  BC
 then runs the next step; after a failure it drops the rest (as one failing
 command stopped its batch file and its line).  When there are no more,
 BC asks for the next command, or -- started with its commands as its
@@ -131,15 +139,22 @@ The byte stream:
 
 What the module never uses.  Every module includes BCCOM's and BCGENCOM's
 constants and BCPROCS's DECLAREs, most of which it does not use: compiling
-BCEXPR, 200 of the 617 names were those.  The lexer counts each name's
-uses (NmUse) and remembers where each module-level CONST name and each
-DECLARE is in the byte stream (a block and a byte: the lexer counts what
-it writes, LxAdv).  At the end, one whose name -- with any suffix, as
-DEFINT's X is X% -- appears nowhere else is marked there: the DECLARE
+BCEXPR, 200 of the 617 names were those.  The lexer counts the uses of
+each name without its suffix (as DEFINT's X is X%: the base names' table,
+BsUse) and remembers where each module-level CONST name and each DECLARE
+is in the byte stream (a block and a byte: the lexer counts what it
+writes, LxAdv).  At the end, one whose base name appears nowhere else is
+marked there: the DECLARE
 keyword becomes TSKIP (both passes skip the statement), the CONST's name
 TDEADID (pass 3 reads its value and makes no symbol), and it is taken off
 the header's counts.  So BCGEN's tables are made smaller to begin with
 (section 10).  The code is the same: a name that is not used makes none.
+
+The lexer's names are 15-bit hashes (LxHashes), not their text: the
+strings took more memory than Z80 mode has (each one at least an 8-word
+block).  Two names with one hash are counted as one, a symbol or two
+fewer in BCGEN's table (which has 48 more), and keep each other's
+DECLARE or CONST if one of them is used: never one that is used.
 
 A DATA statement's text is kept as one TSTR.  The keyword table is a few
 string constants of 9-character fields searched with INSTR.
@@ -162,8 +177,27 @@ stored with their suffix; a name declared AS a type without one.
 
 The token file is read twice: first the module's body (everything outside
 the procedures: one procedure, MODULE'BODY), then each SUB and FUNCTION.
-Each procedure is compiled into a byte buffer and written to the object
-file when its END is read.
+Each procedure's code goes, as it is made, to a stream, :BCTEMP.ASM, and
+BCASM (pass 4) makes the object file of it.
+
+Pass 4: the stream.  BCGEN keeps none of a procedure's code in memory: its
+emitter (bcemit.bas) writes records (BCGENCOM's AMxxx): runs of code bytes,
+a jump (op, label number), a case word, a label set, a relocation (its
+kind and the name the linker sees), a line (its number, and its text with
+a listing), a file change; AMENTRY ... AMENTRYEND around the entry code,
+which is made last; at the procedure's end AMEND with its frame, its name
+and segment, and where it ends (for an error BCASM finds); the object
+file's other records (COMMON, statics, the end) as they are.  BCGEN counts
+only PC (for the alignment of LDC and XJP words), its labels, jumps and
+calls (a procedure too large is said at its line, errors 110 to 113).
+BCASM (bcasm.bas) does with the records what BCGEN did in memory: the
+procedure in Code() from offset 0, a UJP to the label right after it
+dropped (SetLabel's), the entry code moved in front, the jumps resolved,
+the attribute words, the P record, and the listing's records -- the same
+object file and listing, byte for byte.  So BCGEN has no code buffer and
+no label, jump, call or line tables (2,400 to 2,850 words more for BC's
+own large modules), and BCASM, a program of its own, has them at their
+MAX sizes.
 
 Expressions are parsed into a tree of nodes (one statement's at a time),
 typed as they are built: conversions are nodes, integer constants are
@@ -212,7 +246,7 @@ run-time error's line (sections 8, 9).
 The listing: for each statement the offset its code starts at and its
 text go to :BCTEMP.LST, and when a procedure is finished its code (in hex),
 its sizes and its relocations (with their names) to :BCTEMP.LCD
-(ListSave).  After pass 3 BCGEN chains to BCLIST (ListModule), which reads
+(BCASM's AsListSave).  After pass 4 BCASM chains to BCLIST (ListModule), which reads
 both and disassembles the code between the statements: a program of its
 own, as the listing's code beside pass 3's was more than the Harvard
 layout's 64K code space held (*STK OFLOW*).  While the object, the statements
@@ -338,9 +372,9 @@ and OSCALL (FINIT, FOPEN, FCLOSE, FBLOCKIO).
   RTSUBV's _SVIO for one in a sub-volume.
 - The segment RTSELDOM holds what a program does seldom, so that it is in
   memory only then: OPEN and the file names it takes (RTFILE), the
-  sub-volumes (RTSUBV), CHAIN (RTCHAIN), the command line at the start
-  (_ARGS); BC's seldom parts too (bcutil.bas, the end of a procedure in
-  bcemit.bas).  _ERRTEXT stays in the main one: an error for want of
+  sub-volumes (RTSUBV), finding a code file for CHAIN (RTCHAIN's
+  _CHLOOK), the command line at the start (_ARGS); BC's seldom parts too
+  (bcutil.bas, the exit code in bcemit.bas).  _ERRTEXT stays in the main one: an error for want of
   memory still has its message.
 - A run-time error (_RTERR): its message; every file closed; the heap
   given back (RELEASE to its start: memory for what follows, after "Out
@@ -400,8 +434,16 @@ and OSCALL (FINIT, FOPEN, FCLOSE, FBLOCKIO).
   (_HALT).  GETCMD then runs the other one; when that ends GETCMD starts
   the code file of EXPANSION[3..4]: unchanged when this program is a
   child of the shell's (PX_CHILD), so the shell comes back; else unit 0,
-  no code file, so the Command: prompt.  bas2c translates CHAIN for the
-  host build: the host program of that name beside the running one.
+  no code file, so the Command: prompt.  _CHAIN is a segment of its own,
+  RTCHAIN (510 bytes): the finding (_CHLOOK: the 2 KB directory buffer,
+  the OS's FOPEN, which NEWs its own 2 KB directory, the sub-volumes) is in
+  RTSELDOM, which a CHAIN of "@unit,block NAME ..." does not need: the
+  code file at that block, the line from NAME on.  BC's programs chain so
+  (BCUTIL's ChainTo, the blocks the driver found: section 1), with what
+  memory a pass leaves -- in Z80 mode BCLEX had 3,300 words left after a
+  module of BC's own, and the finding needs some 6,000.  bas2c translates
+  CHAIN for the host build: the host program of that name beside the
+  running one.
 - COMMAND$ follows Tiny-C's pexec protocol (SYSCOM^.EXPANSION, the OS's
   prompt line PL); the exit status goes to EXPANSION[5].  _RTINIT takes
   the line once, at the start (_ARGS): the arguments for COMMAND$, and
@@ -493,9 +535,15 @@ procedures: PI and the library need about 210 and 170, and doubling 200
 and 160 left holes that took 1400 words.  BC's own
 modules need more than either has, in the symbol table (up to 460
 symbols, 8 words each, and their names' strings) and in their deeper
-statements: compiling itself needs the Harvard layout.  In it, compiling
-BCUTIL (the least) leaves about 1,700 words less than PI, BCGEN (the
-most) 9,400 less; in Z80 mode PI leaves 1,418.  BC does not check the layout; out of memory, it
+statements.  What has been done for BC to compile itself in Z80 mode: the
+names a module includes and never uses are not BCGEN's symbols (section
+3); BCLEX's names are hashes, not strings (its peak compiling BCEXPR from
+15,900 words to 10,900); the code and its tables are BCASM's, not BCGEN's
+(section 5); BC's programs chain without opening a file (section 9).  In
+Z80 mode BCUTIL, BCTOK and BCDECL now compile (BCGEN leaves 1,250 to 1,550
+words); BCEMIT is about 500 words short, BCEXPR about 2,900 and BCGEN about
+3,900 (in the Harvard layout they leave 3,500, 5,900 and 7,000 words less
+than PI).  BC does not check the layout; out of memory, it
 says Run-time error 7, or the emulator *STK OFLOW*.  (bas2c takes the CSP
 statement as nothing and CSP%() as 0.)
 

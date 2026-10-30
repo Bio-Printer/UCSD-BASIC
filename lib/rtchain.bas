@@ -22,13 +22,18 @@ DECLARE FUNCTION _XOR (a, b)
 
 CONST PXRUN = 25601, PXCHILD = 25602, PXARGS = 25604, PXPATHSEP = 30
 
-SEGMENT RTSELDOM
+' CHAIN is a segment of its own, RTCHAIN: a program that chains with little
+' memory left (BC's, at the end of a pass) has only it in memory, not
+' RTSELDOM.  "@u,b NAME ..." runs the code file at block b of unit u (BC's
+' driver finds its programs once): no file is opened, no directory read.
+' Any other name is looked for (_CHLOOK, in RTSELDOM).
+SEGMENT RTCHAIN
 
 ' CHAIN cmd: an error if it cannot be done (53: no such code file, or not
 ' a linked one; 64: no name, or the line too long for PL, 80 characters
 ' with the shell's path)
 SUB _CHAIN (cmd)
-    DIM n, i, k, s, nm, u, first, kind, fib, d, e, r, pl, sum, w, t
+    DIM n, i, k, s, u, first, kind, e, pl, sum, w, t, c
     _ERRCODE = 0
     t = _TTOP
     ' the line without the blanks around it; its first word the program
@@ -53,6 +58,75 @@ SUB _CHAIN (cmd)
         _IOERR 64
         EXIT SUB
     END IF
+    IF PEEKB(cmd + s) = 64 THEN
+        ' @u,b: the unit and the first block; the line from the next word
+        u = 0
+        first = 0
+        k = s + 1
+        c = PEEKB(cmd + k)
+        DO WHILE c >= 48 AND c <= 57 AND k <= n
+            u = u * 10 + c - 48
+            k = k + 1
+            c = PEEKB(cmd + k)
+        LOOP
+        k = k + 1
+        c = PEEKB(cmd + k)
+        DO WHILE c >= 48 AND c <= 57 AND k <= n
+            first = first * 10 + c - 48
+            k = k + 1
+            c = PEEKB(cmd + k)
+        LOOP
+        DO WHILE k <= n
+            IF PEEKB(cmd + k) <> 32 THEN EXIT DO
+            k = k + 1
+        LOOP
+        s = k
+        kind = 2
+    ELSE
+        kind = _CHLOOK(cmd, s, w, VARPTR(u), VARPTR(first))
+    END IF
+    IF kind <> 2 THEN
+        _TTOP = t
+        _IOERR 53
+        EXIT SUB
+    END IF
+    ' the command line, and the shell's path after it
+    k = n - s + 1
+    IF _SVPWD THEN k = k + 1 + PEEKB(_SVPWD)
+    IF k > 80 THEN
+        _TTOP = t
+        _IOERR 64
+        EXIT SUB
+    END IF
+    pl = OSADDR(70)
+    CSP 2, cmd + s, 0, pl + 1, 0, n - s + 1
+    IF _SVPWD THEN
+        POKEB pl + n - s + 2, PXPATHSEP
+        CSP 2, _SVPWD + 1, 0, pl + n - s + 3, 0, PEEKB(_SVPWD)
+    END IF
+    POKEB pl, k
+    sum = k
+    FOR i = 1 TO k
+        sum = sum * 3 + PEEKB(pl + i)
+    NEXT i
+    e = OSVAR(1) + 36
+    POKE e + 12, PXARGS
+    POKE e + 14, _XOR(sum, &H5A5A)
+    POKE e + 2, u
+    POKE e + 4, first
+    IF PEEK(e) <> PXCHILD THEN POKE e + 6, 0
+    POKE e, PXRUN
+    _TTOP = t
+    ' this program ends (its files closed); GETCMD starts the other one
+    _HALT 0
+END SUB
+
+SEGMENT RTSELDOM
+
+' the code file of cmd's word at s (w characters): its kind (2: a linked
+' code file), its unit and first block into the words at pu and pf
+FUNCTION _CHLOOK (cmd, s, w, pu, pf)
+    DIM i, k, nm, u, first, kind, fib, d, e, r
     ' its code file: NAME.CODE, or NAME. as it is (as X(ecute takes it)
     nm = _TALLOC(w + 5)
     CSP 2, cmd + s, 0, nm + 1, 0, w
@@ -108,38 +182,7 @@ SUB _CHAIN (cmd)
         IF r = 0 THEN kind = 0
     END IF
     _MFREE d
-    IF kind <> 2 THEN
-        _TTOP = t
-        _IOERR 53
-        EXIT SUB
-    END IF
-    ' the command line, and the shell's path after it
-    k = n - s + 1
-    IF _SVPWD THEN k = k + 1 + PEEKB(_SVPWD)
-    IF k > 80 THEN
-        _TTOP = t
-        _IOERR 64
-        EXIT SUB
-    END IF
-    pl = OSADDR(70)
-    CSP 2, cmd + s, 0, pl + 1, 0, n - s + 1
-    IF _SVPWD THEN
-        POKEB pl + n - s + 2, PXPATHSEP
-        CSP 2, _SVPWD + 1, 0, pl + n - s + 3, 0, PEEKB(_SVPWD)
-    END IF
-    POKEB pl, k
-    sum = k
-    FOR i = 1 TO k
-        sum = sum * 3 + PEEKB(pl + i)
-    NEXT i
-    e = OSVAR(1) + 36
-    POKE e + 12, PXARGS
-    POKE e + 14, _XOR(sum, &H5A5A)
-    POKE e + 2, u
-    POKE e + 4, first
-    IF PEEK(e) <> PXCHILD THEN POKE e + 6, 0
-    POKE e, PXRUN
-    _TTOP = t
-    ' this program ends (its files closed); GETCMD starts the other one
-    _HALT 0
-END SUB
+    POKE pu, u
+    POKE pf, first
+    _CHLOOK = kind
+END FUNCTION

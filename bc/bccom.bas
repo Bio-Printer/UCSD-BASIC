@@ -16,6 +16,8 @@ CONST THCODE = 5, THCTL = 6, THSTMT = 7, THMAXPAR = 8, THLINES = 9, TOKMAGIC = 1
 CONST CHSRC = 1, CHTOK = 2, CHOBJ = 3, CHLST = 4, CHLTMP = 5, CHBAT = 6, CHINC = 7
 ' (the listing's two temporary files, written by pass 3, read by LIST)
 CONST CHLREC = 11, CHLCOD = 12
+' (the stream from pass 3 to BCASM)
+CONST CHASM = 14
 
 ' the end of a block GenBlock returns: TMEND + KIF (END IF), KSUB ...
 CONST TMEND = 200
@@ -63,10 +65,14 @@ CONST PFBYREF = 1, PFARRAY = 2
 ' ---- the driver and its options
 COMMON SHARED ErrCount, OptList, OptQuiet, OptExplicit, OptMem
 COMMON SHARED SrcName$, ModName$, ObjName$, LstName$, TokName$, LTmpName$, LCodName$
+COMMON SHARED AsmName$
 COMMON SHARED BcVol$
 ' ---- the job file (BCUTIL): where the programs are (#unit:), the options
 ' (JF...), the step being done
 COMMON SHARED JobHome$, JobFlags, JobCur$, JobName$, ErrName$
+' (and each program's first block on that unit, " BCLEX=123 BCGEN=200 ...": a
+' CHAIN to it needs no file opened -- ChainTo)
+COMMON SHARED JobBlk$
 CONST MAXERR = 10
 CONST JFASK = 1, JFQUIET = 2, JFMEM = 4, JFMAP = 8, CHJOB = 13, MAXSTEP = 300
 

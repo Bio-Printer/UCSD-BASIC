@@ -231,6 +231,7 @@ SUB ReadJob ()
     END IF
     OPEN JobName$ FOR INPUT AS #CHJOB
     LINE INPUT #CHJOB, JobHome$
+    LINE INPUT #CHJOB, JobBlk$
     LINE INPUT #CHJOB, l$
     JobFlags = VAL(l$)
     LINE INPUT #CHJOB, JobCur$
@@ -242,10 +243,18 @@ END SUB
 SEGMENT
 
 ' CHAIN to the program p$ of the compiler (args$ its command line); it
-' cannot be found: a message, and the end with status 1
+' cannot be found: a message, and the end with status 1.  Where the driver
+' found it (JobBlk$): "@unit,block P$" -- the library's CHAIN runs it with
+' no file opened, no directory read (memory a pass may not have left)
 SUB ChainTo (p$, args$)
-    DIM c$
+    DIM c$, k, b$
     c$ = JobHome$ + p$
+    k = INSTR(JobBlk$, " " + p$ + "=")
+    IF k > 0 THEN
+        b$ = MID$(JobBlk$, k + LEN(p$) + 2)
+        b$ = LEFT$(b$, INSTR(b$ + " ", " ") - 1)
+        c$ = "@" + MID$(JobHome$, 2, LEN(JobHome$) - 2) + "," + b$ + " " + p$
+    END IF
     IF args$ <> "" THEN c$ = c$ + " " + args$
     CLOSE
     ON ERROR RESUME NEXT
@@ -300,6 +309,7 @@ END SUB
 ' ---- BCERR's: the step failed (the errors said); its files go
 SUB StepFailed ()
     IF FileExists(TokName$) THEN KILL TokName$
+    IF FileExists(AsmName$) THEN KILL AsmName$
     IF FileExists(ObjName$) THEN KILL ObjName$
     PhaseDone 0
 END SUB
@@ -316,6 +326,7 @@ END SUB
 DIM SegName$(MAXSEG), DefType(25), ParName$(30), ParFlags(30)
 ' the temporary files: on the prefix volume (:), not on the shell's path
 TokName$ = ":BCTEMP.TOK"
+AsmName$ = ":BCTEMP.ASM"
 LTmpName$ = ":BCTEMP.LST"
 LCodName$ = ":BCTEMP.LCD"
 DatName$ = ":BCTEMP.DAT"

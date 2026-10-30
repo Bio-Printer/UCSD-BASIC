@@ -12,7 +12,7 @@ DIM SHARED LxDepth, LxLine$, LxPos, LxLen, LxLineNo, LxFile$
 ' What the token file's header says (THWORDS, BCCOM): the names declared or
 ' used at the module's level and the procedures' names (LxGlob), and, of
 ' each procedure (the module's body as one), the names in it (a name in
-' the table NmTxt$ remembers whether it was counted at the module's level,
+' the table NmHash remembers whether it was counted at the module's level,
 ' NmGlob, and the procedure it was last counted for, NmProc), the code's
 ' tokens and its
 ' strings' bytes, the keywords that make labels and jumps; the parameters
@@ -20,15 +20,20 @@ DIM SHARED LxDepth, LxLine$, LxPos, LxLen, LxLineNo, LxFile$
 ' in CONST lines, the tokens of the longest statement, the lines of the
 ' longest procedure (BCGEN's line table: LxLines).  LxProc is the procedure being read (0: none),
 ' LxLead the keyword the statement starts with, LxParen its ( depth.
-DIM SHARED NmTxt$(), NmGlob() AS BYTE, NmProc(), NmNext(), NmHead(127), NNm, NmCap
-' What the module never uses: a name's uses (NmUse, 2 at most), and each module-level CONST
-' name and DECLAREd procedure (a candidate: CdNm its name, CdKind 1 CONST or 2 DECLARE, CdB and
-' CdO where its TIDENT or DECLARE is in the token file, block and byte, CdPar a DECLARE's
-' parameters); at the end one whose name (with any suffix) has no other use is marked there,
-' TDEADID or TSKIP, and not counted (LxUnused).  LxPB, LxPO: where the next byte goes;
-' LxWant: a CONST's (1) or DECLARE's (2) name comes next; LxLastNm: LxName's name
-DIM SHARED NmUse() AS BYTE, CdNm(), CdKind() AS BYTE, CdB(), CdO(), CdPar(), NCd, CdCap
-DIM SHARED LxPB, LxPO, LxWant, LxDB, LxDO, LxCdDecl, LxLastNm
+' A name is its hash (15 bits, LxHash): not its text, which took more memory than Z80 mode has
+' (two names with one hash are counted once: BCGEN's tables have room for a few more).
+DIM SHARED NmHash(), NmGlob() AS BYTE, NmProc(), NmNext(), NmHead(127), NNm, NmCap
+' What the module never uses: each name's uses without its suffix (DEFINT's X is X%: the base
+' names' table, BsHash, BsUse 2 at most), and each module-level CONST name and DECLAREd
+' procedure (a candidate: CdNm its name, CdBs its base name, CdKind 1 CONST or 2 DECLARE, CdB
+' and CdO where its TIDENT or DECLARE is in the token file, block and byte, CdPar a DECLARE's
+' parameters); at the end one whose base name has no other use is marked there, TDEADID or
+' TSKIP, and not counted (LxUnused; a hash shared with another name only keeps one).  LxPB,
+' LxPO: where the next byte goes; LxWant: a CONST's (1) or DECLARE's (2) name comes next;
+' LxLastNm, LxLastBs: LxName's name
+DIM SHARED BsHash(), BsUse() AS BYTE, BsNext(), BsHead(127), NBs, BsCap
+DIM SHARED CdNm(), CdBs(), CdKind() AS BYTE, CdB(), CdO(), CdPar(), NCd, CdCap
+DIM SHARED LxPB, LxPO, LxWant, LxDB, LxDO, LxCdDecl, LxLastNm, LxLastBs, LxHash, LxBsHash
 DIM SHARED LxProc, LxNProc, LxProcName, LxLead, LxParen, LxStmtTok, LxDecl
 DIM SHARED LxGlob, LxParams, LxConsts, LxLoc, LxCode, LxStrB, LxCtl, LxHdrPar, LxMaxPar
 DIM SHARED LxMaxLoc, LxMaxCode, LxMaxCtl, LxMaxStmt, LxBodyCode, LxBodyStrB, LxBodyCtl
@@ -59,35 +64,70 @@ SUB LxStrBytes (n)
     IF LxProc THEN LxStrB = LxStrB + n ELSE LxBodyStrB = LxBodyStrB + n
 END SUB
 
+' w$'s hash (LxHash), and its base name's, without its suffix (LxBsHash)
+SUB LxHashes (w$)
+    DIM h, i, n
+    n = LEN(w$)
+    IF SuffixType(w$) > 0 THEN n = n - 1
+    FOR i = 1 TO n
+        h = (((h AND &HFFF) * 8) + h \ 4096) XOR ASC(w$, i)
+    NEXT i
+    LxBsHash = h
+    IF n < LEN(w$) THEN h = (((h AND &HFFF) * 8) + h \ 4096) XOR ASC(w$, LEN(w$))
+    LxHash = h
+END SUB
+
+' a use of the base name LxBsHash: its entry (LxLastBs)
+SUB LxBase ()
+    DIM h, i
+    h = LxBsHash AND 127
+    i = BsHead(h)
+    DO WHILE i > 0
+        IF BsHash(i) = LxBsHash THEN EXIT DO
+        i = BsNext(i)
+    LOOP
+    IF i = 0 THEN
+        IF NBs >= BsCap THEN
+            BsCap = Grown(BsCap, 32000)
+            REDIM PRESERVE BsHash(BsCap), BsUse(BsCap) AS BYTE, BsNext(BsCap)
+        END IF
+        NBs = NBs + 1
+        i = NBs
+        BsHash(i) = LxBsHash
+        BsUse(i) = 0
+        BsNext(i) = BsHead(h)
+        BsHead(h) = i
+    END IF
+    IF BsUse(i) < 2 THEN BsUse(i) = BsUse(i) + 1
+    LxLastBs = i
+END SUB
+
 ' a name (or label: twice, as pass 2 and pass 3 each make a symbol for it)
 ' counted once at the module's level, once in each procedure
 SUB LxName (w$, times)
     DIM h, i
-    FOR i = 1 TO LEN(w$)
-        h = (h * 3 + ASC(w$, i)) AND 127
-    NEXT i
+    LxHashes w$
+    LxBase
+    h = LxHash AND 127
     i = NmHead(h)
     DO WHILE i > 0
-        IF NmTxt$(i) = w$ THEN EXIT DO
+        IF NmHash(i) = LxHash THEN EXIT DO
         i = NmNext(i)
     LOOP
     IF i = 0 THEN
         IF NNm >= NmCap THEN
             NmCap = Grown(NmCap, 32000)
-            REDIM PRESERVE NmTxt$(NmCap), NmGlob(NmCap) AS BYTE, NmProc(NmCap), NmNext(NmCap)
-            REDIM PRESERVE NmUse(NmCap) AS BYTE
+            REDIM PRESERVE NmHash(NmCap), NmGlob(NmCap) AS BYTE, NmProc(NmCap), NmNext(NmCap)
         END IF
         NNm = NNm + 1
         i = NNm
-        NmTxt$(i) = w$
+        NmHash(i) = LxHash
         NmGlob(i) = 0
-        NmUse(i) = 0
         NmProc(i) = 0
         NmNext(i) = NmHead(h)
         NmHead(h) = i
     END IF
     LxLastNm = i
-    IF NmUse(i) < 2 THEN NmUse(i) = NmUse(i) + 1
     IF LxLead = KDECLARE AND LxParen > 0 THEN
         ' (a DECLARE's parameter: no symbol is made for it)
     ELSEIF LxProc = 0 OR LxProcName THEN
@@ -111,54 +151,28 @@ SUB LxName (w$, times)
     IF LxLead = KCONST THEN LxConsts = LxConsts + 1
 END SUB
 
-' the name just read (LxLastNm) is a CONST's or DECLARE's (kind), its mark goes at block b,
-' byte o
+' the name just read (LxLastNm, LxLastBs) is a CONST's or DECLARE's (kind), its mark goes at
+' block b, byte o
 SUB LxCand (kind, b, o)
     IF NCd >= CdCap THEN
         CdCap = Grown(CdCap, 32000)
-        REDIM PRESERVE CdNm(CdCap), CdKind(CdCap) AS BYTE, CdB(CdCap), CdO(CdCap), CdPar(CdCap)
+        REDIM PRESERVE CdNm(CdCap), CdBs(CdCap), CdKind(CdCap) AS BYTE, CdB(CdCap), CdO(CdCap), CdPar(CdCap)
     END IF
     NCd = NCd + 1
     CdNm(NCd) = LxLastNm
+    CdBs(NCd) = LxLastBs
     CdKind(NCd) = kind
     CdB(NCd) = b
     CdO(NCd) = o
     CdPar(NCd) = 0
 END SUB
 
-' the name w$ in the table (0: not there)
-FUNCTION NmFind (w$)
-    DIM h, i
-    FOR i = 1 TO LEN(w$)
-        h = (h * 3 + ASC(w$, i)) AND 127
-    NEXT i
-    i = NmHead(h)
-    DO WHILE i > 0
-        IF NmTxt$(i) = w$ THEN EXIT DO
-        i = NmNext(i)
-    LOOP
-    NmFind = i
-END FUNCTION
-
-' is the name i used besides where it is declared: twice in all, with any suffix (DEFINT's
-' X is X%)
-FUNCTION NmUsed (i)
-    DIM b$, n, k, j
-    b$ = NmTxt$(i)
-    IF SuffixType(b$) > 0 THEN b$ = LEFT$(b$, LEN(b$) - 1)
-    FOR j = 0 TO 5
-        IF j = 0 THEN k = NmFind(b$) ELSE k = NmFind(b$ + MID$("%#!$~", j, 1))
-        IF k > 0 THEN n = n + NmUse(k)
-    NEXT j
-    NmUsed = n >= 2
-END FUNCTION
-
-' each candidate the module does not use: marked in the token file (TDEADID, TSKIP), and
-' not counted in the header
+' each candidate the module does not use (its base name once only: where it is declared):
+' marked in the token file (TDEADID, TSKIP), and not counted in the header
 SUB LxUnused ()
     DIM c, b AS BYTE
     FOR c = 1 TO NCd
-        IF NOT NmUsed(CdNm(c)) THEN
+        IF BsUse(CdBs(c)) < 2 THEN
             SEEK #CHTOK, CdB(c) * 512# + CdO(c) + 1
             IF CdKind(c) = 1 THEN
                 b = TDEADID
@@ -682,9 +696,11 @@ SUB LexFile (f$)
         TW 0
     NEXT i
     NmCap = 100
-    REDIM NmTxt$(NmCap), NmGlob(NmCap) AS BYTE, NmProc(NmCap), NmNext(NmCap), NmUse(NmCap) AS BYTE
+    REDIM NmHash(NmCap), NmGlob(NmCap) AS BYTE, NmProc(NmCap), NmNext(NmCap)
+    BsCap = 100
+    REDIM BsHash(BsCap), BsUse(BsCap) AS BYTE, BsNext(BsCap)
     CdCap = 32
-    REDIM CdNm(CdCap), CdKind(CdCap) AS BYTE, CdB(CdCap), CdO(CdCap), CdPar(CdCap)
+    REDIM CdNm(CdCap), CdBs(CdCap), CdKind(CdCap) AS BYTE, CdB(CdCap), CdO(CdCap), CdPar(CdCap)
     LxDepth = 0
     LexLines f$, CHSRC
     TB TEOF
@@ -709,7 +725,7 @@ SUB LexFile (f$)
     TW LxMaxPar
     TW LxMaxLines
     CLOSE #CHTOK
-    ERASE NmTxt$, NmGlob, NmProc, NmNext, NmUse, CdNm, CdKind, CdB, CdO, CdPar
+    ERASE NmHash, NmGlob, NmProc, NmNext, BsHash, BsUse, BsNext, CdNm, CdBs, CdKind, CdB, CdO, CdPar
 END SUB
 
 ' ---- BCLEX, the program: pass 1 of the job's compile step, then BCGEN

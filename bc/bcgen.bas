@@ -1746,28 +1746,18 @@ END SUB
 
 SUB GenPass ()
     DIM t, s, k, w
-    REDIM Code(CodeCap) AS BYTE, LabPos(LabCap), FixPos(FixCap), FixLab(FixCap)
-    REDIM RelPos(RelCap), RelType(RelCap) AS BYTE, RelSym(RelCap)
     REDIM NOp(NodeCap) AS BYTE, NTy(NodeCap) AS BYTE, NA(NodeCap), NB(NodeCap)
     REDIM NV(NodeCap), NX(NodeCap), NN(NodeCap), NS$(NodeCap), NIsBool(NodeCap) AS BYTE
     REDIM CtlKind(MAXCTL), CtlExit(MAXCTL), CtlCont(MAXCTL), ConstText$(ConstCap)
-    REDIM LnPC(LnCap), LnNo(LnCap), LnFile$(MAXLNF)
-    NLnFile = 0
     NNode = 0
     NConst = 0
     MemNote "gen arrays"
-    ' a new file takes the largest free area: with the listing's records
-    ' written at the same time, the object takes half of it ([*]), the
-    ' statements half of the rest
-    IF OptList THEN OPEN ObjName$ + "[*]" FOR OUTPUT AS #CHOBJ ELSE OPEN ObjName$ FOR OUTPUT AS #CHOBJ
-    PUT #CHOBJ, , "BCOB"
-    ObjByte 77
-    ObjStr ModName$
-    IF OptList THEN
-        OPEN LTmpName$ + "[*]" FOR OUTPUT AS #CHLREC
-        OPEN LCodName$ FOR OUTPUT AS #CHLCOD
-        LstOpen = 1
-    END IF
+    ' the stream to BCASM (pass 4): it makes the object file and the
+    ' listing's records
+    IF FileExists(AsmName$) THEN KILL AsmName$
+    OPEN AsmName$ FOR BINARY AS #CHASM
+    StmRec AMSIZE
+    StmWord LnCap
     ' the module's body
     ResetDefs
     InProc = 0
@@ -1818,17 +1808,12 @@ SUB GenPass ()
     ObjByte 71
     ObjWord StaticWords
     ObjByte 69
-    CLOSE #CHOBJ
-    IF OptList THEN
-        CLOSE #CHLREC
-        CLOSE #CHLCOD
-        LstOpen = 0
-    END IF
+    StmRec AMEOF
+    CLOSE #CHASM
     IF OptMem THEN
         Say "  [high: code " + IStr$(HiPC) + ", jumps " + IStr$(HiFix) + ", labels " + IStr$(HiLab) + ", calls " + IStr$(HiRel) + ", nodes " + IStr$(HiNode)
         SayLn ", names " + IStr$(HiSym) + ", parameters " + IStr$(NPar) + ", constants " + IStr$(NConst) + "; tables grown " + IStr$(NGrown) + " times]"
     END IF
-    ERASE Code, LabPos, FixPos, FixLab, RelPos, RelType, RelSym, LnPC, LnNo, LnFile$
     ERASE NOp, NTy, NA, NB, NV, NX, NN, NS$, NIsBool, CtlKind, CtlExit, CtlCont, ConstText$
 END SUB
 
@@ -1842,8 +1827,9 @@ TokLine = 0
 TokText$ = ""
 ' the tables: as large as BCLEX's counts (the token file's header) say
 ' they need, MAX constants at most -- the symbols, parameters and string
-' constants for certain; a procedure's code, labels, jumps and calls, and
-' an expression's nodes estimated (growing, Grown, if that was too few)
+' constants for certain; an expression's nodes estimated (growing, Grown,
+' if that was too few).  (A procedure's code and its labels, jumps, calls
+' and lines are BCASM's: pass 4.)
 OpenTok
 CLOSE #CHTOK
 IF TokHead(THMAGIC) <> TOKMAGIC THEN FatalRec 83, TokName$   ' not BCLEX's token file: {s}
@@ -1852,16 +1838,11 @@ SymCap = Capped(TokHead(THGLOB) + TokHead(THLOC) + 48, MAXSYM)
 ' (pass 3 reads each procedure's parameters again, after all of them)
 ParCap = Capped(TokHead(THPARAMS) + TokHead(THMAXPAR) + 1, MAXPAR)
 ConstCap = Capped(TokHead(THCONSTS) + 1, 300)
-CodeCap = Capped(TokHead(THCODE) + 104, MAXCODE)
-LabCap = Capped(3 * TokHead(THCTL) + 8, MAXLAB)
-FixCap = Capped(2 * TokHead(THCTL) + 8, MAXFIX)
-RelCap = Capped(TokHead(THCODE) \ 8 + 24, MAXREL)
 NodeCap = Capped(TokHead(THSTMT) \ 2 + 16, MAXNODE)
 ' (a procedure's lines, its header and its files' changes)
 LnCap = Capped(TokHead(THLINES) + 8, 32000)
 IF OptMem THEN
-    Say "  [tables: " + IStr$(SymCap) + " names, " + IStr$(ParCap) + " parameters, " + IStr$(ConstCap) + " constants, code " + IStr$(CodeCap)
-    SayLn ", jumps " + IStr$(FixCap) + ", labels " + IStr$(LabCap) + ", calls " + IStr$(RelCap) + ", nodes " + IStr$(NodeCap) + ", lines " + IStr$(LnCap) + "]"
+    SayLn "  [tables: " + IStr$(SymCap) + " names, " + IStr$(ParCap) + " parameters, " + IStr$(ConstCap) + " constants, nodes " + IStr$(NodeCap) + ", lines " + IStr$(LnCap) + "]"
 END IF
 REDIM SName$(SymCap), SKind(SymCap) AS BYTE, SType(SymCap) AS BYTE, SCls(SymCap) AS BYTE
 REDIM SOff(SymCap), SFlags(SymCap) AS BYTE, SScope(SymCap) AS BYTE, SNext(SymCap)
@@ -1874,5 +1855,5 @@ MemNote "declared"
 IF ErrCount = 0 THEN GenPass
 IF ErrCount > 0 THEN CompileFailed
 KILL TokName$
-IF OptList THEN ChainTo "BCLIST", ""
-CompileDone
+IF OptMem THEN SayLn "  least free memory: " + IStr$(FRE(-1)) + " words (BCGEN)"
+ChainTo "BCASM", ""

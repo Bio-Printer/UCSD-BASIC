@@ -1,36 +1,75 @@
-' BCEMIT -- pass 3: the P-code emitter and the object file
+' BCEMIT -- pass 3: the P-code emitter
 '
-' A procedure's code is made in Code() from offset 0.  At its end
-' (EndProc) the exit code is added, the entry code (zeroing the locals,
-' saving the string-temporaries mark) is put in front of it, jumps are
-' resolved (a jump of more than 127 bytes forward, or any backward one,
-' goes through the procedure's jump table), the attribute words are added
-' and the procedure is written to the object file as a P record.
+' A procedure's code goes, as it is made, to the stream :BCTEMP.ASM for
+' BCASM (pass 4, bcasm.bas: BCGENCOM's AMxxx records): its bytes, its
+' jumps and labels by number, its relocations by name, its lines.  At its
+' end (EndProc) the exit code is added and the entry code (zeroing the
+' locals, saving the string-temporaries mark) is made last, for BCASM to put
+' in front; BCASM resolves the jumps (a jump of more than 127 bytes
+' forward, or any backward one, goes through the procedure's jump table),
+' adds the attribute words and writes the procedure to the object file as
+' a P record.  Here are only the counts: PC (the code's bytes, for the
+' alignment of LDC and XJP words), NLab, NFix, NRel (each one's most, MAX
+' constants: a procedure too large is said here, at its line).
 #INCLUDE "BCCOM"
 #INCLUDE "BCGENCOM"
 
 
-DIM SHARED LongLab(60), PendPC, PendLine, PendText$, PendSet
-DIM SHARED GsRet(100), ProcKeep
+DIM SHARED GsRet(100), ProcKeep, StmBuf(254) AS BYTE, NStmBuf
 
-' ---- the tables, made as large as the source seemed to need (BCGEN's
-' body): grown (BCUTIL's Grown) when that was too few, up to the MAX
-' constants
+' ---- the stream (CHASM): the code's bytes kept in StmBuf until a record
+
+SUB StmFlush ()
+    DIM i, b AS BYTE
+    IF NStmBuf = 0 THEN EXIT SUB
+    b = AMBYTES
+    PUT #CHASM, , b
+    b = NStmBuf
+    PUT #CHASM, , b
+    FOR i = 0 TO NStmBuf - 1
+        b = StmBuf(i)
+        PUT #CHASM, , b
+    NEXT i
+    NStmBuf = 0
+END SUB
+
+SUB StmByte (v)
+    DIM b AS BYTE
+    b = v AND 255
+    PUT #CHASM, , b
+END SUB
+
+' a record k (the bytes before it first)
+SUB StmRec (k)
+    StmFlush
+    StmByte k
+END SUB
+
+SUB StmWord (w)
+    PUT #CHASM, , w
+END SUB
+
+SUB StmStr (s$)
+    StmByte LEN(s$)
+    IF LEN(s$) > 0 THEN PUT #CHASM, , s$
+END SUB
 
 ' ---- bytes
 
-SUB OB (b)
-    IF PC >= CodeCap - 40 THEN
-        IF CodeCap < MAXCODE THEN
-            CodeCap = Grown(CodeCap, MAXCODE)
-            REDIM PRESERVE Code(CodeCap) AS BYTE
-        ELSE
-            ErrNo 110   ' procedure too large: split it
-            PC = 0
-        END IF
+' n more bytes of code
+SUB PcAdd (n)
+    IF PC >= MAXCODE - 40 THEN
+        ErrNo 110   ' procedure too large: split it
+        PC = 0
     END IF
-    Code(PC) = b AND 255
-    PC = PC + 1
+    PC = PC + n
+END SUB
+
+SUB OB (b)
+    PcAdd 1
+    IF NStmBuf >= 255 THEN StmFlush
+    StmBuf(NStmBuf) = b AND 255
+    NStmBuf = NStmBuf + 1
 END SUB
 
 SUB OW (w)
@@ -97,79 +136,54 @@ END SUB
 ' ---- labels and jumps
 
 FUNCTION NewLabel ()
-    IF NLab >= LabCap THEN
-        IF LabCap < MAXLAB THEN
-            LabCap = Grown(LabCap, MAXLAB)
-            REDIM PRESERVE LabPos(LabCap)
-        ELSE
-            ErrNo 111   ' procedure too large (labels): split it
-            NLab = 0
-        END IF
+    IF NLab >= MAXLAB THEN
+        ErrNo 111   ' procedure too large (labels): split it
+        NLab = 0
     END IF
-    LabPos(NLab) = -1
     NewLabel = NLab
     NLab = NLab + 1
 END FUNCTION
 
+' (BCASM drops a UJP to this very label just before it)
 SUB SetLabel (l)
-    DIM i
-    ' a UJP to this very label just before it: drop it
-    IF NFix > 0 AND PC >= 2 THEN
-        IF FixPos(NFix - 1) = PC - 1 AND FixLab(NFix - 1) = l AND Code(PC - 2) = OUJP THEN
-            NFix = NFix - 1
-            PC = PC - 2
-            FOR i = 0 TO NLab - 1
-                IF LabPos(i) = PC + 2 THEN LabPos(i) = PC
-            NEXT i
-            IF PendSet AND PendPC = PC + 2 THEN PendPC = PC
-        END IF
-    END IF
-    LabPos(l) = PC
+    StmRec AMLABEL
+    StmWord l
 END SUB
 
 SUB MoreFix ()
-    IF FixCap < MAXFIX THEN
-        FixCap = Grown(FixCap, MAXFIX)
-        REDIM PRESERVE FixPos(FixCap), FixLab(FixCap)
-    ELSE
+    IF NFix >= MAXFIX THEN
         ErrNo 112   ' procedure too large (jumps): split it
         NFix = 0
     END IF
+    NFix = NFix + 1
 END SUB
 
 SUB Jump (op, l)
-    OB op
-    IF NFix >= FixCap THEN MoreFix
-    FixPos(NFix) = PC
-    FixLab(NFix) = l
-    NFix = NFix + 1
-    OB 0
+    MoreFix
+    StmRec AMJUMP
+    StmByte op
+    StmWord l
+    PcAdd 2
 END SUB
 
 ' a word of a case table: self-relative, the target is its address - it
 SUB CaseWord (l)
-    IF NFix >= FixCap THEN MoreFix
-    FixPos(NFix) = PC
-    FixLab(NFix) = -2 - l
-    NFix = NFix + 1
-    OW 0
+    MoreFix
+    StmRec AMCASE
+    StmWord l
+    PcAdd 2
 END SUB
 
 ' ---- relocations and the names they refer to
 
 SUB Reloc (ty, sym)
-    IF NRel >= RelCap THEN
-        IF RelCap < MAXREL THEN
-            RelCap = Grown(RelCap, MAXREL)
-            REDIM PRESERVE RelPos(RelCap), RelType(RelCap) AS BYTE, RelSym(RelCap)
-        ELSE
-            ErrNo 113   ' procedure too large (calls): split it
-            NRel = 0
-        END IF
+    IF NRel >= MAXREL THEN
+        ErrNo 113   ' procedure too large (calls): split it
+        NRel = 0
     END IF
-    RelPos(NRel) = PC
-    RelType(NRel) = ty
-    RelSym(NRel) = sym
+    StmRec AMREL
+    StmByte ty
+    StmStr LinkName$(sym)
     NRel = NRel + 1
 END SUB
 
@@ -261,61 +275,29 @@ SUB TempReset ()
     UsedMark = 1
 END SUB
 
-' ---- the object file
+' ---- the object file's records other than the procedures' (BCASM
+' writes them)
 
 SUB ObjByte (b)
-    DIM x AS BYTE
-    x = b AND 255
-    PUT #CHOBJ, , x
+    StmRec AMOBJB
+    StmByte b
 END SUB
 
 SUB ObjWord (w)
-    PUT #CHOBJ, , w
+    StmRec AMOBJW
+    StmWord w
 END SUB
 
 SUB ObjStr (s$)
-    ObjByte LEN(s$)
-    IF LEN(s$) > 0 THEN PUT #CHOBJ, , s$
+    StmRec AMOBJS
+    StmStr s$
 END SUB
 
-' ---- the listing's statement records (written one behind: see SetLabel)
+' ---- the line table and the listing's statement records (BCASM's)
 
-SEGMENT RTSELDOM
-SUB ListFlush ()
-    IF PendSet THEN
-        PRINT #CHLREC, IStr$(PendPC); " "; IStr$(PendLine)
-        PRINT #CHLREC, PendText$
-        PendSet = 0
-    END IF
-END SUB
-
-' the listing of a procedure, for LIST (after pass 3, the GEN segment
-' gone: it and LIST do not fit into the code space together): its
-' statements' records end with a *; its code goes to LCodName$ -- its name,
-' "PC entry-bytes jump-table-entries code-end relocations", its bytes in hex
-' (32 a line), each relocation "position kind name"
-SUB ListSave (nm$)
-    DIM i, s$
-    PRINT #CHLREC, "*"
-    PRINT #CHLCOD, nm$
-    PRINT #CHLCOD, IStr$(PC); " "; IStr$(EntryBytes); " "; IStr$(NLong); " "; IStr$(CodeEndPos); " "; IStr$(NRel)
-    FOR i = 0 TO PC - 1
-        s$ = s$ + RIGHT$("0" + HEX$(Code(i)), 2)
-        IF LEN(s$) = 64 OR i = PC - 1 THEN
-            PRINT #CHLCOD, s$
-            s$ = ""
-        END IF
-    NEXT i
-    FOR i = 0 TO NRel - 1
-        IF RelType(i) = RGSTAT THEN s$ = "" ELSE s$ = LinkName$(RelSym(i))
-        PRINT #CHLCOD, IStr$(RelPos(i)); " "; IStr$(RelType(i)); " "; s$
-    NEXT i
-END SUB
-
-SEGMENT
 ' the pending record dropped (a procedure skipped: no code of its own)
 SUB ListDrop ()
-    IF PendSet AND PendPC = PC THEN PendSet = 0
+    StmRec AMDROP
 END SUB
 
 ' a line starts (Tok is its TLINE): where its code starts, into the line
@@ -323,42 +305,19 @@ END SUB
 ' wherever it was compiled; BCDEBUG looks beside the code file first), and
 ' its record for the listing
 SUB ListLine ()
-    DIM f, n$, k
+    DIM n$, k
     IF LineFile$ <> LnCurF$ THEN
         LnCurF$ = LineFile$
         n$ = LineFile$
         FOR k = LEN(n$) TO 1 STEP -1
             IF MID$(n$, k, 1) = ":" OR MID$(n$, k, 1) = "/" THEN EXIT FOR
         NEXT k
-        n$ = MID$(n$, k + 1)
-        f = 1
-        DO WHILE f <= NLnFile
-            IF LnFile$(f) = n$ THEN EXIT DO
-            f = f + 1
-        LOOP
-        IF f > NLnFile AND NLnFile < MAXLNF THEN
-            NLnFile = f
-            LnFile$(f) = n$
-        END IF
-        IF f <= NLnFile THEN LineAt -1, f
+        StmRec AMFILE
+        StmStr MID$(n$, k + 1)
     END IF
-    LineAt PC, TokLine
-    IF OptList = 0 THEN EXIT SUB
-    ListFlush
-    PendPC = PC
-    PendLine = TokLine
-    PendText$ = TokText$
-    PendSet = 1
-END SUB
-
-SUB LineAt (pc, l)
-    IF NLn >= LnCap THEN
-        LnCap = Grown(LnCap, 32000)
-        REDIM PRESERVE LnPC(LnCap), LnNo(LnCap)
-    END IF
-    LnPC(NLn) = pc
-    LnNo(NLn) = l
-    NLn = NLn + 1
+    StmRec AMLINE
+    StmWord TokLine
+    IF OptList THEN StmStr TokText$
 END SUB
 
 ' ---- procedures
@@ -366,6 +325,7 @@ END SUB
 ' a procedure starts: s its symbol (0 for the module's body); the
 ' parameters' frame words are laid out by the caller (NParamWords)
 SUB BeginProc (s)
+    StmRec AMBEGIN
     ProcSym = s
     PC = 0
     NLab = 0
@@ -378,8 +338,6 @@ SUB BeginProc (s)
     NCtl = 0
     NFor = 0
     PendNext = 0
-    PendSet = 0
-    NLn = 0
     LnCurF$ = ""
     ProcKeep = NSym
     CurLocal = NParamWords
@@ -468,17 +426,18 @@ SUB GenExit ()
             CaseWord GsRet(i)
         NEXT i
     ELSE
-        LabPos(RetLab) = LabPos(ExitLab)
+        StmRec AMALIAS
+        StmWord RetLab
+        StmWord ExitLab
     END IF
 END SUB
 
-' the entry code, in front of the procedure's code (an even number of
-' bytes: the LDC and XJP words stay aligned)
+' the entry code, for BCASM to put in front of the procedure's code (an
+' even number of bytes: the LDC and XJP words stay aligned)
 SUB GenEntry ()
-    DIM pro(24) AS BYTE, np, i, d, save, bytes, nrel0, r
+    DIM save, bytes
+    StmRec AMENTRY
     save = PC
-    nrel0 = NRel
-    ' made at the end of the code, then moved to the front
     bytes = (MaxLocal - NParamWords) * 2
     IF NeedZero AND bytes > 0 THEN
         Lla NParamWords + 1
@@ -496,116 +455,27 @@ SUB GenEntry ()
         Stl GosubOff
     END IF
     IF (PC - save) AND 1 THEN OB ONOP
-    np = PC - save
-    FOR i = 0 TO np - 1
-        pro(i) = Code(save + i)
-    NEXT i
-    PC = save
-    IF np = 0 THEN EXIT SUB
-    ' move the code up by np bytes
-    FOR i = PC - 1 TO 0 STEP -1
-        Code(i + np) = Code(i)
-    NEXT i
-    FOR i = 0 TO np - 1
-        Code(i) = pro(i)
-    NEXT i
-    PC = PC + np
-    FOR i = 0 TO NLab - 1
-        IF LabPos(i) >= 0 THEN LabPos(i) = LabPos(i) + np
-    NEXT i
-    FOR i = 0 TO NFix - 1
-        FixPos(i) = FixPos(i) + np
-    NEXT i
-    FOR i = 0 TO nrel0 - 1
-        RelPos(i) = RelPos(i) + np
-    NEXT i
-    ' the entry code's own relocations: they were made at save
-    FOR i = nrel0 TO NRel - 1
-        RelPos(i) = RelPos(i) - save
-    NEXT i
-    EntryBytes = np
+    StmRec AMENTRYEND
 END SUB
 
-' the jumps, the jump table and the attributes; write the P record
+' the procedure's end: for BCASM its frame and its name (and where, for an
+' error it finds: the end, as ErrRec says it)
 SUB EndProc ()
-    DIM i, k, t, pos, off, jtab, exitpos, flags, nm$, sg$, s, kind
+    DIM flags, nm$, sg$, s
     ' every label used is defined
     FOR s = ProcKeep + 1 TO NSym
         IF SKind(s) = SKLABEL AND (SFlags(s) AND SFSETLAB) = 0 THEN
             ErrRec 115, 0, 0, MID$(SName$(s), 2)   ' label {s} not defined
         END IF
     NEXT s
-    IF OptList THEN
-        ListFlush
-        PendPC = PC
-        PendLine = 0
-        PendText$ = "(exit)"
-        PendSet = 1
-        ListFlush
-    END IF
+    IF OptList THEN StmRec AMLEXIT
     GenExit
-    EntryBytes = 0
     GenEntry
-    exitpos = LabPos(ExitLab)
     IF PC > HiPC THEN HiPC = PC
     IF NFix > HiFix THEN HiFix = NFix
     IF NLab > HiLab THEN HiLab = NLab
     IF NRel > HiRel THEN HiRel = NRel
     IF NSym > HiSym THEN HiSym = NSym
-    NLong = 0
-    FOR i = 0 TO NFix - 1
-        IF FixLab(i) >= 0 THEN
-            pos = FixPos(i)
-            t = LabPos(FixLab(i))
-            IF t < 0 THEN
-                ErrNo 116   ' internal: a label not set
-                t = 0
-            END IF
-            off = t - (pos + 1)
-            IF off >= 0 AND off <= 127 THEN
-                Code(pos) = off
-            ELSE
-                k = 0
-                DO WHILE k < NLong
-                    IF LongLab(k) = t THEN EXIT DO
-                    k = k + 1
-                LOOP
-                IF k = NLong THEN
-                    IF NLong >= 60 THEN
-                        ErrNo 117   ' procedure too large (more than 60 long jumps): split it
-                        k = 0
-                    ELSE
-                        LongLab(NLong) = t
-                        NLong = NLong + 1
-                    END IF
-                END IF
-                Code(pos) = (256 - 10 - 2 * k) AND 255
-            END IF
-        END IF
-    NEXT i
-    CodeEndPos = PC
-    IF PC AND 1 THEN OB 0
-    jtab = PC + 2 * NLong + 8
-    FOR k = NLong - 1 TO 0 STEP -1
-        pos = jtab - 10 - 2 * k
-        OW pos - LongLab(k)
-    NEXT k
-    OW (MaxLocal - NParamWords) * 2
-    OW NParamWords * 2
-    OW jtab - 4 - exitpos
-    OW jtab - 2
-    OB 0
-    OB 1
-    ' the case tables
-    FOR i = 0 TO NFix - 1
-        IF FixLab(i) <= -2 THEN
-            pos = FixPos(i)
-            t = LabPos(-2 - FixLab(i))
-            Code(pos) = (pos - t) AND 255
-            Code(pos + 1) = ((pos - t) AND &HFF00) \ 256
-        END IF
-    NEXT i
-    ' the P record
     IF ProcSym = 0 THEN
         flags = 1
         nm$ = ModName$ + "'BODY"
@@ -616,37 +486,22 @@ SUB EndProc ()
         nm$ = LinkName$(ProcSym)
         sg$ = SegName$(SSeg(ProcSym))
     END IF
-    IF ErrCount = 0 THEN
-        ObjByte 80
-        ObjByte flags
-        ObjStr nm$
-        ObjStr sg$
-        ObjWord NParamWords * 2
-        ObjByte ResWords
-        ObjWord PC
-        ObjWord jtab
-        FOR i = 0 TO PC - 1
-            ObjByte Code(i)
-        NEXT i
-        ObjWord NRel
-        FOR i = 0 TO NRel - 1
-            ObjWord RelPos(i)
-            ObjByte RelType(i)
-            ObjStr LinkName$(RelSym(i))
-        NEXT i
-        ' the line table: (where a line's code starts, the line), a file
-        ' change -1 and the file's name (the entry code before them all)
-        ObjWord NLn
-        FOR i = 0 TO NLn - 1
-            IF LnPC(i) < 0 THEN
-                ObjWord -1
-                ObjStr LnFile$(LnNo(i))
-            ELSE
-                ObjWord LnPC(i) + EntryBytes
-                ObjWord LnNo(i)
-            END IF
-        NEXT i
+    StmRec AMEND
+    StmWord ExitLab
+    StmWord MaxLocal
+    StmWord NParamWords
+    StmByte ResWords
+    StmByte flags
+    StmStr nm$
+    StmStr sg$
+    IF Tok = TLINE THEN
+        StmWord PrevLine
+        StmStr PrevFile$
+        StmStr PrevText$
+    ELSE
+        StmWord TokLine
+        IF LineFile$ = "" THEN StmStr TokFile$ ELSE StmStr LineFile$
+        StmStr TokText$
     END IF
-    IF OptList THEN ListSave nm$
     IF ProcSym > 0 THEN PopSyms ProcKeep
 END SUB

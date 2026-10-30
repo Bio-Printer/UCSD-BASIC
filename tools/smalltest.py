@@ -38,10 +38,11 @@ def main(a):
         ok, tr, info = run(mode)
         if '-v' in a:
             print(tr)
-        least = [l.split('least free memory:')[1].strip() for l in tr.split('\n') if 'least free memory:' in l]
+        # (BCGEN says its own, "N words (BCGEN)"; then BCASM's and BCLINK's)
+        least = [l.split('least free memory:')[1].split()[0] for l in tr.split('\n') if 'least free memory:' in l]
         good = ok and LAST in tr and 'error' not in tr.lower() and 'OFLOW' not in tr
-        print('%s: %s (least free: BCGEN %s, BCLINK %s)' % (name, 'PI compiled, linked and ran' if good else 'FAILED',
-                                                                least[0] if least else '?', least[1] if len(least) > 1 else '?'))
+        print('%s: %s (least free: BCGEN %s, BCASM %s, BCLINK %s)' % (name, 'PI compiled, linked and ran' if good else 'FAILED',
+              least[0] if least else '?', least[1] if len(least) > 1 else '?', least[2] if len(least) > 2 else '?'))
         if not good and '-v' not in a:
             print(tr[-1500:])
             print(info.strip().split('\n')[-1])

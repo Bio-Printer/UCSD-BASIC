@@ -17,6 +17,23 @@ CONST OSIND0 = &HF8
 ' ---- relocations (the object file)
 CONST RCALL = 1, RGSTAT = 3, RGNAME = 4
 
+' ---- the stream BCGEN writes and BCASM reads (:BCTEMP.ASM): records, a
+' byte each and its operands (b a byte, w a word, s a string)
+' AMBYTES n, n bytes: code     AMJUMP op, label   AMCASE label (a case word)
+' AMLABEL label (set here)     AMALIAS l, m (l is where m is)
+' AMREL type, s (the name)     AMFILE s (the lines' file)
+' AMLINE w (the line), s (its text, with a listing)
+' AMDROP (a skipped procedure: its listing record goes)
+' AMBEGIN, AMLEXIT (the listing's "(exit)"), AMENTRY ... AMENTRYEND (the
+' entry code, made last, put in front), AMEND (exit label, data words,
+' parameter words, result words, flags, name, segment, and where: line,
+' file, text), AMOBJB b, AMOBJW w, AMOBJS s (the object file's other
+' records), AMSIZE w (the most lines of a procedure), AMEOF
+CONST AMBYTES = 1, AMJUMP = 2, AMCASE = 3, AMLABEL = 4, AMALIAS = 5, AMREL = 6
+CONST AMFILE = 7, AMLINE = 8, AMDROP = 9, AMBEGIN = 10, AMLEXIT = 11, AMENTRY = 12
+CONST AMENTRYEND = 13, AMEND = 14, AMOBJB = 15, AMOBJW = 16, AMOBJS = 17
+CONST AMSIZE = 18, AMEOF = 19
+
 ' ---- expression nodes
 CONST NICON = 1, NRCON = 2, NSCON = 3, NVAR = 4, NELEM = 5, NCALL = 6
 CONST NBUILT = 7, NNEG = 8, NNOT = 9, NBIN = 10, NCONV = 11, NBOOL = 12
