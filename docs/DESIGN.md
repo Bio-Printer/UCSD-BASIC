@@ -139,12 +139,12 @@ The byte stream:
 
 What the module never uses.  Every module includes BCCOM's and BCGENCOM's
 constants and BCPROCS's DECLAREs, most of which it does not use: compiling
-BCEXPR, 200 of the 617 names were those.  The lexer counts the uses of
-each name without its suffix (as DEFINT's X is X%: the base names' table,
-BsUse) and remembers where each module-level CONST name and each DECLARE
-is in the byte stream (a block and a byte: the lexer counts what it
-writes, LxAdv).  At the end, one whose base name appears nowhere else is
-marked there: the DECLARE
+BCEXPR, 200 of the 617 names were those.  The lexer counts each name's
+uses (NmUse) and remembers where each module-level CONST name and each
+DECLARE is in the byte stream (a block and a byte: the lexer counts what
+it writes, LxAdv).  At the end, one whose name -- with any suffix, as
+DEFINT's X is X%: the hashes of its base name with each suffix follow
+from its base name's (LxMix) -- appears nowhere else is marked there: the DECLARE
 keyword becomes TSKIP (both passes skip the statement), the CONST's name
 TDEADID (pass 3 reads its value and makes no symbol), and it is taken off
 the header's counts.  So BCGEN's tables are made smaller to begin with
@@ -152,7 +152,8 @@ the header's counts.  So BCGEN's tables are made smaller to begin with
 
 The lexer's names are 15-bit hashes (LxHashes), not their text: the
 strings took more memory than Z80 mode has (each one at least an 8-word
-block).  Two names with one hash are counted as one, a symbol or two
+block); its table grows 256 entries at a time (fewer holes the old
+arrays leave).  Two names with one hash are counted as one, a symbol or two
 fewer in BCGEN's table (which has 48 more), and keep each other's
 DECLARE or CONST if one of them is used: never one that is used.
 
