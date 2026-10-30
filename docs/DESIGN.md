@@ -157,6 +157,34 @@ arrays leave).  Two names with one hash are counted as one, a symbol or two
 fewer in BCGEN's table (which has 48 more), and keep each other's
 DECLARE or CONST if one of them is used: never one that is used.
 
+A module-level CONST whose value is an integer (CONST NAME = 5, = -1,
+= &H80, = OTHER where OTHER is one; NAME with no suffix or %) is put in
+where the module uses it: the lexer writes TINT and the value in place of
+TIDENT and the name (LxIdent), and as the name is then used nowhere else,
+the CONST's name is TDEADID: BCGEN makes no symbol for it.  BC's modules
+use 50 to 165 of BCCOM's and BCGENCOM's constants (opcodes, tokens,
+keywords): BCGEN's tables had a symbol and its name's string for each
+(BCEXPR's most names 442 before, 299 now).  The code is the same: a
+CONST's integer is the node a number makes.  The use must be the CONST's
+name for certain, as the lexer knows names only by their hashes: its
+15-bit hash, a second one (LxHash2: the length, each character times its
+place, mod 27011) and its base name's must all be the CONST's
+(LxConstOf; chains by the base hash, CdNext from CdHead).  Not put in,
+the name kept (and so the CONST's symbol): where a name is declared (a
+SUB's or FUNCTION's name and parameters, DIM, REDIM, STATIC, SHARED,
+COMMON, a DECLARE's parameters, a CONST in a procedure), where one is
+assigned (at a statement's start, after LET, FOR, NEXT, READ, INPUT,
+SWAP, CALL, ERASE: BCGEN's "is a constant" stays), and after GOTO, GOSUB,
+RESTORE, RESUME and RETURN (a label may have a CONST's name: tests/constin);
+a CONST that is declared again (a parameter of its name, a DIM, a second
+CONST) is not put in from there on, nor one in the token file past its
+first 128K (CdB is a byte).  The lexer's own memory: its candidates'
+tables start at 384 (BC's modules have about 300: none left behind while
+the #INCLUDE files are read, when the library's RTSELDOM is in memory to
+open them), the keyword table's text (KwTable$) is a segment of its own,
+KWTAB, called once, and the end's LxUnused and the errors' LexErr are
+LXEND.
+
 A DATA statement's text is kept as one TSTR.  The keyword table is a few
 string constants of 9-character fields searched with INSTR.
 
@@ -559,11 +587,12 @@ names a module includes and never uses are not BCGEN's symbols (section
 15,900 words to 10,900); the code and its tables are BCASM's, not BCGEN's
 (section 5); BC's programs chain without opening a file (section 9);
 BCGEN's segments are placed by the call graph and the calls' counts
-(above), and its seldom parts are RTSELDOM's (section 9).  In
-Z80 mode BCUTIL, BCTOK and BCDECL now compile (BCGEN leaves 2,150 to 2,550
-words); BCEMIT gets through pass 2 and its module's own code but not its
-procedures, and BCEXPR and BCGEN run out of memory after pass 2 (in the
-Harvard layout they leave 3,500, 5,900 and 7,000 words less than PI).  BC does not check the layout; out of memory, it
+(above), and its seldom parts are RTSELDOM's (section 9); the
+module-level integer CONSTs are put in as numbers by the lexer, not
+symbols (section 3).  In Z80 mode BCUTIL, BCTOK, BCDECL and BCEMIT now
+compile (BCGEN leaves 1,240 to 2,950 words); BCEXPR gets through pass 2
+and its module's own code but not its procedures, and BCGEN runs out of
+memory after pass 2.  BC does not check the layout; out of memory, it
 says Run-time error 7, or the emulator *STK OFLOW*.  (bas2c takes the CSP
 statement as nothing and CSP%() as 0.)
 
@@ -587,7 +616,8 @@ statement as nothing and CSP%() as 0.)
 - tests/chain (NAME.progs: the programs it chains to) and tools/chaintest.py
   (CHAIN from programs the shell started: the shell back with the last
   one's exit status; the shell's path along the chain; --pascal).
-- tools/mkvolume.py makes build/BASIC.BLK (the sub-volumes SRC, LIB, DEMO,
+- tools/mkvolume.py makes build/BASIC.BLK (6000 blocks: BUILD writes the
+  eight new code files and its temporary files on the volume itself; the sub-volumes SRC, LIB, DEMO,
   TEST with TEST/EXPECT, each made on the host as a volume written into
   the volume as a data file, with room for twice what its batch file
   writes, measured with the host build, and 40 blocks); tools/voltest.py

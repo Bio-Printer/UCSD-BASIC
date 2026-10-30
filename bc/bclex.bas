@@ -25,13 +25,22 @@ DIM SHARED LxDepth, LxLine$, LxPos, LxLen, LxLineNo, LxFile$
 DIM SHARED NmHash(), NmGlob() AS BYTE, NmProc(), NmNext(), NmHead(127), NNm, NmCap
 ' What the module never uses: each name's uses (NmUse, 2 at most), and each module-level CONST
 ' name and DECLAREd procedure (a candidate: CdNm its name, CdBsH the hash of its name without
-' its suffix, CdKind 1 CONST or 2 DECLARE, CdB and CdO where its TIDENT or DECLARE is in the
+' its suffix, CdKind 1 CONST (3 one put in) or 2 DECLARE, CdB (a byte) and CdO where its TIDENT or DECLARE is in the
 ' token file, block and byte, CdPar a DECLARE's parameters); at the end one whose name with
 ' any suffix (DEFINT's X is X%: the hashes follow from CdBsH, LxMix) has no other use is
 ' marked there, TDEADID or TSKIP, and not counted (LxUnused; a hash shared with another name
 ' only keeps one).  LxPB, LxPO: where the next byte goes; LxWant: a CONST's (1) or DECLARE's
 ' (2) name comes next; LxLastNm: LxName's name
-DIM SHARED NmUse() AS BYTE, CdNm(), CdBsH(), CdKind() AS BYTE, CdB(), CdO(), CdPar(), NCd, CdCap
+DIM SHARED NmUse() AS BYTE, CdNm(), CdBsH(), CdKind() AS BYTE, CdB() AS BYTE, CdO(), CdPar(), NCd, CdCap
+' A module-level CONST NAME = an integer (NAME with no suffix or %) is put in as that integer
+' (TINT) where the module uses it (CdKind 3, CdPar its value): BCGEN makes no symbol for it
+' (LxUnused: no other use).  Its name is known by its hash, a second one (CdH2, LxHash2, with
+' the length in it) and its base name's (CdNext: the CONSTs with one base hash AND 31,
+' from CdHead).  Not put in: where a name is declared or assigned, after GOTO, GOSUB,
+' RESTORE, RESUME, RETURN (a label: LxNoLab); a CONST that is declared again (a parameter,
+' DIM, ...) is no longer put in at all.  LxCState: where a CONST line is (1 its name read, 2
+' its =, 3 its -, 4 its integer: LxCVal; LxCC the candidate); LxRaw: TB writes no token
+DIM SHARED CdH2(), CdNext(), CdHead(31), LxCState, LxCVal, LxCC, LxRaw, LxNoLab, LxPrevK
 DIM SHARED LxPB, LxPO, LxWant, LxDB, LxDO, LxCdDecl, LxLastNm, LxHash, LxBsHash
 DIM SHARED LxProc, LxNProc, LxProcName, LxLead, LxParen, LxStmtTok, LxDecl
 DIM SHARED LxGlob, LxParams, LxConsts, LxLoc, LxCode, LxStrB, LxCtl, LxHdrPar, LxMaxPar
@@ -49,6 +58,10 @@ END SUB
 
 SUB TB (v)
     DIM b AS BYTE
+    IF LxRaw = 0 THEN
+        IF LxCState > 0 THEN LxCTok v
+        LxPrevK = v
+    END IF
     b = v
     PUT #CHTOK, , b
     LxAdv 1
@@ -142,10 +155,14 @@ END SUB
 
 ' the name just read (LxLastNm, its base name's hash LxBsHash) is a CONST's or DECLARE's
 ' (kind), its mark goes at block b, byte o
-SUB LxCand (kind, b, o)
+SUB LxCand (kind, b, o, w$)
+    DIM c, h
+    ' (CdB is a byte: none past the token file's first 128K)
+    IF b > 255 THEN EXIT SUB
     IF NCd >= CdCap THEN
         CdCap = CdCap + 128
-        REDIM PRESERVE CdNm(CdCap), CdBsH(CdCap), CdKind(CdCap) AS BYTE, CdB(CdCap), CdO(CdCap), CdPar(CdCap)
+        REDIM PRESERVE CdNm(CdCap), CdBsH(CdCap), CdKind(CdCap) AS BYTE, CdB(CdCap) AS BYTE, CdO(CdCap), CdPar(CdCap)
+        REDIM PRESERVE CdH2(CdCap), CdNext(CdCap)
     END IF
     NCd = NCd + 1
     CdNm(NCd) = LxLastNm
@@ -154,8 +171,98 @@ SUB LxCand (kind, b, o)
     CdB(NCd) = b
     CdO(NCd) = o
     CdPar(NCd) = 0
+    IF kind = 2 THEN LxCdDecl = NCd
+    IF kind = 1 THEN
+        h = LxHash2(w$)
+        ' (one declared twice: neither is put in; BCGEN says so)
+        c = LxConstOf(1, w$)
+        IF c > 0 THEN
+            CdKind(c) = 1
+        ELSEIF SuffixType(w$) = 0 OR SuffixType(w$) = TYINT THEN
+            LxCState = 1
+            LxCC = NCd
+        END IF
+        CdH2(NCd) = h
+        CdNext(NCd) = CdHead(LxBsHash AND 31)
+        CdHead(LxBsHash AND 31) = NCd
+    END IF
 END SUB
 
+' a name's second hash (its length, its characters each times its place)
+FUNCTION LxHash2 (w$)
+    DIM h, i
+    h = LEN(w$)
+    FOR i = 1 TO LEN(w$)
+        h = (h + ASC(w$, i) * ((i AND 31) + 1)) MOD 27011
+    NEXT i
+    LxHash2 = h
+END FUNCTION
+
+' the CONST candidate named w$ (its hashes; any = 1, or one put in, 3); 0: none (LxHashes
+' first; the second hash only if the first matches)
+FUNCTION LxConstOf (any, w$)
+    DIM c, h2
+    h2 = -1
+    c = CdHead(LxBsHash AND 31)
+    DO WHILE c > 0
+        IF NmHash(CdNm(c)) = LxHash AND (any OR CdKind(c) = 3) THEN
+            IF h2 < 0 THEN h2 = LxHash2(w$)
+            IF CdH2(c) = h2 THEN EXIT DO
+        END IF
+        c = CdNext(c)
+    LOOP
+    LxConstOf = c
+END FUNCTION
+
+' a name is declared (LxHashes first): a CONST with its base name is no longer put in
+SUB LxShadow ()
+    DIM c
+    c = CdHead(LxBsHash AND 31)
+    DO WHILE c > 0
+        IF CdBsH(c) = LxBsHash AND CdKind(c) = 3 THEN CdKind(c) = 1
+        c = CdNext(c)
+    LOOP
+END SUB
+
+' the token v, for a CONST line's value (LxCState)
+SUB LxCTok (v)
+    SELECT CASE LxCState
+    CASE 1
+        IF v = TEQ THEN LxCState = 2 ELSE LxCState = 0
+    CASE 2
+        IF v = TMINUS THEN
+            LxCState = 3
+        ELSEIF v <> TINT THEN
+            LxCState = 0
+        END IF
+    CASE 3
+        IF v <> TINT THEN LxCState = 0
+    CASE 4
+        IF v = TCOMMA OR v = TLINE OR v = TCOLON OR v = TEOF THEN
+            CdKind(LxCC) = 3
+            CdPar(LxCC) = LxCVal
+        END IF
+        LxCState = 0
+    END SELECT
+END SUB
+
+' an integer token: TINT v (and a CONST line's value)
+SUB LxInt (v)
+    TB TINT
+    TW v
+    IF LxCState = 2 THEN
+        LxCVal = v
+        LxCState = 4
+    ELSEIF LxCState = 3 THEN
+        ' (-32768 is TMINUS and 32768, taken as -32768)
+        IF v = -32768 THEN LxCVal = v ELSE LxCVal = -v
+        LxCState = 4
+    END IF
+END SUB
+
+' (the end's and the errors': a segment of their own, not in memory with the library's
+' RTSELDOM when an #INCLUDE file is opened)
+SEGMENT LXEND
 ' is the name with the base name's hash h used twice in all, with any suffix
 FUNCTION NmUsed (h)
     DIM n, j, k
@@ -173,7 +280,7 @@ SUB LxUnused ()
     FOR c = 1 TO NCd
         IF NOT NmUsed(CdBsH(c)) THEN
             SEEK #CHTOK, CdB(c) * 512# + CdO(c) + 1
-            IF CdKind(c) = 1 THEN
+            IF CdKind(c) <> 2 THEN
                 b = TDEADID
                 LxConsts = LxConsts - 1
             ELSE
@@ -186,6 +293,7 @@ SUB LxUnused ()
     NEXT c
 END SUB
 
+SEGMENT
 ' a procedure's start (SUB or FUNCTION) or end (END SUB, END FUNCTION, or
 ' the end of the source): the most of each count so far
 SUB ProcMark (start)
@@ -214,18 +322,23 @@ SUB TW (v)
 END SUB
 
 SUB TS (s$)
+    LxRaw = 1
     TB LEN(s$)
+    LxRaw = 0
     IF LEN(s$) > 0 THEN PUT #CHTOK, , s$
     LxAdv LEN(s$)
 END SUB
 
 ' error n of the line being read (s$: its {s})
+SEGMENT LXEND
 SUB LexErr (n, s$)
     TokFile$ = LxFile$
     TokLine = LxLineNo
     TokText$ = LxLine$
     ErrRec n, 0, 0, s$
 END SUB
+
+SEGMENT
 
 FUNCTION IsLetter (c)
     IsLetter = (c >= 65 AND c <= 90) OR (c >= 97 AND c <= 122) OR c = 95
@@ -332,8 +445,7 @@ SUB LexNumber ()
             END IF
         NEXT i
         IF big = 0 THEN
-            TB TINT
-            TW v
+            LxInt v
             EXIT SUB
         END IF
         IF ty = TYINT THEN LexErr 3, ""   ' integer too large
@@ -406,13 +518,62 @@ SUB LexRadix ()
     LOOP
     IF n = 0 THEN LexErr 4, ""   ' a number expected after &
     IF LxC = 37 THEN LxPos = LxPos + 1
-    TB TINT
-    TW v
+    LxInt v
+END SUB
+
+' a name (first: at a statement's start): a CONST's integer (LxInt), or TIDENT and the name
+SUB LxIdent (w$, first)
+    DIM pb, po, c, decl
+    LxHashes w$
+    ' declared here: 1, and a CONST of that name is no longer put in: 2
+    SELECT CASE LxLead
+    CASE KSUB, KFUNCTION, KPRIVATE
+        decl = 2
+    CASE KDECLARE
+        decl = 1
+    CASE KDIM, KREDIM, KSTATIC, KSHARED, KCOMMON
+        IF LxParen = 0 THEN decl = 2
+    CASE KCONST
+        IF LxWant = 1 THEN
+            decl = 1
+        ELSEIF LxProc <> 0 AND (LxPrevK = KCONST OR (LxPrevK = TCOMMA AND LxParen = 0)) THEN
+            decl = 2
+        END IF
+    END SELECT
+    IF decl = 2 THEN LxShadow
+    c = 0
+    IF decl = 0 AND first = 0 AND LxNoLab = 0 THEN
+        SELECT CASE LxPrevK
+        CASE KLET, KFOR, KNEXT, KREAD, KINPUT, KSWAP, KCALL, KERASE
+        CASE ELSE
+            c = LxConstOf(0, w$)
+        END SELECT
+    END IF
+    IF c > 0 THEN
+        LxInt CdPar(c)
+        ' (counted as the name's two bytes were: BCGEN's estimates stay)
+        LxStmtTok = LxStmtTok + 1
+        IF LxDecl = 0 THEN
+            IF LxProc THEN LxCode = LxCode + 1 ELSE LxBodyCode = LxBodyCode + 1
+        END IF
+        EXIT SUB
+    END IF
+    pb = LxPB
+    po = LxPO
+    TB TIDENT
+    TS w$
+    LxName w$, 1
+    IF LxWant = 1 THEN
+        LxCand 1, pb, po, w$
+    ELSEIF LxWant = 2 THEN
+        LxCand 2, LxDB, LxDO, w$
+    END IF
+    LxWant = 0
 END SUB
 
 ' the tokens of one line (comments already cut off)
 SUB LexTokens ()
-    DIM c, s, w$, k, d, first, q, pb, po
+    DIM c, s, w$, k, d, first, q
     first = 1
     DO
         DO WHILE LxPos <= LxLen
@@ -434,6 +595,7 @@ SUB LexTokens ()
             LxLead = 0
             LxParen = 0
             LxDecl = 0
+            LxNoLab = 0
         END IF
         IF first = 1 AND IsDigit(c) THEN
             ' a line number
@@ -473,18 +635,7 @@ SUB LexTokens ()
                     LxName w$, 2
                     first = 1
                 ELSE
-                    pb = LxPB
-                    po = LxPO
-                    TB TIDENT
-                    TS w$
-                    LxName w$, 1
-                    IF LxWant = 1 THEN
-                        LxCand 1, pb, po
-                    ELSEIF LxWant = 2 THEN
-                        LxCand 2, LxDB, LxDO
-                        LxCdDecl = NCd
-                    END IF
-                    LxWant = 0
+                    LxIdent w$, first
                     first = 0
                 END IF
             ELSEIF k = KDATA THEN
@@ -517,6 +668,10 @@ SUB LexTokens ()
                     IF LxProc THEN LxCtl = LxCtl + 1 ELSE LxBodyCtl = LxBodyCtl + 1
                 END SELECT
                 TB k
+                SELECT CASE k
+                CASE KGOTO, KGOSUB, KRESTORE, KRESUME, KRETURN
+                    LxNoLab = 1
+                END SELECT
                 first = 0
                 IF k = KTHEN OR k = KELSE THEN first = 2
             END IF
@@ -696,8 +851,14 @@ SUB LexFile (f$)
     NEXT i
     NmCap = 256
     REDIM NmHash(NmCap), NmGlob(NmCap) AS BYTE, NmProc(NmCap), NmNext(NmCap), NmUse(NmCap) AS BYTE
-    CdCap = 128
-    REDIM CdNm(CdCap), CdBsH(CdCap), CdKind(CdCap) AS BYTE, CdB(CdCap), CdO(CdCap), CdPar(CdCap)
+    ' (BC's modules have about 300 CONSTs and DECLAREs: not grown while they are read)
+    CdCap = 384
+    REDIM CdNm(CdCap), CdBsH(CdCap), CdKind(CdCap) AS BYTE, CdB(CdCap) AS BYTE, CdO(CdCap), CdPar(CdCap)
+    REDIM CdH2(CdCap), CdNext(CdCap)
+    FOR i = 0 TO 31
+        CdHead(i) = 0
+    NEXT i
+    LxCState = 0
     LxDepth = 0
     LexLines f$, CHSRC
     TB TEOF
@@ -722,7 +883,7 @@ SUB LexFile (f$)
     TW LxMaxPar
     TW LxMaxLines
     CLOSE #CHTOK
-    ERASE NmHash, NmGlob, NmProc, NmNext, NmUse, CdNm, CdBsH, CdKind, CdB, CdO, CdPar
+    ERASE NmHash, NmGlob, NmProc, NmNext, NmUse, CdNm, CdBsH, CdKind, CdB, CdO, CdPar, CdH2, CdNext
 END SUB
 
 ' ---- BCLEX, the program: pass 1 of the job's compile step, then BCGEN

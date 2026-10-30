@@ -95,7 +95,12 @@
   byte for byte what BCGEN made in memory: compare every source's with the
   old compiler's after a change there.  BCLEX's names are 15-bit hashes
   (LxHashes), and it marks the CONSTs and DECLAREs a module never uses
-  (TDEADID, TSKIP; DESIGN.md section 3).
+  (TDEADID, TSKIP; DESIGN.md section 3).  It puts a module-level integer
+  CONST in as TINT where it is used (LxIdent, LxConstOf: two hashes and the
+  base name's; not where a name is declared or assigned, nor after GOTO,
+  GOSUB, RESTORE, RESUME, RETURN): tests/constin.  BCLEX's peak is opening
+  an #INCLUDE file (RTSELDOM): KwTable$ is the segment KWTAB, LxUnused and
+  LexErr LXEND.
 - BASIC:INSTALL.TEXT (mkvolume) is a batch file of Tiny-C's shell (BIGGY
   1.32: @FILE; MOVE replaces): voltest runs it after BUILD.
 - The tests boot build/psys/data/Big_Disk.BLK (setup.sh copies BOOT_DISK);

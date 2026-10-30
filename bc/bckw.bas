@@ -8,6 +8,8 @@ DIM SHARED KwT$(3)
 ' ---- keywords (the lexer's table: codes 1..NKEYWORD, 9 characters each),
 ' and their names for messages
 
+' (a segment of its own: called once, before the lexer opens a file)
+SEGMENT KWTAB
 FUNCTION KwTable$ (part)
     DIM tb$
     SELECT CASE part
@@ -31,6 +33,8 @@ FUNCTION KwTable$ (part)
     END SELECT
     KwTable$ = tb$
 END FUNCTION
+
+SEGMENT
 
 FUNCTION KwName$ (k)
     DIM t$, e$, j

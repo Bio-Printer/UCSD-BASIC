@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""mkvolume.py -- build/BASIC.BLK: the volume BASIC: (4800 blocks)
+"""mkvolume.py -- build/BASIC.BLK: the volume BASIC: (6000 blocks: the BUILD writes the eight new code files on it)
 
     BC.CODE            the compiler: its driver; BCLEX.CODE, BCGEN.CODE, BCLIST.CODE,
                        BCLINK.CODE, BCERR.CODE and BCDEBUG.CODE the programs it chains to (each in
@@ -106,7 +106,7 @@ def host_sizes(srcs, links):
 
 
 def main(out=os.path.join(ROOT, 'build', 'BASIC.BLK')):
-    top = Dir('BASIC', 4800)
+    top = Dir('BASIC', 6000)
     for p, m in PROGS:
         top.binary(p + '.CODE', open(os.path.join(ROOT, 'build', p + '.CODE'), 'rb').read())
     top.text('README.TEXT', text(os.path.join(ROOT, 'README.md')))
