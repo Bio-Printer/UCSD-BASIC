@@ -4,7 +4,7 @@
 DEFINT A-Z
 
 ' ---- limits
-CONST MAXSYM = 640, HSIZE = 128, MAXPAR = 600
+CONST MAXSYM = 640, HSIZE = 128, MAXPAR = 600, POOLW = 250
 CONST MAXNODE = 120, MAXCODE = 3200, MAXLAB = 260, MAXFIX = 320, MAXREL = 360
 CONST MAXSEG = 12, MAXCTL = 40, MAXLNF = 16
 
@@ -85,7 +85,7 @@ COMMON SHARED LineFile$, PrevLine, PrevText$, PrevFile$
 ' ---- the symbol table
 COMMON SHARED NSym, NModSym, NPar, CurSeg, NSegName, SymCap, ParCap
 COMMON SHARED CodeCap, LabCap, FixCap, RelCap, NodeCap, ConstCap, NGrown, TokHead()
-COMMON SHARED SName$(), SKind() AS BYTE, SType() AS BYTE, SCls() AS BYTE
+COMMON SHARED SNOff(), SNLen() AS BYTE, NmPool$(), PoolTop, PoolCap, SKind() AS BYTE, SType() AS BYTE, SCls() AS BYTE
 COMMON SHARED SOff(), SFlags() AS BYTE, SScope() AS BYTE, SNext()
 COMMON SHARED SAux(), SAux2(), SSeg() AS BYTE, HashHead()
 COMMON SHARED PType() AS BYTE, PFlg() AS BYTE, SegName$()

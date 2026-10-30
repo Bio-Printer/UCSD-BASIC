@@ -1105,7 +1105,7 @@ SUB GenShared ()
         ELSEIF SScope(s) <> 0 OR SKind(s) > SKARRAY THEN
             ErrRec 61, 0, 0, nm$   ' no module variable {s}
         ELSE
-            a = AddSym(SName$(s), SKind(s), SType(s))
+            a = AddSym(SymName$(s), SKind(s), SType(s))
             SFlags(a) = SFlags(s)
             SScope(a) = 1
             SCls(a) = SCls(s)
@@ -1333,7 +1333,7 @@ SUB GenCallStmt (s)
             LOOP
             ArgCount = k
         END IF
-        IF ArgCount <> SAux2(s) THEN ErrRec 67, SAux2(s), 0, SName$(s)   ' {s}: {a} argument(s) expected
+        IF ArgCount <> SAux2(s) THEN ErrRec 67, SAux2(s), 0, SymName$(s)   ' {s}: {a} argument(s) expected
     ELSE
         a = ArgList(s, 0, 1)
     END IF
@@ -1844,7 +1844,10 @@ LnCap = Capped(TokHead(THLINES) + 8, 32000)
 IF OptMem THEN
     SayLn "  [tables: " + IStr$(SymCap) + " names, " + IStr$(ParCap) + " parameters, " + IStr$(ConstCap) + " constants, nodes " + IStr$(NodeCap) + ", lines " + IStr$(LnCap) + "]"
 END IF
-REDIM SName$(SymCap), SKind(SymCap) AS BYTE, SType(SymCap) AS BYTE, SCls(SymCap) AS BYTE
+' (the names' pool: 10 characters a name, more strings if that is too few)
+PoolCap = (SymCap * 10) \ POOLW + 1
+REDIM NmPool$(PoolCap)
+REDIM SNOff(SymCap), SNLen(SymCap) AS BYTE, SKind(SymCap) AS BYTE, SType(SymCap) AS BYTE, SCls(SymCap) AS BYTE
 REDIM SOff(SymCap), SFlags(SymCap) AS BYTE, SScope(SymCap) AS BYTE, SNext(SymCap)
 REDIM SAux(SymCap), SAux2(SymCap), SSeg(SymCap) AS BYTE, HashHead(HSIZE)
 REDIM PType(ParCap) AS BYTE, PFlg(ParCap) AS BYTE

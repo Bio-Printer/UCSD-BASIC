@@ -852,7 +852,7 @@ FUNCTION ElemNode (s)
     a = ParseArgs
     k = ArgCount
     IF k = 0 THEN ErrNo 102   ' an index expected
-    IF SAux(s) > 0 AND SAux(s) <> k THEN ErrRec 103, 0, 0, SName$(s)   ' {s}: the wrong number of indexes
+    IF SAux(s) > 0 AND SAux(s) <> k THEN ErrRec 103, 0, 0, SymName$(s)   ' {s}: the wrong number of indexes
     ' the indexes as integers (the chain kept in order)
     x = a
     a = 0
@@ -875,7 +875,7 @@ FUNCTION CallNode (s)
     IF Tok = TLPAR THEN
         a = ArgList(s, 1, 1)
     ELSEIF SAux2(s) > 0 THEN
-        ErrRec 91, 0, 0, SName$(s)   ' {s}: arguments expected
+        ErrRec 91, 0, 0, SymName$(s)   ' {s}: arguments expected
     END IF
     NA(n) = a
     CallNode = n
@@ -913,7 +913,7 @@ FUNCTION ArgList (s, paren, check)
                             END IF
                         END IF
                     END IF
-                    IF a = 0 THEN ErrRec 104, k, 0, SName$(s)   ' an array expected as argument {a} of {s}
+                    IF a = 0 THEN ErrRec 104, k, 0, SymName$(s)   ' an array expected as argument {a} of {s}
                 END IF
             END IF
             IF a = 0 THEN a = Expr
@@ -924,7 +924,7 @@ FUNCTION ArgList (s, paren, check)
         LOOP
         IF paren THEN Expect TRPAR
     END IF
-    IF k <> np AND check THEN ErrRec 67, np, 0, SName$(s)   ' {s}: {a} argument(s) expected
+    IF k <> np AND check THEN ErrRec 67, np, 0, SymName$(s)   ' {s}: {a} argument(s) expected
     ArgCount = k
     ArgList = first
 END FUNCTION
@@ -945,7 +945,7 @@ FUNCTION VarNode (n$)
         VarNode = n
         EXIT FUNCTION
     END IF
-    IF SKind(s) = SKARRAY THEN ErrRec 29, 0, 0, SName$(s)   ' {s} is an array: an index expected
+    IF SKind(s) = SKARRAY THEN ErrRec 29, 0, 0, SymName$(s)   ' {s} is an array: an index expected
     n = NewNode(NVAR, SType(s))
     IF SType(s) = TYBYTE THEN NTy(n) = TYINT
     NV(n) = s
@@ -1638,7 +1638,7 @@ SUB GenCall (n, want)
         IF pf AND PFARRAY THEN
             IF NOp(a) = NVAR THEN
                 IF SKind(NV(a)) = SKARRAY THEN
-                    IF SType(NV(a)) <> pt THEN ErrRec 109, i, 0, SName$(s)   ' argument {a} of {s}: an array of another type
+                    IF SType(NV(a)) <> pt THEN ErrRec 109, i, 0, SymName$(s)   ' argument {a} of {s}: an array of another type
                     GenSlot NV(a)
                 END IF
             END IF

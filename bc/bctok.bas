@@ -100,6 +100,7 @@ END SUB
 SUB InitSyms ()
     DIM i
     NSym = 0
+    PoolTop = 0
     NPar = 0
     NSegName = 1
     SegName$(1) = ""
@@ -138,11 +139,22 @@ FUNCTION NameType (n$)
 END FUNCTION
 
 ' the newest symbol of exactly this name, 0 if none
+' The symbols' names are not a string each (an 8-word block for most, and
+' its pointer): they are packed into the pool NmPool$, strings of POOLW
+' characters, one after the other (none across two); a symbol's name is
+' SNLen(s) characters at SNOff(s) (POOLW times the string's index and the
+' place in it).  The symbols go as they came (PopSyms), and their names
+' with them: PoolTop.
+FUNCTION SymName$ (s)
+    SymName$ = MID$(NmPool$(SNOff(s) \ POOLW), (SNOff(s) MOD POOLW) + 1, SNLen(s))
+END FUNCTION
+
 FUNCTION FindSym (n$)
-    DIM i
+    DIM i, l
+    l = LEN(n$)
     i = HashHead(HashName(n$))
     DO WHILE i > 0
-        IF SName$(i) = n$ THEN
+        IF SNLen(i) = l ANDALSO SymName$(i) = n$ THEN
             FindSym = i
             EXIT FUNCTION
         END IF
@@ -171,16 +183,28 @@ FUNCTION FindProc (n$)
 END FUNCTION
 
 FUNCTION AddSym (n$, kind, ty)
-    DIM h
+    DIM h, l, c
     IF NSym >= SymCap THEN
         IF SymCap >= MAXSYM THEN FatalRec 9, ""   ' too many names
         SymCap = Grown(SymCap, MAXSYM)
-        REDIM PRESERVE SName$(SymCap), SKind(SymCap) AS BYTE, SType(SymCap) AS BYTE, SCls(SymCap) AS BYTE
+        REDIM PRESERVE SNOff(SymCap), SNLen(SymCap) AS BYTE, SKind(SymCap) AS BYTE, SType(SymCap) AS BYTE, SCls(SymCap) AS BYTE
         REDIM PRESERVE SOff(SymCap), SFlags(SymCap) AS BYTE, SScope(SymCap) AS BYTE, SNext(SymCap)
         REDIM PRESERVE SAux(SymCap), SAux2(SymCap), SSeg(SymCap) AS BYTE
     END IF
     NSym = NSym + 1
-    SName$(NSym) = n$
+    ' its name into the pool (to the next string when it does not fit)
+    l = LEN(n$)
+    IF (PoolTop MOD POOLW) + l > POOLW THEN PoolTop = (PoolTop \ POOLW + 1) * POOLW
+    c = PoolTop \ POOLW
+    IF c > PoolCap THEN
+        PoolCap = PoolCap + 4
+        REDIM PRESERVE NmPool$(PoolCap)
+    END IF
+    IF LEN(NmPool$(c)) = 0 THEN NmPool$(c) = SPACE$(POOLW)
+    IF l > 0 THEN MID$(NmPool$(c), (PoolTop MOD POOLW) + 1, l) = n$
+    SNOff(NSym) = PoolTop
+    SNLen(NSym) = l
+    PoolTop = PoolTop + l
     SKind(NSym) = kind
     SType(NSym) = ty
     SCls(NSym) = 0
@@ -200,10 +224,10 @@ END FUNCTION
 SUB PopSyms (keep)
     DIM i, h
     FOR i = NSym TO keep + 1 STEP -1
-        h = HashName(SName$(i))
+        h = HashName(SymName$(i))
         HashHead(h) = SNext(i)
-        SName$(i) = ""
     NEXT i
+    IF NSym > keep THEN PoolTop = SNOff(keep + 1)
     NSym = keep
 END SUB
 

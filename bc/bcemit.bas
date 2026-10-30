@@ -243,7 +243,7 @@ END SUB
 FUNCTION LinkName$ (s)
     DIM n$
     IF s = 0 THEN EXIT FUNCTION
-    n$ = SName$(s)
+    n$ = SymName$(s)
     IF (SFlags(s) AND SFRUNTIME) <> 0 OR ASC(n$, 1) = 95 THEN
         ' the run-time library's names: as they are (no type suffix)
         LinkName$ = BaseName$(n$)
@@ -465,7 +465,7 @@ SUB EndProc ()
     ' every label used is defined
     FOR s = ProcKeep + 1 TO NSym
         IF SKind(s) = SKLABEL AND (SFlags(s) AND SFSETLAB) = 0 THEN
-            ErrRec 115, 0, 0, MID$(SName$(s), 2)   ' label {s} not defined
+            ErrRec 115, 0, 0, MID$(SymName$(s), 2)   ' label {s} not defined
         END IF
     NEXT s
     IF OptList THEN StmRec AMLEXIT
