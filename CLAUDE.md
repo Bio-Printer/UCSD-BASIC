@@ -83,7 +83,7 @@
   ran out of memory linking BCGEN on the P-System).  The
   library's segment RTSELDOM holds what is done seldom (OPEN, finding
   CHAIN's code file, the sub-volumes, _ARGS; BCUTIL's job and file-name
-  code; GenExit).  _CHAIN itself is RTCHAIN (510 bytes): BC's ChainTo
+  code; GenExit; _RTINIT, _KILL, _ERRTEXT: _RTERR gives the heap back first).  _CHAIN itself is RTCHAIN (510 bytes): BC's ChainTo
   runs "@unit,block NAME" (the driver's FindBlocks puts each program's
   block into the job file), which opens no file -- a pass has little left.
 - Pass 4, BCASM (bcasm.bas): BCGEN's emitter writes the code as records to

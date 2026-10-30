@@ -375,11 +375,14 @@ and OSCALL (FINIT, FOPEN, FCLOSE, FBLOCKIO).
   memory only then: OPEN and the file names it takes (RTFILE), the
   sub-volumes (RTSUBV), finding a code file for CHAIN (RTCHAIN's
   _CHLOOK), the command line at the start (_ARGS); BC's seldom parts too
-  (bcutil.bas, the exit code in bcemit.bas).  _ERRTEXT stays in the main one: an error for want of
-  memory still has its message.
-- A run-time error (_RTERR): its message; every file closed; the heap
-  given back (RELEASE to its start: memory for what follows, after "Out
-  of memory" too) and the string work area; then _RTWHERE (RTSELDOM)
+  (bcutil.bas, the exit code in bcemit.bas), and _RTINIT, KILL (_KILL)
+  and the run-time errors' texts (_ERRTEXT): _RTERR gives the heap back
+  before it says the message, so that an error for want of memory still
+  has room for RTSELDOM.
+- A run-time error (_RTERR): every file closed; the heap given back
+  (RELEASE to its start: memory for what follows, after "Out of memory"
+  too) and the string work area; its message (_ERRTEXT); then _RTWHERE
+  (RTSELDOM)
   follows the frames from
   _RTERR's own (its parameter's address less 12: the mark stack control
   word) out to the startup procedure's: for each, the caller's S# (the
@@ -524,9 +527,10 @@ links and runs PI in both.  What makes that fit:
   step leaves the old table's memory behind as a hole too small for the
   next one.
 
-Compiling PI, BCGEN has at least 3062 words left in Z80 mode, BCASM 5713
-and BCLINK 2805 (6977, 9628 and 6720 in P-Code mode without the Harvard
-layout; BCGEN had 1410 and 5330 before BCASM took the code out of it).  The
+Compiling PI, BCGEN has at least 3499 words left in Z80 mode, BCASM 5709
+and BCLINK 2801 (7414, 9624 and 6716 in P-Code mode without the Harvard
+layout; BCGEN had 1410 and 5330 before BCASM took the code out of it, and
+3062 and 6977 before _RTINIT, _KILL and _ERRTEXT went into RTSELDOM).  The
 run-time errors' lines took 390 and 270 of them, the shell's redirections
 (section 9) 130 and 440 more: BCGEN's line table and
 ListLine, BCLINK's reading over the line tables (and _RTERR's few more

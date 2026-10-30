@@ -20,6 +20,9 @@ FUNCTION _NEWBLK (words)
     _NEWBLK = np
 END FUNCTION
 
+
+SEGMENT RTSELDOM
+
 ' ---- the start: the blocks the library keeps, then the heap's start
 SUB _RTINIT ()
     DIM i
@@ -48,7 +51,36 @@ SUB _RTINIT ()
     IF _REDIR THEN _REDOPEN
 END SUB
 
-SEGMENT RTSELDOM
+' (in RTSELDOM: _RTERR gives back the heap first)
+SUB _ERRTEXT (code)
+    DIM m
+    SELECT CASE code
+    CASE 3: m = SADD("RETURN without GOSUB")
+    CASE 4: m = SADD("Out of DATA")
+    CASE 5: m = SADD("Illegal function call")
+    CASE 6: m = SADD("Overflow")
+    CASE 7: m = SADD("Out of memory")
+    CASE 9: m = SADD("Subscript out of range")
+    CASE 10: m = SADD("Array already dimensioned")
+    CASE 11: m = SADD("Division by zero")
+    CASE 13: m = SADD("Type mismatch")
+    CASE 14: m = SADD("Out of string space")
+    CASE 15: m = SADD("String too long")
+    CASE 16: m = SADD("GOSUB nesting too deep")
+    CASE 52: m = SADD("Bad file number")
+    CASE 53: m = SADD("File not found")
+    CASE 54: m = SADD("Bad file mode")
+    CASE 55: m = SADD("File already open")
+    CASE 57: m = SADD("Device I/O error")
+    CASE 61: m = SADD("Disk full")
+    CASE 62: m = SADD("Input past end of file")
+    CASE 64: m = SADD("Bad file name")
+    CASE 67: m = SADD("Too many files")
+    CASE ELSE: m = SADD("Error")
+    END SELECT
+    _PSTR 0, m
+END SUB
+
 
 ' The command line Tiny-C's shell gave (pexec), kept for COMMAND$ without
 ' the program's name, and the shell's path (CD) after it: in the operating
@@ -186,34 +218,6 @@ SUB _HALT (code)
 END SUB
 
 ' ---- errors
-SUB _ERRTEXT (code)
-    DIM m
-    SELECT CASE code
-    CASE 3: m = SADD("RETURN without GOSUB")
-    CASE 4: m = SADD("Out of DATA")
-    CASE 5: m = SADD("Illegal function call")
-    CASE 6: m = SADD("Overflow")
-    CASE 7: m = SADD("Out of memory")
-    CASE 9: m = SADD("Subscript out of range")
-    CASE 10: m = SADD("Array already dimensioned")
-    CASE 11: m = SADD("Division by zero")
-    CASE 13: m = SADD("Type mismatch")
-    CASE 14: m = SADD("Out of string space")
-    CASE 15: m = SADD("String too long")
-    CASE 16: m = SADD("GOSUB nesting too deep")
-    CASE 52: m = SADD("Bad file number")
-    CASE 53: m = SADD("File not found")
-    CASE 54: m = SADD("Bad file mode")
-    CASE 55: m = SADD("File already open")
-    CASE 57: m = SADD("Device I/O error")
-    CASE 61: m = SADD("Disk full")
-    CASE 62: m = SADD("Input past end of file")
-    CASE 64: m = SADD("Bad file name")
-    CASE 67: m = SADD("Too many files")
-    CASE ELSE: m = SADD("Error")
-    END SELECT
-    _PSTR 0, m
-END SUB
 
 SUB _RTERR (code)
     STATIC inerr
@@ -222,22 +226,14 @@ SUB _RTERR (code)
     ' looks for the place: out at once)
     IF inerr THEN CSP 4, 1, 1
     inerr = 1
-    ' (the message on the console, the redirected output's file closed)
+    ' (the message on the console, the redirected output's file closed;
+    ' every file closed)
     _REDCLOSE
-    _CONFLUSH
-    _PNL 0
-    _PSTR 0, SADD("Run-time error ")
-    _PSTR 0, _ISTR(code, 0)
-    _PSTR 0, SADD(": ")
-    _ERRTEXT code
-    _PNL 0
     _CONFLUSH
     _CLOSE 0
     IF _HEAPLO THEN
         ' the program's strings, arrays and temporaries given back (memory
-        ' for _RTWHERE and its segment, after "Out of memory" too); where
-        ' the error was, from this procedure's frame (its parameter is the
-        ' frame's word 6, after the mark stack control word)
+        ' for RTSELDOM -- _ERRTEXT, _RTWHERE -- after "Out of memory" too)
         np = _HEAPLO + 2
         CSP 33, VARPTR(np)
         _HEAPTOP = np
@@ -245,6 +241,17 @@ SUB _RTERR (code)
         CSP 10, _FREETAB, 0, 20, 0
         _TTOP = _TBASE
         _ERRTRAP = -1
+    END IF
+    _PNL 0
+    _PSTR 0, SADD("Run-time error ")
+    _PSTR 0, _ISTR(code, 0)
+    _PSTR 0, SADD(": ")
+    _ERRTEXT code
+    _PNL 0
+    _CONFLUSH
+    IF _HEAPLO THEN
+        ' where the error was, from this procedure's frame (its parameter is
+        ' the frame's word 6, after the mark stack control word)
         _RTWHERE VARPTR(code) - 12
         _CONFLUSH
     END IF

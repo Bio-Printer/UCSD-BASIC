@@ -335,6 +335,28 @@ SUB _REDOPEN ()
     END IF
 END SUB
 
+
+' KILL name
+SUB _KILL (name)
+    DIM fib, r
+    _ERRCODE = 0
+    name = _FNAME(name)
+    POKEB _SIZESPEC, 0
+    r = _SVKILL(name)
+    IF r < 0 THEN _IOERR 53
+    IF r THEN EXIT SUB
+    fib = _MALLOC(80)
+    OSCALL 3, fib, 0, -1
+    OSCALL 5, fib, _TITLE(name), 1, 0
+    IF CSP%(34) <> 0 THEN
+        _MFREE fib
+        _IOERR 53
+        EXIT SUB
+    END IF
+    OSCALL 6, fib, 2
+    _MFREE fib
+END SUB
+
 SEGMENT
 
 SUB _CLOSE1 (ch)
@@ -624,23 +646,3 @@ FUNCTION _LOF (ch)
     _LOF = 0
 END FUNCTION
 
-' KILL name
-SUB _KILL (name)
-    DIM fib, r
-    _ERRCODE = 0
-    name = _FNAME(name)
-    POKEB _SIZESPEC, 0
-    r = _SVKILL(name)
-    IF r < 0 THEN _IOERR 53
-    IF r THEN EXIT SUB
-    fib = _MALLOC(80)
-    OSCALL 3, fib, 0, -1
-    OSCALL 5, fib, _TITLE(name), 1, 0
-    IF CSP%(34) <> 0 THEN
-        _MFREE fib
-        _IOERR 53
-        EXIT SUB
-    END IF
-    OSCALL 6, fib, 2
-    _MFREE fib
-END SUB
