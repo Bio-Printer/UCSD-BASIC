@@ -57,9 +57,6 @@ COMMON SHARED NN(), NS$(), NIsBool() AS BYTE, PreNode, ArgCount
 ' ---- control structures being compiled
 COMMON SHARED NCtl, CtlKind(), CtlExit(), CtlCont(), NFor, PendNext
 
-' ---- constants' texts (CONST X = "..." or a real)
-COMMON SHARED ConstText$(), NConst
-
 ' ---- the procedure's line table (the object file's: where each line's
 ' code starts; LnPC -1 a file change, LnNo its LnFile$)
 COMMON SHARED LnPC(), LnNo(), NLn, LnCap, LnFile$(), NLnFile, LnCurF$

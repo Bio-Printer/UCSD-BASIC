@@ -55,7 +55,7 @@ CONST TSKIP = 137, TDEADID = 138
 CONST TYVOID = 0, TYINT = 1, TYSNG = 2, TYDBL = 3, TYSTR = 4, TYBYTE = 5
 
 ' ---- symbols: kinds, storage classes, flags
-CONST SKVAR = 1, SKARRAY = 2, SKCONST = 3, SKSUB = 4, SKFUNC = 5, SKLABEL = 6
+CONST SKVAR = 1, SKARRAY = 2, SKSUB = 4, SKFUNC = 5, SKLABEL = 6
 CONST SCLOCAL = 1, SCSTATIC = 2, SCCOMMON = 3, SCPARAM = 4, SCREF = 5
 CONST SFSHARED = 1, SFDEFINED = 2, SFPRIVATE = 4, SFAS = 8, SFUSED = 16
 CONST SFRUNTIME = 32, SFSETLAB = 64, SFGOSUB = 128
@@ -84,7 +84,7 @@ COMMON SHARED LineFile$, PrevLine, PrevText$, PrevFile$
 
 ' ---- the symbol table
 COMMON SHARED NSym, NModSym, NPar, CurSeg, NSegName, SymCap, ParCap
-COMMON SHARED CodeCap, LabCap, FixCap, RelCap, NodeCap, ConstCap, NGrown, TokHead()
+COMMON SHARED CodeCap, LabCap, FixCap, RelCap, NodeCap, NGrown, TokHead()
 COMMON SHARED SName$(), SKind() AS BYTE, SType() AS BYTE, SCls() AS BYTE
 COMMON SHARED SOff(), SFlags() AS BYTE, SScope() AS BYTE, SNext()
 COMMON SHARED SAux(), SAux2(), SSeg() AS BYTE, HashHead()

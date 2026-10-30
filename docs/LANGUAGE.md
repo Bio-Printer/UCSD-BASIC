@@ -129,9 +129,17 @@ use of an undeclared variable an error.
   to every module that says so (a header file with the COMMON SHARED
   lines is the usual way: #INCLUDE it everywhere).
 - Constants.  `CONST MAX = 100, NAME$ = "x", PI = 3.14159` (integer,
-  real and string constants; integer constants may be expressions of
-  other constants).  A CONST at module level is seen in every procedure
-  of the module.
+  real and string constants).  An integer constant may be an expression
+  of integers and integer constants: + - * \ MOD AND OR XOR NOT and
+  parentheses (`CONST TOP = MAX * 2 + 1`); a real or string constant is
+  one real or string, or another such constant (a real perhaps after -).
+  The name's suffix is its type (`CONST R# = 2` is the SINGLE 2; a string
+  for a name without $, or a real for a %, is a type mismatch).  A
+  constant is known from its CONST on, to the end of the module (one in
+  a procedure too), and its name means only that constant there: no
+  variable, array, parameter, procedure or label may have it, nor
+  another CONST, and it may not be used before its CONST (errors:
+  "X declared twice", "X is a constant", "X is used before its CONST").
 
 DIM declares variables explicitly:
 

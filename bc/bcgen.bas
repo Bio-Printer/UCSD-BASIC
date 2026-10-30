@@ -86,10 +86,6 @@ FUNCTION LValue ()
             LValue = ElemNode(s)
             EXIT FUNCTION
         END IF
-        IF SKind(s) = SKCONST THEN
-            ErrRec 30, 0, 0, nm$   ' {s} is a constant
-            EXIT FUNCTION
-        END IF
         LValue = SymNode(s)
         EXIT FUNCTION
     END IF
@@ -1128,60 +1124,6 @@ SUB GenShared ()
     LOOP
 END SUB
 
-SEGMENT STMTD
-SUB GenConst ()
-    DIM nm$, n, v, ty, s, t$, dead
-    GetTok
-    DO
-        IF Tok <> TIDENT AND Tok <> TDEADID THEN
-            ErrNo 62   ' a constant name expected
-            SkipStmt
-            EXIT SUB
-        END IF
-        ' (TDEADID: the module never uses it -- its value is read, no symbol made)
-        dead = Tok = TDEADID
-        nm$ = TokS$
-        GetTok
-        Expect TEQ
-        v = 0
-        n = ConstExpr(v)
-        ty = NTy(n)
-        IF SuffixType(nm$) > 0 AND SuffixType(nm$) <> ty THEN
-            n = ConvNode(n, SuffixType(nm$))
-            ty = SuffixType(nm$)
-        END IF
-        IF NOT dead THEN
-            s = FindSym(nm$)
-            IF s > 0 THEN
-                IF SScope(s) = InProc THEN ErrRec 24, 0, 0, nm$   ' {s} declared twice
-            END IF
-            s = AddSym(nm$, SKCONST, ty)
-            SScope(s) = InProc
-            IF NOp(n) = NICON THEN
-                SAux(s) = NV(n)
-            ELSE
-                t$ = NS$(n)
-                IF NOp(n) = NRCON AND NX(n) THEN t$ = "-" + t$
-                NConst = NConst + 1
-                IF NConst > ConstCap THEN
-                    IF ConstCap < 300 THEN
-                        ConstCap = Grown(ConstCap, 300)
-                        REDIM PRESERVE ConstText$(ConstCap)
-                    ELSE
-                        ErrNo 63   ' too many string and real constants
-                        NConst = 1
-                    END IF
-                END IF
-                ConstText$(NConst) = t$
-                SAux(s) = NConst
-            END IF
-        END IF
-        ResetNodes
-        IF Tok <> TCOMMA THEN EXIT DO
-        GetTok
-    LOOP
-END SUB
-
 ' ---- DATA, READ, RESTORE
 
 SEGMENT
@@ -1526,8 +1468,6 @@ SUB GenStmt ()
             IF Tok <> TCOMMA THEN EXIT DO
             GetTok
         LOOP
-    CASE KCONST
-        GenConst
     CASE KCALL
         GetTok
         IF Tok <> TIDENT THEN
@@ -1764,9 +1704,8 @@ SUB GenPass ()
     DIM t, s, k, w
     REDIM NOp(NodeCap) AS BYTE, NTy(NodeCap) AS BYTE, NA(NodeCap), NB(NodeCap)
     REDIM NV(NodeCap), NX(NodeCap), NN(NodeCap), NS$(NodeCap), NIsBool(NodeCap) AS BYTE
-    REDIM CtlKind(MAXCTL), CtlExit(MAXCTL), CtlCont(MAXCTL), ConstText$(ConstCap)
+    REDIM CtlKind(MAXCTL), CtlExit(MAXCTL), CtlCont(MAXCTL)
     NNode = 0
-    NConst = 0
     MemNote "gen arrays"
     ' the stream to BCASM (pass 4): it makes the object file and the
     ' listing's records
@@ -1828,9 +1767,9 @@ SUB GenPass ()
     CLOSE #CHASM
     IF OptMem THEN
         Say "  [high: code " + IStr$(HiPC) + ", jumps " + IStr$(HiFix) + ", labels " + IStr$(HiLab) + ", calls " + IStr$(HiRel) + ", nodes " + IStr$(HiNode)
-        SayLn ", names " + IStr$(HiSym) + ", parameters " + IStr$(NPar) + ", constants " + IStr$(NConst) + "; tables grown " + IStr$(NGrown) + " times]"
+        SayLn ", names " + IStr$(HiSym) + ", parameters " + IStr$(NPar) + "; tables grown " + IStr$(NGrown) + " times]"
     END IF
-    ERASE NOp, NTy, NA, NB, NV, NX, NN, NS$, NIsBool, CtlKind, CtlExit, CtlCont, ConstText$
+    ERASE NOp, NTy, NA, NB, NV, NX, NN, NS$, NIsBool, CtlKind, CtlExit, CtlCont
 END SUB
 
 ' ---- BCGEN, the program: passes 2 and 3 of the job's compile step (the
@@ -1853,12 +1792,11 @@ IF TokHead(THMAGIC) <> TOKMAGIC THEN FatalRec 83, TokName$   ' not BCLEX's token
 SymCap = Capped(TokHead(THGLOB) + TokHead(THLOC) + 48, MAXSYM)
 ' (pass 3 reads each procedure's parameters again, after all of them)
 ParCap = Capped(TokHead(THPARAMS) + TokHead(THMAXPAR) + 1, MAXPAR)
-ConstCap = Capped(TokHead(THCONSTS) + 1, 300)
 NodeCap = Capped(TokHead(THSTMT) \ 2 + 16, MAXNODE)
 ' (a procedure's lines, its header and its files' changes)
 LnCap = Capped(TokHead(THLINES) + 8, 32000)
 IF OptMem THEN
-    SayLn "  [tables: " + IStr$(SymCap) + " names, " + IStr$(ParCap) + " parameters, " + IStr$(ConstCap) + " constants, nodes " + IStr$(NodeCap) + ", lines " + IStr$(LnCap) + "]"
+    SayLn "  [tables: " + IStr$(SymCap) + " names, " + IStr$(ParCap) + " parameters, nodes " + IStr$(NodeCap) + ", lines " + IStr$(LnCap) + "]"
 END IF
 REDIM SName$(SymCap), SKind(SymCap) AS BYTE, SType(SymCap) AS BYTE, SCls(SymCap) AS BYTE
 REDIM SOff(SymCap), SFlags(SymCap) AS BYTE, SScope(SymCap) AS BYTE, SNext(SymCap)

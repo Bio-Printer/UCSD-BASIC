@@ -9,4 +9,3 @@ RESTORE
 a = 99999
 a = 1.5.5
 a = &Q
-CONST k = a

@@ -16,6 +16,4 @@ ERR7.BAS line 11: an expression expected, not &
   a = &Q
 ERR7.BAS line 11: the end of the statement expected, not a name
   a = &Q
-ERR7.BAS line 12: a constant expression expected
-  CONST k = a
-10 error(s): no ERR7.OBJ
+9 error(s): no ERR7.OBJ

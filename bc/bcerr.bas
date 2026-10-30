@@ -149,6 +149,7 @@ FUNCTION MsgC$ (n)
     CASE 116: t$ = "internal: a label not set"
     CASE 117: t$ = "procedure too large (more than 60 long jumps): split it"
     CASE 118: t$ = "| needs INTEGERs or BYTEs"
+    CASE 119: t$ = "{s} is used before its CONST"
     END SELECT
     MsgC$ = t$
 END FUNCTION

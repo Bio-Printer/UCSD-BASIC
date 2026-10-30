@@ -1,0 +1,21 @@
+ERR10.BAS line 3: a constant expression expected
+  CONST K = q
+ERR10.BAS line 4: A declared twice
+  CONST A = 2
+ERR10.BAS line 5: C declared twice
+  DIM C
+ERR10.BAS line 6: A is a constant
+  A = 5
+ERR10.BAS line 7: Z is a constant
+  FOR Z = 1 TO 2
+ERR10.BAS line 8: Z is a constant
+  GOTO Z
+ERR10.BAS line 9: Z declared twice
+  Z:
+ERR10.BAS line 10: type mismatch
+  CONST N$ = 5
+ERR10.BAS line 12: LATE is used before its CONST
+  CONST LATE = 1
+ERR10.BAS line 13: C declared twice
+  SUB S (C)
+10 error(s): no ERR10.OBJ

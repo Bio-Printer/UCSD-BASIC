@@ -93,14 +93,14 @@
   :BCTEMP.ASM (BCGENCOM's AMxxx), BCASM assembles them (jumps, entry code,
   P records, the listing's records).  The objects and listings must stay
   byte for byte what BCGEN made in memory: compare every source's with the
-  old compiler's after a change there.  BCLEX's names are 15-bit hashes
-  (LxHashes), and it marks the CONSTs and DECLAREs a module never uses
-  (TDEADID, TSKIP; DESIGN.md section 3).  It puts a module-level integer
-  CONST in as TINT where it is used (LxIdent, LxConstOf: two hashes and the
-  base name's; not where a name is declared or assigned, nor after GOTO,
-  GOSUB, RESTORE, RESUME, RETURN): tests/constin.  BCLEX's peak is opening
-  an #INCLUDE file (RTSELDOM): KwTable$ is the segment KWTAB, LxUnused and
-  LexErr LXEND.
+  old compiler's after a change there.  BCLEX's names are hashes (LxHashes:
+  15 bits and a second hash), and it marks the DECLAREs a module never uses
+  (TSKIP; DESIGN.md section 3).  The CONSTs are BCLEX's: a CONST statement
+  is read, not written (LxConstOne, LXCONST), and its value written where
+  the name comes (LxPut); BCGEN has no CONSTs.  A CONST's name means
+  nothing else in the module (errors 24, 30, 119 from BCLEX):
+  tests/constin, tests/errors/err10.  BCLEX's peak is opening an #INCLUDE
+  file (RTSELDOM): KwTable$ is the segment KWTAB, LxUnused and LexErr LXEND.
 - BASIC:INSTALL.TEXT (mkvolume) is a batch file of Tiny-C's shell (BIGGY
   1.32: @FILE; MOVE replaces): voltest runs it after BUILD.
 - The tests boot build/psys/data/Big_Disk.BLK (setup.sh copies BOOT_DISK);

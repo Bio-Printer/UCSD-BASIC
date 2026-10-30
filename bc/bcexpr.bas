@@ -246,34 +246,34 @@ FUNCTION Visible (s)
         EXIT FUNCTION
     END IF
     SELECT CASE SKind(s)
-    CASE SKCONST, SKSUB, SKFUNC
+    CASE SKSUB, SKFUNC
         Visible = -1
     CASE SKVAR, SKARRAY
         Visible = (SFlags(s) AND SFSHARED) <> 0 OR SCls(s) = SCCOMMON
     END SELECT
 END FUNCTION
 
-' a variable, array or constant by its name as written: 0 if there is none
+' a variable or array by its name as written: 0 if there is none
 FUNCTION FindVar (n$)
     DIM s, t
     t = SuffixType(n$)
     IF t = 0 THEN
         s = FindSym(n$)
-        IF Visible(s) AND SKind(s) <= SKCONST THEN
+        IF Visible(s) AND SKind(s) <= SKARRAY THEN
             FindVar = s
             EXIT FUNCTION
         END IF
         s = FindSym(n$ + TypeChar$(NameType(n$)))
-        IF Visible(s) AND SKind(s) <= SKCONST THEN FindVar = s
+        IF Visible(s) AND SKind(s) <= SKARRAY THEN FindVar = s
         EXIT FUNCTION
     END IF
     s = FindSym(n$)
-    IF Visible(s) AND SKind(s) <= SKCONST THEN
+    IF Visible(s) AND SKind(s) <= SKARRAY THEN
         FindVar = s
         EXIT FUNCTION
     END IF
     s = FindSym(BaseName$(n$))
-    IF Visible(s) AND SKind(s) <= SKCONST THEN
+    IF Visible(s) AND SKind(s) <= SKARRAY THEN
         IF SType(s) = t AND (SFlags(s) AND SFAS) <> 0 THEN FindVar = s
     END IF
 END FUNCTION
@@ -940,19 +940,6 @@ END FUNCTION
 FUNCTION VarNode (n$)
     DIM s, n
     s = LookupVar(n$, 1)
-    IF SKind(s) = SKCONST THEN
-        IF SType(s) = TYINT THEN
-            n = IConst(SAux(s))
-        ELSEIF SType(s) = TYSTR THEN
-            n = NewNode(NSCON, TYSTR)
-            NS$(n) = ConstText$(SAux(s))
-        ELSE
-            n = NewNode(NRCON, SType(s))
-            NS$(n) = ConstText$(SAux(s))
-        END IF
-        VarNode = n
-        EXIT FUNCTION
-    END IF
     IF SKind(s) = SKARRAY THEN ErrRec 29, 0, 0, SName$(s)   ' {s} is an array: an index expected
     n = NewNode(NVAR, SType(s))
     IF SType(s) = TYBYTE THEN NTy(n) = TYINT
@@ -1026,20 +1013,6 @@ FUNCTION Primary ()
     Primary = n
 END FUNCTION
 
-SEGMENT STMTD
-' CONST: an expression of constants only; its value in v (integers), the
-' node returned
-FUNCTION ConstExpr (v)
-    DIM n
-    n = Expr
-    IF NOp(n) = NBOOL THEN n = NA(n)
-    IF NOp(n) = NICON THEN
-        v = NV(n)
-    ELSEIF NOp(n) <> NRCON AND NOp(n) <> NSCON THEN
-        ErrNo 108   ' a constant expression expected
-    END IF
-    ConstExpr = n
-END FUNCTION
 
 ' ---- code: values
 

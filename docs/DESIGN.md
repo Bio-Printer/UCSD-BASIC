@@ -134,56 +134,48 @@ The byte stream:
     134 TLABEL  length, the label (a line number's digits, or a name)
     135 TEOF;   136 TFILE  length, the file the next lines come from
     137 TSKIP   (in place of DECLARE) a DECLARE the module never uses
-    138 TDEADID (in place of TIDENT) a module-level CONST name the module
-                never uses
+    138 TDEADID (no longer written: a CONST is the lexer's)
 
-What the module never uses.  Every module includes BCCOM's and BCGENCOM's
-constants and BCPROCS's DECLAREs, most of which it does not use: compiling
-BCEXPR, 200 of the 617 names were those.  The lexer counts each name's
-uses (NmUse) and remembers where each module-level CONST name and each
-DECLARE is in the byte stream (a block and a byte: the lexer counts what
+What the module never uses.  Every module includes BCPROCS's DECLAREs,
+most of which it does not use.  The lexer counts each name's
+uses (NmUse) and remembers where each module-level DECLARE is in the byte stream (a block and a byte: the lexer counts what
 it writes, LxAdv).  At the end, one whose name -- with any suffix, as
 DEFINT's X is X%: the hashes of its base name with each suffix follow
 from its base name's (LxMix) -- appears nowhere else is marked there: the DECLARE
-keyword becomes TSKIP (both passes skip the statement), the CONST's name
-TDEADID (pass 3 reads its value and makes no symbol), and it is taken off
+keyword becomes TSKIP (both passes skip the statement), and it is taken off
 the header's counts.  So BCGEN's tables are made smaller to begin with
 (section 10).  The code is the same: a name that is not used makes none.
 
-The lexer's names are 15-bit hashes (LxHashes), not their text: the
-strings took more memory than Z80 mode has (each one at least an 8-word
-block); its table grows 256 entries at a time (fewer holes the old
-arrays leave).  Two names with one hash are counted as one, a symbol or two
-fewer in BCGEN's table (which has 48 more), and keep each other's
-DECLARE or CONST if one of them is used: never one that is used.
+The lexer's names are hashes (LxHashes: 15 bits and a second hash), not
+their text: the strings took more memory than Z80 mode has (each one at
+least an 8-word block); its table grows 256 entries at a time (fewer
+holes the old arrays leave).
 
-A module-level CONST whose value is an integer (CONST NAME = 5, = -1,
-= &H80, = OTHER where OTHER is one; NAME with no suffix or %) is put in
-where the module uses it: the lexer writes TINT and the value in place of
-TIDENT and the name (LxIdent), and as the name is then used nowhere else,
-the CONST's name is TDEADID: BCGEN makes no symbol for it.  BC's modules
-use 50 to 165 of BCCOM's and BCGENCOM's constants (opcodes, tokens,
-keywords): BCGEN's tables had a symbol and its name's string for each
-(BCEXPR's most names 442 before, 299 now).  The code is the same: a
-CONST's integer is the node a number makes.  The use must be the CONST's
-name for certain, as the lexer knows names only by their hashes: its
-15-bit hash, a second one (LxHash2: the length, each character times its
-place, mod 27011) and its base name's must all be the CONST's
-(LxConstOf; chains by the base hash, CdNext from CdHead).  Not put in,
-the name kept (and so the CONST's symbol): where a name is declared (a
-SUB's or FUNCTION's name and parameters, DIM, REDIM, STATIC, SHARED,
-COMMON, a DECLARE's parameters, a CONST in a procedure), where one is
+The CONSTs are the lexer's: BCGEN never sees one.  A CONST statement's
+tokens are read into a small table (CBk, CBv, CBs$), not written, and
+each NAME = value is worked out at its comma or the statement's end
+(LxConstOne; NAME = integer there, the rest -- integer expressions, reals,
+strings, the suffix's type -- in the segment LXCONST); after it, where the
+name comes, its value is written in its place (LxPut: TINT, TSNG or TDBL
+with the real's text, TSTR).  The code is the same: a CONST's value was
+the node a number or string makes.  BCGEN has no CONST symbols, texts or
+table (BC's modules use 50 to 165 of BCCOM's and BCGENCOM's constants:
+BCEXPR's most names were 442, now 299), nor GenConst and ConstExpr.  The
+name must be the CONST's for certain, as the lexer knows names only by
+hashes: each name in its table is its 15-bit hash and a second one of its
+base name (LxH2: the length, each character times its place, mod 27011);
+two names with both the same are taken as one.  A CONST's name means only
+that constant in the module (LANGUAGE.md), which the lexer checks as it
+reads: declared again (a SUB's or FUNCTION's name or parameters, DIM,
+REDIM, STATIC, SHARED, COMMON, DECLARE, a label, a CONST: error 24),
 assigned (at a statement's start, after LET, FOR, NEXT, READ, INPUT,
-SWAP, CALL, ERASE: BCGEN's "is a constant" stays), and after GOTO, GOSUB,
-RESTORE, RESUME and RETURN (a label may have a CONST's name: tests/constin);
-a CONST that is declared again (a parameter of its name, a DIM, a second
-CONST) is not put in from there on, nor one in the token file past its
-first 128K (CdB is a byte).  The lexer's own memory: its candidates'
-tables start at 384 (BC's modules have about 300: none left behind while
-the #INCLUDE files are read, when the library's RTSELDOM is in memory to
-open them), the keyword table's text (KwTable$) is a segment of its own,
-KWTAB, called once, and the end's LxUnused and the errors' LexErr are
-LXEND.
+SWAP, CALL, ERASE: 30), after GOTO, GOSUB, RESTORE, RESUME, RETURN (a
+label: 30), or used before its CONST (119: the name's NmUse).  The
+lexer's own memory: its peak is opening an #INCLUDE file (the library's
+RTSELDOM in memory to open it): the CONSTs' table starts at 384 (BC's
+modules have about 300: none left behind growing), the keyword table's
+text (KwTable$) is a segment of its own, KWTAB, called once, and the
+end's LxUnused and the errors' LexErr are LXEND.
 
 A DATA statement's text is kept as one TSTR.  The keyword table is a few
 string constants of 9-character fields searched with INSTR.
@@ -548,8 +540,7 @@ links and runs PI in both.  What makes that fit:
   module's names, the most of one procedure, and 48 for the run-time
   library's procedures a procedure calls, which pass 3 enters as symbols),
   the parameters (all of them, and one line's again: pass 3 reads each
-  procedure's parameters after them), the string and real constants --
-  these are never too few -- and a procedure's code (its estimate and 104
+  procedure's parameters after them), and a procedure's code (its estimate and 104
   bytes), its jumps (2 a keyword of word 6, and 8), labels (3 a keyword,
   and 8), calls (one for every 8 bytes of the code's estimate, and 24) and
   an expression's nodes (half the longest statement's tokens, and 16),
@@ -587,12 +578,10 @@ names a module includes and never uses are not BCGEN's symbols (section
 15,900 words to 10,900); the code and its tables are BCASM's, not BCGEN's
 (section 5); BC's programs chain without opening a file (section 9);
 BCGEN's segments are placed by the call graph and the calls' counts
-(above), and its seldom parts are RTSELDOM's (section 9); the
-module-level integer CONSTs are put in as numbers by the lexer, not
-symbols (section 3).  In Z80 mode BCUTIL, BCTOK, BCDECL and BCEMIT now
-compile (BCGEN leaves 1,240 to 2,950 words); BCEXPR gets through pass 2
-and its module's own code but not its procedures, and BCGEN runs out of
-memory after pass 2.  BC does not check the layout; out of memory, it
+(above), and its seldom parts are RTSELDOM's (section 9); the CONSTs are
+the lexer's, put in as their values, never BCGEN's symbols (section 3).
+In Z80 mode BCUTIL, BCTOK, BCDECL, BCEMIT and BCEXPR now compile (BCGEN
+leaves 870 to 3,220 words); BCGEN gets through pass 2 but not pass 3.  BC does not check the layout; out of memory, it
 says Run-time error 7, or the emulator *STK OFLOW*.  (bas2c takes the CSP
 statement as nothing and CSP%() as 0.)
 

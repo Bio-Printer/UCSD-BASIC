@@ -424,6 +424,8 @@ SUB EB (b)
     NEntry = NEntry + 1
 END SUB
 
+CONST OCGP2 = &HCF, OCXP2 = &HCD
+
 SUB ECall (x)
     DIM p
     p = LDef(x)
@@ -436,8 +438,6 @@ SUB ECall (x)
         EB PNum(p)
     END IF
 END SUB
-
-CONST OCGP2 = &HCF, OCXP2 = &HCD
 
 SUB MakeEntry ()
     DIM g, m, exitpos, p

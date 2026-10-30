@@ -32,6 +32,5 @@ RESTORE
 a = 99999
 a = 1.5.5
 a = &Q
-CONST k = a
 k2 = VARPTR(3)
 END
