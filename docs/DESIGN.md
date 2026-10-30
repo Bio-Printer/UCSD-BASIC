@@ -14,11 +14,14 @@ memory for its own code and tables.
 
     BC.CODE      the driver: bc.bas
     BCLEX.CODE   pass 1: bclex.bas (source -> token file), bckw.bas
-    BCGEN.CODE   passes 2 and 3: bcgen.bas (statements, procedures),
+    BCGEN.CODE   passes 2 and 3: bcgen.bas (the pass, procedures, blocks,
+                 labels, control structures), bcstmt.bas (the statements),
                  bcdecl.bas (declarations; segment DECL), bcexpr.bas
-                 (expressions), bcemit.bas (the emitter: the code as a
+                 (expressions parsed: the nodes, names), bcexgen.bas (an
+                 expression's code; bcbuilt.bas, which both include: the
+                 built-in functions' codes), bcemit.bas (the emitter: the code as a
                  stream for BCASM; entry and exit code), bctok.bas (the
-                 token reader, the symbol table), bckw.bas; pass 3 in the
+                 token reader, the symbol table); pass 3 in the
                  segments STMT, STMTA, STMTD, STMTIO, EXPR and EXPRGEN
                  (section 10)
     BCASM.CODE   pass 4: bcasm.bas (BCGEN's stream assembled: jumps, the
@@ -580,8 +583,12 @@ names a module includes and never uses are not BCGEN's symbols (section
 BCGEN's segments are placed by the call graph and the calls' counts
 (above), and its seldom parts are RTSELDOM's (section 9); the CONSTs are
 the lexer's, put in as their values, never BCGEN's symbols (section 3).
-In Z80 mode BCUTIL, BCTOK, BCDECL, BCEMIT and BCEXPR now compile (BCGEN
-leaves 870 to 3,220 words); BCGEN gets through pass 2 but not pass 3.  BC does not check the layout; out of memory, it
+BCGEN's largest modules are split in two by what their procedures
+use (bcgen.bas and bcstmt.bas, bcexpr.bas and bcexgen.bas: module-level
+names 215 and 132 before, 93 to 138 now).  In Z80 mode every one of BC's
+16 modules now compiles (BCGEN leaves 1,000 words compiling bclex.bas,
+the least, to 3,850); linking BC's programs does not yet: BCLINK runs out of
+memory opening a file (the library's OPEN, RTSELDOM) as it links BC.CODE.  BC does not check the layout; out of memory, it
 says Run-time error 7, or the emulator *STK OFLOW*.  (bas2c takes the CSP
 statement as nothing and CSP%() as 0.)
 

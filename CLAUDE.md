@@ -11,8 +11,14 @@
   modules (the first its main one) for every build tool.  A new module goes
   there.  BCGEN's segments: DECL, STMT, STMTA, STMTD, STMTIO, EXPR, EXPRGEN,
   RTSELDOM -- with the main one nine; a program has at most ten (one segment
-  holds at most 255 procedures and 32000 bytes).  The SEGMENT lines in
-  bcgen/bcexpr/bcemit were placed by a call-graph analysis (DESIGN.md
+  holds at most 255 procedures and 32000 bytes).  BCGEN's modules are
+  small enough for its tables in Z80 mode: bcgen.bas (the pass, blocks,
+  labels) and bcstmt.bas (the statements), bcexpr.bas (parsing) and
+  bcexgen.bas (an expression's code; both include bcbuilt.bas).  A
+  procedure moved to another module takes its module's CONSTs and DIM
+  SHAREDs along (an include, or COMMON): there a name not declared is a
+  new variable, silently -- compare every source's object after.  The SEGMENT lines in
+  bcgen/bcstmt/bcexpr/bcexgen/bcemit were placed by a call-graph analysis (DESIGN.md
   section 10: the code in memory along a chain, RTSELDOM's too, and the
   calls' counts -- a call into another segment reads it from the disk):
   keep a call chain to three statement/expression segments, and what pass
