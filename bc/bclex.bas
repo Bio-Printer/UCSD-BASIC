@@ -21,15 +21,33 @@ DIM SHARED LxDepth, LxLine$, LxPos, LxLen, LxLineNo, LxFile$
 ' longest procedure (BCGEN's line table: LxLines).  LxProc is the procedure being read (0: none),
 ' LxLead the keyword the statement starts with, LxParen its ( depth.
 DIM SHARED NmTxt$(), NmGlob() AS BYTE, NmProc(), NmNext(), NmHead(127), NNm, NmCap
+' What the module never uses: a name's uses (NmUse, 2 at most), and each module-level CONST
+' name and DECLAREd procedure (a candidate: CdNm its name, CdKind 1 CONST or 2 DECLARE, CdB and
+' CdO where its TIDENT or DECLARE is in the token file, block and byte, CdPar a DECLARE's
+' parameters); at the end one whose name (with any suffix) has no other use is marked there,
+' TDEADID or TSKIP, and not counted (LxUnused).  LxPB, LxPO: where the next byte goes;
+' LxWant: a CONST's (1) or DECLARE's (2) name comes next; LxLastNm: LxName's name
+DIM SHARED NmUse() AS BYTE, CdNm(), CdKind() AS BYTE, CdB(), CdO(), CdPar(), NCd, CdCap
+DIM SHARED LxPB, LxPO, LxWant, LxDB, LxDO, LxCdDecl, LxLastNm
 DIM SHARED LxProc, LxNProc, LxProcName, LxLead, LxParen, LxStmtTok, LxDecl
 DIM SHARED LxGlob, LxParams, LxConsts, LxLoc, LxCode, LxStrB, LxCtl, LxHdrPar, LxMaxPar
 DIM SHARED LxMaxLoc, LxMaxCode, LxMaxCtl, LxMaxStmt, LxBodyCode, LxBodyStrB, LxBodyCtl
 DIM SHARED LxLines, LxMaxLines, LxBodyLines
 
+' n more bytes in the token file
+SUB LxAdv (n)
+    LxPO = LxPO + n
+    DO WHILE LxPO >= 512
+        LxPO = LxPO - 512
+        LxPB = LxPB + 1
+    LOOP
+END SUB
+
 SUB TB (v)
     DIM b AS BYTE
     b = v
     PUT #CHTOK, , b
+    LxAdv 1
     LxStmtTok = LxStmtTok + 1
     IF LxDecl = 0 THEN
         IF LxProc THEN LxCode = LxCode + 1 ELSE LxBodyCode = LxBodyCode + 1
@@ -57,23 +75,30 @@ SUB LxName (w$, times)
         IF NNm >= NmCap THEN
             NmCap = Grown(NmCap, 32000)
             REDIM PRESERVE NmTxt$(NmCap), NmGlob(NmCap) AS BYTE, NmProc(NmCap), NmNext(NmCap)
+            REDIM PRESERVE NmUse(NmCap) AS BYTE
         END IF
         NNm = NNm + 1
         i = NNm
         NmTxt$(i) = w$
         NmGlob(i) = 0
+        NmUse(i) = 0
         NmProc(i) = 0
         NmNext(i) = NmHead(h)
         NmHead(h) = i
     END IF
-    IF LxProc = 0 OR LxProcName THEN
+    LxLastNm = i
+    IF NmUse(i) < 2 THEN NmUse(i) = NmUse(i) + 1
+    IF LxLead = KDECLARE AND LxParen > 0 THEN
+        ' (a DECLARE's parameter: no symbol is made for it)
+    ELSEIF LxProc = 0 OR LxProcName THEN
         ' the module's level, or the procedure's own name
         LxProcName = 0
         IF NmGlob(i) = 0 THEN
             NmGlob(i) = 1
             LxGlob = LxGlob + times
         END IF
-    ELSEIF NmProc(i) <> LxProc THEN
+    ELSEIF NmProc(i) <> LxProc AND NmGlob(i) = 0 THEN
+        ' (a name of the module's level, already counted, makes no symbol here)
         NmProc(i) = LxProc
         LxLoc = LxLoc + times
     END IF
@@ -84,6 +109,68 @@ SUB LxName (w$, times)
         END IF
     END IF
     IF LxLead = KCONST THEN LxConsts = LxConsts + 1
+END SUB
+
+' the name just read (LxLastNm) is a CONST's or DECLARE's (kind), its mark goes at block b,
+' byte o
+SUB LxCand (kind, b, o)
+    IF NCd >= CdCap THEN
+        CdCap = Grown(CdCap, 32000)
+        REDIM PRESERVE CdNm(CdCap), CdKind(CdCap) AS BYTE, CdB(CdCap), CdO(CdCap), CdPar(CdCap)
+    END IF
+    NCd = NCd + 1
+    CdNm(NCd) = LxLastNm
+    CdKind(NCd) = kind
+    CdB(NCd) = b
+    CdO(NCd) = o
+    CdPar(NCd) = 0
+END SUB
+
+' the name w$ in the table (0: not there)
+FUNCTION NmFind (w$)
+    DIM h, i
+    FOR i = 1 TO LEN(w$)
+        h = (h * 3 + ASC(w$, i)) AND 127
+    NEXT i
+    i = NmHead(h)
+    DO WHILE i > 0
+        IF NmTxt$(i) = w$ THEN EXIT DO
+        i = NmNext(i)
+    LOOP
+    NmFind = i
+END FUNCTION
+
+' is the name i used besides where it is declared: twice in all, with any suffix (DEFINT's
+' X is X%)
+FUNCTION NmUsed (i)
+    DIM b$, n, k, j
+    b$ = NmTxt$(i)
+    IF SuffixType(b$) > 0 THEN b$ = LEFT$(b$, LEN(b$) - 1)
+    FOR j = 0 TO 5
+        IF j = 0 THEN k = NmFind(b$) ELSE k = NmFind(b$ + MID$("%#!$~", j, 1))
+        IF k > 0 THEN n = n + NmUse(k)
+    NEXT j
+    NmUsed = n >= 2
+END FUNCTION
+
+' each candidate the module does not use: marked in the token file (TDEADID, TSKIP), and
+' not counted in the header
+SUB LxUnused ()
+    DIM c, b AS BYTE
+    FOR c = 1 TO NCd
+        IF NOT NmUsed(CdNm(c)) THEN
+            SEEK #CHTOK, CdB(c) * 512# + CdO(c) + 1
+            IF CdKind(c) = 1 THEN
+                b = TDEADID
+                LxConsts = LxConsts - 1
+            ELSE
+                b = TSKIP
+                LxParams = LxParams - CdPar(c)
+            END IF
+            PUT #CHTOK, , b
+            IF NmGlob(CdNm(c)) THEN LxGlob = LxGlob - 1
+        END IF
+    NEXT c
 END SUB
 
 ' a procedure's start (SUB or FUNCTION) or end (END SUB, END FUNCTION, or
@@ -110,11 +197,13 @@ END SUB
 
 SUB TW (v)
     PUT #CHTOK, , v
+    LxAdv 2
 END SUB
 
 SUB TS (s$)
     TB LEN(s$)
     IF LEN(s$) > 0 THEN PUT #CHTOK, , s$
+    LxAdv LEN(s$)
 END SUB
 
 ' error n of the line being read (s$: its {s})
@@ -310,7 +399,7 @@ END SUB
 
 ' the tokens of one line (comments already cut off)
 SUB LexTokens ()
-    DIM c, s, w$, k, d, first, q
+    DIM c, s, w$, k, d, first, q, pb, po
     first = 1
     DO
         DO WHILE LxPos <= LxLen
@@ -324,6 +413,9 @@ SUB LexTokens ()
             ' a statement starts
             IF LxStmtTok > LxMaxStmt THEN LxMaxStmt = LxStmtTok
             IF LxHdrPar > LxMaxPar THEN LxMaxPar = LxHdrPar
+            IF LxCdDecl > 0 THEN CdPar(LxCdDecl) = LxHdrPar
+            LxCdDecl = 0
+            LxWant = 0
             LxStmtTok = 0
             LxHdrPar = 0
             LxLead = 0
@@ -368,9 +460,18 @@ SUB LexTokens ()
                     LxName w$, 2
                     first = 1
                 ELSE
+                    pb = LxPB
+                    po = LxPO
                     TB TIDENT
                     TS w$
                     LxName w$, 1
+                    IF LxWant = 1 THEN
+                        LxCand 1, pb, po
+                    ELSEIF LxWant = 2 THEN
+                        LxCand 2, LxDB, LxDO
+                        LxCdDecl = NCd
+                    END IF
+                    LxWant = 0
                     first = 0
                 END IF
             ELSEIF k = KDATA THEN
@@ -387,6 +488,12 @@ SUB LexTokens ()
                 END IF
                 IF first <> 0 THEN
                     LxLead = k
+                    IF LxProc = 0 AND k = KCONST THEN LxWant = 1
+                    IF LxProc = 0 AND k = KDECLARE THEN
+                        LxWant = 2
+                        LxDB = LxPB
+                        LxDO = LxPO
+                    END IF
                     SELECT CASE k
                     CASE KDECLARE, KCONST, KCOMMON, KDEFINT, KDEFSNG, KDEFDBL, KDEFSTR, KOPTION, KSEGMENT
                         LxDecl = 1
@@ -460,7 +567,9 @@ SUB LexTokens ()
             CASE 41
                 TB TRPAR
                 LxParen = LxParen - 1
-            CASE 44: TB TCOMMA
+            CASE 44
+                TB TCOMMA
+                IF LxLead = KCONST AND LxProc = 0 AND LxParen = 0 THEN LxWant = 1
             CASE 59: TB TSEMI
             CASE 35: TB THASH
             CASE 38: TB TAMP
@@ -567,17 +676,23 @@ SUB LexFile (f$)
     DIM i
     IF FileExists(TokName$) THEN KILL TokName$
     OPEN TokName$ FOR BINARY AS #CHTOK
+    LxPB = 0
+    LxPO = 0
     FOR i = 1 TO THWORDS
         TW 0
     NEXT i
     NmCap = 100
-    REDIM NmTxt$(NmCap), NmGlob(NmCap) AS BYTE, NmProc(NmCap), NmNext(NmCap)
+    REDIM NmTxt$(NmCap), NmGlob(NmCap) AS BYTE, NmProc(NmCap), NmNext(NmCap), NmUse(NmCap) AS BYTE
+    CdCap = 32
+    REDIM CdNm(CdCap), CdKind(CdCap) AS BYTE, CdB(CdCap), CdO(CdCap), CdPar(CdCap)
     LxDepth = 0
     LexLines f$, CHSRC
     TB TEOF
     ProcMark 0
     IF LxStmtTok > LxMaxStmt THEN LxMaxStmt = LxStmtTok
     IF LxHdrPar > LxMaxPar THEN LxMaxPar = LxHdrPar
+    IF LxCdDecl > 0 THEN CdPar(LxCdDecl) = LxHdrPar
+    LxUnused
     ' (the module's body: one more procedure)
     IF 3 * LxBodyCode + LxBodyStrB > LxMaxCode THEN LxMaxCode = 3 * LxBodyCode + LxBodyStrB
     IF LxBodyCtl > LxMaxCtl THEN LxMaxCtl = LxBodyCtl
@@ -594,7 +709,7 @@ SUB LexFile (f$)
     TW LxMaxPar
     TW LxMaxLines
     CLOSE #CHTOK
-    ERASE NmTxt$, NmGlob, NmProc, NmNext
+    ERASE NmTxt$, NmGlob, NmProc, NmNext, NmUse, CdNm, CdKind, CdB, CdO, CdPar
 END SUB
 
 ' ---- BCLEX, the program: pass 1 of the job's compile step, then BCGEN

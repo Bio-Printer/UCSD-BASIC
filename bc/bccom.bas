@@ -45,6 +45,9 @@ CONST THASH = 116, TAMP = 117, TCOLON = 118, TBAR = 119
 
 CONST TIDENT = 128, TINT = 129, TSNG = 130, TDBL = 131, TSTR = 132
 CONST TLINE = 133, TLABEL = 134, TEOF = 135, TFILE = 136
+' (BCLEX's marks, at the end, on what the module never uses: a DECLARE line,
+' TSKIP for its keyword; a module-level CONST's name, TDEADID for TIDENT)
+CONST TSKIP = 137, TDEADID = 138
 
 ' ---- types
 CONST TYVOID = 0, TYINT = 1, TYSNG = 2, TYDBL = 3, TYSTR = 4, TYBYTE = 5

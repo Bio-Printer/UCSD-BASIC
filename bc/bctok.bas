@@ -40,7 +40,7 @@ SUB GetTok ()
         GET #CHTOK, , b
         Tok = b
         SELECT CASE Tok
-        CASE TIDENT, TSTR, TSNG, TDBL, TLABEL
+        CASE TIDENT, TSTR, TSNG, TDBL, TLABEL, TDEADID
             TokS$ = TokStr$
             EXIT SUB
         CASE TINT

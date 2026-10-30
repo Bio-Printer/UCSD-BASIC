@@ -1118,14 +1118,16 @@ SUB GenShared ()
 END SUB
 
 SUB GenConst ()
-    DIM nm$, n, v, ty, s, t$
+    DIM nm$, n, v, ty, s, t$, dead
     GetTok
     DO
-        IF Tok <> TIDENT THEN
+        IF Tok <> TIDENT AND Tok <> TDEADID THEN
             ErrNo 62   ' a constant name expected
             SkipStmt
             EXIT SUB
         END IF
+        ' (TDEADID: the module never uses it -- its value is read, no symbol made)
+        dead = Tok = TDEADID
         nm$ = TokS$
         GetTok
         Expect TEQ
@@ -1136,29 +1138,31 @@ SUB GenConst ()
             n = ConvNode(n, SuffixType(nm$))
             ty = SuffixType(nm$)
         END IF
-        s = FindSym(nm$)
-        IF s > 0 THEN
-            IF SScope(s) = InProc THEN ErrRec 24, 0, 0, nm$   ' {s} declared twice
-        END IF
-        s = AddSym(nm$, SKCONST, ty)
-        SScope(s) = InProc
-        IF NOp(n) = NICON THEN
-            SAux(s) = NV(n)
-        ELSE
-            t$ = NS$(n)
-            IF NOp(n) = NRCON AND NX(n) THEN t$ = "-" + t$
-            NConst = NConst + 1
-            IF NConst > ConstCap THEN
-                IF ConstCap < 300 THEN
-                    ConstCap = Grown(ConstCap, 300)
-                    REDIM PRESERVE ConstText$(ConstCap)
-                ELSE
-                    ErrNo 63   ' too many string and real constants
-                    NConst = 1
-                END IF
+        IF NOT dead THEN
+            s = FindSym(nm$)
+            IF s > 0 THEN
+                IF SScope(s) = InProc THEN ErrRec 24, 0, 0, nm$   ' {s} declared twice
             END IF
-            ConstText$(NConst) = t$
-            SAux(s) = NConst
+            s = AddSym(nm$, SKCONST, ty)
+            SScope(s) = InProc
+            IF NOp(n) = NICON THEN
+                SAux(s) = NV(n)
+            ELSE
+                t$ = NS$(n)
+                IF NOp(n) = NRCON AND NX(n) THEN t$ = "-" + t$
+                NConst = NConst + 1
+                IF NConst > ConstCap THEN
+                    IF ConstCap < 300 THEN
+                        ConstCap = Grown(ConstCap, 300)
+                        REDIM PRESERVE ConstText$(ConstCap)
+                    ELSE
+                        ErrNo 63   ' too many string and real constants
+                        NConst = 1
+                    END IF
+                END IF
+                ConstText$(NConst) = t$
+                SAux(s) = NConst
+            END IF
         END IF
         ResetNodes
         IF Tok <> TCOMMA THEN EXIT DO
@@ -1569,7 +1573,7 @@ SUB GenStmt ()
     CASE KDEFINT, KDEFSNG, KDEFDBL, KDEFSTR
         GetTok
         DefLetters DefKw(k)
-    CASE KOPTION, KDECLARE, KCOMMON, KSEGMENT, KDATA
+    CASE KOPTION, KDECLARE, KCOMMON, KSEGMENT, KDATA, TSKIP
         SkipStmt
     CASE KREAD
         GenRead

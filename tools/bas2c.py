@@ -1433,7 +1433,7 @@ class Trans:
         self.next()
         ch = self.chan()
         self.expect_op(',')
-        self.emit('b_seek(%s, %s);' % (ch, self.toint(self.expr())[0]))
+        self.emit('b_seek(%s, (long)(%s));' % (ch, self.conv(self.expr(), T_DBL)[0]))
 
     def s_KILL(self):
         self.next()

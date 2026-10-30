@@ -99,9 +99,11 @@ are the words' indexes:
 
     0 TOKMAGIC (16980)
     1 the names at the module's level (DIM SHARED, COMMON, CONST, the
-      body's variables, the procedures' names; a label counts twice: pass
+      body's variables, the procedures' names -- not a DECLARE line's
+      parameters, which make no symbols; a label counts twice: pass
       2 and pass 3 each make a symbol of it)
-    2 the most names in one procedure (each counted once in it)
+    2 the most names in one procedure (each counted once in it, and not
+      one already counted at the module's level)
     3 the parameters of all SUB, FUNCTION and DECLARE lines;  8 the most of
       one line
     4 the names in CONST lines
@@ -123,6 +125,21 @@ The byte stream:
                 messages and the listing)
     134 TLABEL  length, the label (a line number's digits, or a name)
     135 TEOF;   136 TFILE  length, the file the next lines come from
+    137 TSKIP   (in place of DECLARE) a DECLARE the module never uses
+    138 TDEADID (in place of TIDENT) a module-level CONST name the module
+                never uses
+
+What the module never uses.  Every module includes BCCOM's and BCGENCOM's
+constants and BCPROCS's DECLAREs, most of which it does not use: compiling
+BCEXPR, 200 of the 617 names were those.  The lexer counts each name's
+uses (NmUse) and remembers where each module-level CONST name and each
+DECLARE is in the byte stream (a block and a byte: the lexer counts what
+it writes, LxAdv).  At the end, one whose name -- with any suffix, as
+DEFINT's X is X% -- appears nowhere else is marked there: the DECLARE
+keyword becomes TSKIP (both passes skip the statement), the CONST's name
+TDEADID (pass 3 reads its value and makes no symbol), and it is taken off
+the header's counts.  So BCGEN's tables are made smaller to begin with
+(section 10).  The code is the same: a name that is not used makes none.
 
 A DATA statement's text is kept as one TSTR.  The keyword table is a few
 string constants of 9-character fields searched with INSTR.
@@ -451,7 +468,10 @@ links and runs PI in both.  What makes that fit:
   bytes), its jumps (2 a keyword of word 6, and 8), labels (3 a keyword,
   and 8), calls (one for every 8 bytes of the code's estimate, and 24) and
   an expression's nodes (half the longest statement's tokens, and 16),
-  which are estimates.  -M shows the sizes ([tables: ...]) and the most of
+  which are estimates.  The constants and DECLAREs a module includes but
+  never uses are not among them (section 3): compiling BC's own modules
+  in the Harvard layout that left 1,800 (BCGEN) to 4,800 (BCEMIT) words
+  more.  -M shows the sizes ([tables: ...]) and the most of
   each that was used ([high: ...]).  When one is full, REDIM PRESERVE makes
   it 100 entries larger (Grown): of BC's sources, the library, the demos
   and the tests only the test DATA's calls need that, once.  BCLINK's
@@ -471,9 +491,11 @@ bytes, in every program); what finds the line is a program of its own
 _RTWHERE is in RTSELDOM.  BCLINK's tables start at 300 names and 200
 procedures: PI and the library need about 210 and 170, and doubling 200
 and 160 left holes that took 1400 words.  BC's own
-modules need more than either has, in the symbol table (up to 640
-symbols, 8 words each) and in their deeper statements: compiling itself
-needs the Harvard layout.  BC does not check the layout; out of memory, it
+modules need more than either has, in the symbol table (up to 460
+symbols, 8 words each, and their names' strings) and in their deeper
+statements: compiling itself needs the Harvard layout.  In it, compiling
+BCUTIL (the least) leaves about 1,700 words less than PI, BCGEN (the
+most) 9,400 less; in Z80 mode PI leaves 1,418.  BC does not check the layout; out of memory, it
 says Run-time error 7, or the emulator *STK OFLOW*.  (bas2c takes the CSP
 statement as nothing and CSP%() as 0.)
 
