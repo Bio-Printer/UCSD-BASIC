@@ -21,20 +21,28 @@
 ' _HALT(0).
 #INCLUDE "BCCOM"
 
-CONST MAXLN = 700, MAXLP = 520, MAXLM = 90, MAXREFS = 4000, MAXLD = 200
+CONST MAXLN = 1400, MAXLP = 1040, MAXLM = 90, MAXPREF = 300, MAXLD = 200
 CONST MAXLF = 24, LHSIZE = 128
-CONST CHIN = 1, CHOUT = 2, CHMAP = 3
+CONST CHIN = 1, CHOUT = 2, CHMAP = 3, CHREF = 4, LKTMP$ = ":BCTEMP.LNK"
 
-DIM SHARED LName$(), LKind() AS BYTE, LDef(), LNext(), LHead(), NLName
+' A name is its two hashes (LH1, 15 bits; LH2, its length and each character times its
+' place, mod 27011), not its text: the strings took more memory than Z80 mode has.  Two
+' names with both hashes the same are one: two procedures "defined twice" (an error, not
+' a wrong link: in a program that links every name it calls is defined).  An undefined
+' one's text is found at the end (LUndef: up to 10; LinkUndef)
+DIM SHARED LH1(), LH2(), LKind() AS BYTE, LDef(), LNext(), LHead(), NLName, LUndef(10), NLUndef
 DIM SHARED PNm(), PMod(), PSg() AS BYTE, PLen(), PFl() AS BYTE, PNum() AS BYTE, PLive() AS BYTE, PRef0(), PRefN(), NLP
 DIM SHARED MNm$(), MStat(), MBase(), MLive() AS BYTE, MBody(), NLM
-DIM SHARED RefNm(), NRefs, DWords(), DOff(), DLive() AS BYTE, NLD
+' a procedure's names (each once) are in the file LKTMP$ (words), from word PRef0, PRefN
+' of them: not in memory (pass 1 writes them, MarkAll reads a procedure's when it is
+' linked); PRB, NPRB: the procedure's being read
+DIM SHARED PRB(MAXPREF), NPRB, NRefs, DWords(), DOff(), DLive() AS BYTE, NLD
 DIM SHARED LSeg$(16), LSegNum(16), LSegLen(16), LSegBlk(16), LSegProcs(16), NLSeg
 DIM SHARED LFile$(MAXLF), NLF, LBuf() AS BYTE, LErr, LEof
 DIM SHARED Entry() AS BYTE, NEntry, EntryJtab, GlobWords
 ' the tables' sizes: small at first, grown (LinkGrown) up to the MAX constants;
 ' the largest procedure (LBuf holds it)
-DIM SHARED CapLN, CapLP, CapLM, CapRefs, CapLD, MaxClen
+DIM SHARED CapLN, CapLP, CapLM, CapLD, MaxClen
 
 ' a table's new size when cap entries were too few: twice as many, max at
 ' most.  (The linker's tables grow far, the references to thousands: each
@@ -111,21 +119,26 @@ END FUNCTION
 
 ' ---- names
 
-FUNCTION LHash (n$)
-    DIM h, i
+' n$'s hashes: LHash1, LHash2
+SUB LHashes (n$, BYREF h1, BYREF h2)
+    DIM i, c
+    h1 = 0
+    h2 = LEN(n$)
     FOR i = 1 TO LEN(n$)
-        h = (h * 5 + ASC(n$, i)) AND 4095
+        c = ASC(n$, i)
+        h1 = (((h1 AND &HFFF) * 8) + h1 \ 4096) XOR c
+        h2 = (h2 + c * ((i AND 31) + 1)) MOD 27011
     NEXT i
-    LHash = h MOD LHSIZE
-END FUNCTION
+END SUB
 
 ' a name's index (made if new)
 FUNCTION LNameIx (n$)
-    DIM h, i
-    h = LHash(n$)
+    DIM h, h1, h2, i
+    LHashes n$, h1, h2
+    h = h1 AND (LHSIZE - 1)
     i = LHead(h)
     DO WHILE i > 0
-        IF LName$(i) = n$ THEN
+        IF LH1(i) = h1 AND LH2(i) = h2 THEN
             LNameIx = i
             EXIT FUNCTION
         END IF
@@ -134,10 +147,11 @@ FUNCTION LNameIx (n$)
     IF NLName >= CapLN THEN
         IF CapLN >= MAXLN THEN Fatal "Link: too many names"
         CapLN = LinkGrown(CapLN, MAXLN)
-        REDIM PRESERVE LName$(CapLN), LKind(CapLN) AS BYTE, LDef(CapLN), LNext(CapLN)
+        REDIM PRESERVE LH1(CapLN), LH2(CapLN), LKind(CapLN) AS BYTE, LDef(CapLN), LNext(CapLN)
     END IF
     NLName = NLName + 1
-    LName$(NLName) = n$
+    LH1(NLName) = h1
+    LH2(NLName) = h2
     LKind(NLName) = 0
     LDef(NLName) = 0
     LNext(NLName) = LHead(h)
@@ -183,6 +197,9 @@ END SUB
 
 ' ---- pass 1
 
+' (each phase that is done once a segment of its own: in memory with the
+' library's RTSELDOM, which opens a file, there is little room)
+SEGMENT LKPASS1
 ' a P record (the letter read): its procedure entered, with the names it
 ' refers to (each once)
 SUB ReadProc1 (m)
@@ -219,6 +236,7 @@ SUB ReadProc1 (m)
         PLive(NLP) = 0
         PRef0(NLP) = NRefs
         PRefN(NLP) = 0
+        NPRB = 0
         p = NLP
         LKind(x) = 1
         LDef(x) = NLP
@@ -232,29 +250,33 @@ SUB ReadProc1 (m)
         IF ty <> 3 AND p > 0 THEN
             k = LNameIx(t$)
             dup = 0
-            FOR j = PRef0(p) TO PRef0(p) + PRefN(p) - 1
-                IF RefNm(j) = k THEN
+            FOR j = 1 TO NPRB
+                IF PRB(j) = k THEN
                     dup = 1
                     EXIT FOR
                 END IF
             NEXT j
             IF dup = 0 THEN
-                IF NRefs >= CapRefs THEN
-                    IF CapRefs >= MAXREFS THEN Fatal "Link: too many references"
-                    CapRefs = LinkGrown(CapRefs, MAXREFS)
-                    REDIM PRESERVE RefNm(CapRefs)
-                END IF
-                RefNm(NRefs) = k
-                NRefs = NRefs + 1
-                PRefN(p) = PRefN(p) + 1
+                IF NPRB >= MAXPREF THEN Fatal "Link: a procedure calls too many"
+                NPRB = NPRB + 1
+                PRB(NPRB) = k
             END IF
         END IF
     NEXT i
+    IF p > 0 THEN
+        FOR j = 1 TO NPRB
+            PUT #CHREF, , PRB(j)
+        NEXT j
+        PRefN(p) = NPRB
+        NRefs = NRefs + NPRB
+    END IF
     SkipLines
 END SUB
 
 SUB Pass1 ()
     DIM f, c, m, x, w, nm$, strong
+    IF FileExists(LKTMP$) THEN KILL LKTMP$
+    OPEN LKTMP$ FOR BINARY AS #CHREF
     FOR f = 1 TO NLF
         OPEN LFile$(f) FOR BINARY AS #CHIN
         LEof = 0
@@ -317,6 +339,7 @@ END SUB
 
 ' ---- what is linked
 
+SEGMENT LKLAY
 ' a name a linked procedure uses: the procedure (and its module's body)
 ' linked, or the COMMON variable kept
 SUB MarkName (x)
@@ -334,7 +357,12 @@ SUB MarkName (x)
     ELSEIF LKind(x) = 2 THEN
         DLive(LDef(x)) = 1
     ELSE
-        LinkErrMsg "undefined: " + LName$(x)
+        ' (its text at the end: LinkUndef)
+        LErr = LErr + 1
+        IF NLUndef < 10 THEN
+            NLUndef = NLUndef + 1
+            LUndef(NLUndef) = x
+        END IF
         LKind(x) = 3
     END IF
 END SUB
@@ -354,9 +382,13 @@ SUB MarkAll ()
             IF PLive(p) = 1 THEN
                 PLive(p) = 2
                 again = 1
-                FOR j = PRef0(p) TO PRef0(p) + PRefN(p) - 1
-                    MarkName RefNm(j)
-                NEXT j
+                IF PRefN(p) > 0 THEN
+                    SEEK #CHREF, PRef0(p) * 2# + 1
+                    FOR j = 1 TO PRefN(p)
+                        GET #CHREF, , x
+                        MarkName x
+                    NEXT j
+                END IF
             END IF
         NEXT p
     LOOP WHILE again
@@ -716,9 +748,65 @@ SUB WriteSeg (s, jt(), BYREF slen)
     NEXT f
 END SUB
 
+' the undefined names (LUndef): their texts, from the object files (the names they call)
+SEGMENT MAP
+SUB LinkUndef ()
+    DIM f, c, i, j, n, h1, h2, nrel, t$, k, x
+    FOR f = 1 TO NLF
+        OPEN LFile$(f) FOR BINARY AS #CHIN
+        LEof = 0
+        DO
+            c = NextRec
+            IF c <> 77 AND c <> 80 AND c <> 68 AND c <> 71 AND c <> 69 THEN EXIT DO
+            SELECT CASE c
+            CASE 77
+                t$ = RdS$
+            CASE 80
+                x = RdB
+                t$ = RdS$
+                t$ = RdS$
+                x = RdW
+                x = RdB
+                n = RdW
+                x = RdW
+                FOR i = 1 TO n
+                    x = RdB
+                NEXT i
+                nrel = RdW
+                FOR i = 1 TO nrel
+                    x = RdW
+                    x = RdB
+                    t$ = RdS$
+                    LHashes t$, h1, h2
+                    FOR k = 1 TO NLUndef
+                        j = LUndef(k)
+                        IF j > 0 THEN
+                            IF LH1(j) = h1 AND LH2(j) = h2 THEN
+                                SayLn "Link: undefined: " + t$
+                                LUndef(k) = 0
+                            END IF
+                        END IF
+                    NEXT k
+                NEXT i
+                SkipLines
+            CASE 68
+                x = RdB
+                t$ = RdS$
+                x = RdW
+            CASE 71
+                x = RdW
+            END SELECT
+        LOOP
+        CLOSE #CHIN
+    NEXT f
+END SUB
+
+SEGMENT
+
 ' ---- linking
 
 ' the files of "A,B,C": each NAME.OBJ, and the library
+SEGMENT LKPASS1
 SUB ObjFiles (objs$, addlib)
     DIM i, j, n$, lib$
     NLF = 0
@@ -751,6 +839,47 @@ SUB ObjFiles (objs$, addlib)
     NEXT i
 END SUB
 
+' the code file's block 0: the segments' blocks and lengths, their names
+SEGMENT LKHEAD
+SUB WriteHead (out$)
+    DIM k, n, s, j, pn$
+    FOR k = 0 TO 15
+        n = 0
+        FOR s = 1 TO NLSeg
+            IF LSegNum(s) = k AND LSegNum(s) > 0 THEN n = s
+        NEXT s
+        IF n > 0 THEN
+            OutW LSegBlk(n)
+            OutW LSegLen(n)
+        ELSE
+            OutW 0
+            OutW 0
+        END IF
+    NEXT k
+    FOR k = 0 TO 15
+        n = 0
+        FOR s = 1 TO NLSeg
+            IF LSegNum(s) = k AND LSegNum(s) > 0 THEN n = s
+        NEXT s
+        IF n = 0 THEN
+            OutW 0
+            OutW 0
+            OutW 0
+            OutW 0
+        ELSE
+            IF k = 1 THEN pn$ = ModOf$(out$) ELSE pn$ = UCASE$(LSeg$(n))
+            pn$ = LEFT$(pn$ + "        ", 8)
+            FOR j = 1 TO 8
+                OutB ASC(pn$, j)
+            NEXT j
+        END IF
+    NEXT k
+    FOR k = 1 TO 512 - 192
+        OutB 0
+    NEXT k
+END SUB
+
+SEGMENT
 FUNCTION LinkProg (out$, objs$)
     DIM s, k, i, blk, n, j, len0, pn$, jt(256), slen
     LErr = 0
@@ -760,25 +889,30 @@ FUNCTION LinkProg (out$, objs$)
     NRefs = 0
     NLD = 0
     NLSeg = 0
-    CapLN = 300
-    CapLP = 200
+    ' (BC's programs: up to 530 names, 390 procedures -- none grown, no holes left)
+    CapLN = 600
+    CapLP = 400
     CapLM = 24
-    CapRefs = 800
     CapLD = 40
     MaxClen = 0
-    REDIM LName$(CapLN), LKind(CapLN) AS BYTE, LDef(CapLN), LNext(CapLN), LHead(LHSIZE)
+    NLUndef = 0
+    REDIM LH1(CapLN), LH2(CapLN), LKind(CapLN) AS BYTE, LDef(CapLN), LNext(CapLN), LHead(LHSIZE)
     REDIM PNm(CapLP), PMod(CapLP), PSg(CapLP) AS BYTE, PLen(CapLP), PFl(CapLP) AS BYTE, PNum(CapLP) AS BYTE
     REDIM PLive(CapLP) AS BYTE, PRef0(CapLP), PRefN(CapLP)
     REDIM MNm$(CapLM), MStat(CapLM), MBase(CapLM), MLive(CapLM) AS BYTE, MBody(CapLM)
-    REDIM RefNm(CapRefs), DWords(CapLD), DOff(CapLD), DLive(CapLD) AS BYTE
+    REDIM DWords(CapLD), DOff(CapLD), DLive(CapLD) AS BYTE
     MemNote "entry"
     s = SegIx("")
     ObjFiles objs$, 1
-    IF LErr = 0 THEN Pass1
-    MemNote "Pass1"
-    IF LErr = 0 THEN MarkAll
+    IF LErr = 0 THEN
+        Pass1
+        MemNote "Pass1"
+        IF LErr = 0 THEN MarkAll
+        CLOSE #CHREF
+    END IF
     IF LErr = 0 THEN Layout
     IF LErr > 0 THEN
+        IF NLUndef > 0 THEN LinkUndef
         SayLn "Link: " + IStr$(LErr) + " error(s): no " + out$
         GOTO done
     END IF
@@ -803,41 +937,7 @@ FUNCTION LinkProg (out$, objs$)
     OPEN out$ FOR OUTPUT AS #CHOUT
     MemNote "open"
     ' block 0: the segment dictionary
-    FOR k = 0 TO 15
-        n = 0
-        FOR s = 1 TO NLSeg
-            IF LSegNum(s) = k AND LSegNum(s) > 0 THEN n = s
-        NEXT s
-        IF n > 0 THEN
-            OutW LSegBlk(n)
-            OutW LSegLen(n)
-        ELSE
-            OutW 0
-            OutW 0
-        END IF
-    NEXT k
-    pn$ = ModOf$(out$)
-    FOR k = 0 TO 15
-        n = 0
-        FOR s = 1 TO NLSeg
-            IF LSegNum(s) = k AND LSegNum(s) > 0 THEN n = s
-        NEXT s
-        IF n = 0 THEN
-            OutW 0
-            OutW 0
-            OutW 0
-            OutW 0
-        ELSE
-            IF k = 1 THEN pn$ = ModOf$(out$) ELSE pn$ = UCASE$(LSeg$(n))
-            pn$ = LEFT$(pn$ + "        ", 8)
-            FOR j = 1 TO 8
-                OutB ASC(pn$, j)
-            NEXT j
-        END IF
-    NEXT k
-    FOR k = 1 TO 512 - 192
-        OutB 0
-    NEXT k
+    WriteHead out$
     ' the segments
     FOR k = 1 TO 15
         FOR s = 1 TO NLSeg
@@ -880,12 +980,14 @@ FUNCTION LinkProg (out$, objs$)
     IF OptMem THEN SayLn "  least free memory: " + IStr$(FRE(-1)) + " words"
     IF LErr = 0 THEN LinkProg = -1
 done:
-    ERASE LName$, LKind, LDef, LNext, LHead, PNm, PMod, PSg, PLen, PFl, PNum, PLive, PRef0, PRefN
-    ERASE MNm$, MStat, MBase, MLive, MBody, RefNm, DWords, DOff, DLive
+    ERASE LH1, LH2, LKind, LDef, LNext, LHead, PNm, PMod, PSg, PLen, PFl, PNum, PLive, PRef0, PRefN
+    ERASE MNm$, MStat, MBase, MLive, MBody, DWords, DOff, DLive
+    IF FileExists(LKTMP$) THEN KILL LKTMP$
 END FUNCTION
 
 ' -J LIB=A,B: the object files one after another (a library); the zero
 ' bytes that fill a file's last block are left out
+SEGMENT JOIN
 FUNCTION JoinLib (out$, objs$)
     DIM f, c, z, i
     LErr = 0
@@ -916,6 +1018,8 @@ FUNCTION JoinLib (out$, objs$)
     CLOSE #CHOUT
     JoinLib = -1
 END FUNCTION
+
+SEGMENT
 
 ' ---- BCLINK, the program: the job's step, L OUT=A,B (link) or J LIB=A,B
 ' (join)

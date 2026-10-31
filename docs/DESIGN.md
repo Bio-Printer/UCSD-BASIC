@@ -350,6 +350,25 @@ the files are read again and its procedures written, their calls and
 operands filled in.  Block 0 (the segment dictionary) is known before the
 first segment is written.
 
+Its memory (Z80 mode: BC's own programs link there too).  A name is its
+two hashes (LH1: 15 bits; LH2: its length and each character times its
+place, mod 27011), not its text: two names with both the same are one,
+which in a program that links is "defined twice" (every name a linked
+program calls is defined), never a wrong call; an undefined name's text
+is found at the end (LinkUndef: the object files read again for it).  The
+names each procedure uses (each once) are not in memory: pass 1 writes
+them to :BCTEMP.LNK (words), and MarkAll reads a procedure's when it is
+linked, each once (PRef0, PRefN: where and how many); the file is removed
+at the end (StepFailed too).  The names' and procedures' tables start at
+600 and 400 (BC's programs need up to 530 and 390: none grown, no holes
+left).  What is done once is in segments of its own -- LKPASS1 (the
+files, pass 1), LKLAY (what is linked, the layout, the startup
+procedure), LKHEAD (block 0), JOIN (-J), MAP (the map, LinkUndef) -- so
+that what is in memory when RTSELDOM opens a file (the library's OPEN, in
+pass 2 for each file and segment) is the least.  Linking BCGEN in Z80
+mode: pass 1 takes 1,800 words (14,000 with the names' strings and the
+references in memory), the least left is 1,072 words.
+
 The startup procedure (segment 1 procedure 1, lex level 0) clears the
 globals, calls _RTINIT, the bodies of the modules (the main program's
 last) and _HALT(0).
@@ -554,14 +573,14 @@ links and runs PI in both.  What makes that fit:
   each that was used ([high: ...]).  When one is full, REDIM PRESERVE makes
   it 100 entries larger (Grown): of BC's sources, the library, the demos
   and the tests only the test DATA's calls need that, once.  BCLINK's
-  tables (names, procedures, modules, references, COMMON variables; its
-  buffer is the largest procedure's size) start small and double when
-  full (LinkGrown) -- they grow far, the references to thousands, and each
-  step leaves the old table's memory behind as a hole too small for the
-  next one.
+  tables (names, procedures, modules, COMMON variables; its buffer is the
+  largest procedure's size; the references are in a file: section 8)
+  start large enough for BC's own programs and double when full
+  (LinkGrown): each step leaves the old table's memory behind as a hole
+  too small for the next one.
 
-Compiling PI, BCGEN has at least 4203 words left in Z80 mode, BCASM 5706
-and BCLINK 2801 (8118, 9621 and 6716 in P-Code mode without the Harvard
+Compiling PI, BCGEN has at least 4356 words left in Z80 mode, BCASM 5706
+and BCLINK 3054 (8271, 9621 and 6969 in P-Code mode without the Harvard
 layout; BCGEN had 1410 and 5330 before BCASM took the code out of it,
 3062 and 6977 before _RTINIT, _KILL and _ERRTEXT went into RTSELDOM, and
 3499 and 7414 before the segments above were placed again).  The
@@ -570,9 +589,8 @@ run-time errors' lines took 390 and 270 of them, the shell's redirections
 ListLine, BCLINK's reading over the line tables (and _RTERR's few more
 bytes, in every program); what finds the line is a program of its own
 (BCDEBUG), what writes the map a segment of BCLINK's own (MAP), and
-_RTWHERE is in RTSELDOM.  BCLINK's tables start at 300 names and 200
-procedures: PI and the library need about 210 and 170, and doubling 200
-and 160 left holes that took 1400 words.  BC's own
+_RTWHERE is in RTSELDOM.  BCLINK's tables start at 600 names and 400
+procedures (section 8).  BC's own
 modules need more than either has, in the symbol table (up to 460
 symbols, 8 words each, and their names' strings) and in their deeper
 statements.  What has been done for BC to compile itself in Z80 mode: the
@@ -586,9 +604,12 @@ the lexer's, put in as their values, never BCGEN's symbols (section 3).
 BCGEN's largest modules are split in two by what their procedures
 use (bcgen.bas and bcstmt.bas, bcexpr.bas and bcexgen.bas: module-level
 names 215 and 132 before, 93 to 138 now).  In Z80 mode every one of BC's
-16 modules now compiles (BCGEN leaves 1,000 words compiling bclex.bas,
-the least, to 3,850); linking BC's programs does not yet: BCLINK runs out of
-memory opening a file (the library's OPEN, RTSELDOM) as it links BC.CODE.  BC does not check the layout; out of memory, it
+16 modules compiles (BCGEN leaves 1,000 words compiling bclex.bas,
+the least, to 3,850), and its eight programs link (BCLINK's names as
+hashes, the references in a file, its phases segments: section 8; it
+leaves 1,072 words linking BCGEN, the least, to 2,373): PSYS_MODE=z80
+VERIFY_HARVARD=0 tools/selfcompile.py says IDENTICAL nine times (in about
+an hour).  BC does not check the layout; out of memory, it
 says Run-time error 7, or the emulator *STK OFLOW*.  (bas2c takes the CSP
 statement as nothing and CSP%() as 0.)
 

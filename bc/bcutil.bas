@@ -311,6 +311,7 @@ SUB StepFailed ()
     IF FileExists(TokName$) THEN KILL TokName$
     IF FileExists(AsmName$) THEN KILL AsmName$
     IF FileExists(ObjName$) THEN KILL ObjName$
+    IF FileExists(":BCTEMP.LNK") THEN KILL ":BCTEMP.LNK"
     PhaseDone 0
 END SUB
 

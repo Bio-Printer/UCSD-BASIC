@@ -24,7 +24,9 @@
   keep a call chain to three statement/expression segments, and what pass
   3 calls often out of RTSELDOM.
 - After a change to the compiler or the library run `tools/runtests.py`,
-  `tools/selfcompile.py` (must say IDENTICAL nine times: BASLIB and the eight programs), `tools/errtest.py` and, for the volume,
+  `tools/selfcompile.py` (must say IDENTICAL nine times: BASLIB and the eight programs;
+  also in Z80 mode, `PSYS_MODE=z80 VERIFY_HARVARD=0`, about an hour, after a
+  change that adds memory), `tools/errtest.py` and, for the volume,
   `tools/voltest.py`, and for memory `tools/smalltest.py` (PI in Z80 mode
   and P-Code mode without the Harvard layout); for the console's line ends
   `tools/crtest.py` (a CR alone, CHR$(13), goes back to the line's start;
@@ -59,8 +61,11 @@
   the map: s=,p=,i= each.  tests/rterr* (rterr4: NOMAP); runtests links
   with -MAP and puts NAME.MAP, BCDEBUG.CODE and the source beside the test;
   chaintest: one in a sub-volume; tools/objdump.py shows the line tables.
-  BCLINK's tables start at 300 names, 200 procedures (doubling from less
-  left holes: smalltest).
+  BCLINK's names are two hashes (an undefined one's text: LinkUndef), the
+  names each procedure uses are in :BCTEMP.LNK (MarkAll reads them), its
+  tables start at 600 names, 400 procedures (BC's programs grow none), and
+  its once-only phases are segments (LKPASS1, LKLAY, LKHEAD, JOIN, MAP):
+  BC's programs link in Z80 mode (DESIGN.md section 8).
 - BC's sources must stay within the part of the language tools/bas2c.py
   translates, and their lines under 250 characters.
 - Keep docs/LANGUAGE.md and docs/DESIGN.md current; they are on the volume.
