@@ -53,7 +53,11 @@
 - Run-time error locations (docs/DESIGN.md sections 5, 8, 9): BCGEN
   writes each procedure's line table into its P record (ListLine; file
   names without volume and path, or selfcompile and voltest differ); BCLINK -MAP writes
-  them into NAME.MAP (segment MAP), never into the code file; _RTERR gives
+  them into NAME.MAP (segment MAP), never into the code file (a link step
+  M, not L: -MAP before it, in a batch file for that file's links only --
+  BUILD's, not DEMOS' and TESTS': TEST holds 77 files, the most a UCSD
+  directory has; the volume has BC's own maps beside its code files:
+  mkself links with -MAP, INSTALL moves BC2.MAP ...); _RTERR gives
   back the heap and calls _RTWHERE (lib/rtwhere.bas, RTSELDOM), which
   follows the frames and runs BCDEBUG (bc/bcdebug.bas: its own small
   pexec, _WRUN, not _CHAIN) with "unit block S#,P#,I# ..."; BCDEBUG finds

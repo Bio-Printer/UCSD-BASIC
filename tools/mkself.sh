@@ -8,5 +8,6 @@ cp bc/*.bas build/self/
 cp build/BASLIB.OBJ build/self/
 cd build/self
 for m in $(python3 ../../tools/bcprogs.py modules); do ../bc -Q -C $m; done
-for pm in $(python3 ../../tools/bcprogs.py); do ../bc -Q -L $pm; done
-for pm in $(python3 ../../tools/bcprogs.py); do cp ${pm%%=*}.CODE ..; done
+for pm in $(python3 ../../tools/bcprogs.py); do ../bc -Q -MAP -L $pm; done
+# (the maps too: on the volume beside the code files, a run-time error in BC says its line)
+for pm in $(python3 ../../tools/bcprogs.py); do cp ${pm%%=*}.CODE ${pm%%=*}.MAP ..; done

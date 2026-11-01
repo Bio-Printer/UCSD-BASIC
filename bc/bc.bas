@@ -28,6 +28,9 @@
 #INCLUDE "BCCOM"
 
 DIM SHARED CmdLine$, CmdPos, Steps$(MAXSTEP), NSteps
+' -MAP: the links after it, in its command line, its batch file and the batch files that
+' one names, write NAME.MAP (their steps M, not L); a batch file's -MAP ends with it
+DIM SHARED MapOn
 
 ' the next word of the command line ("" at its end)
 FUNCTION NextWord$ ()
@@ -59,7 +62,8 @@ END FUNCTION
 
 ' @FILE: each line of FILE.TEXT is a command line
 FUNCTION AddBatch (f$)
-    DIM l$, ok, n, i, lines$(200)
+    DIM l$, ok, n, i, lines$(200), savemap
+    savemap = MapOn
     f$ = WithSuffix$(f$, ".TEXT")
     IF NOT FileExists(f$) THEN
         SayLn "BC: no file " + f$
@@ -83,11 +87,13 @@ FUNCTION AddBatch (f$)
             END IF
         END IF
     NEXT i
+    MapOn = savemap
     AddBatch = ok
 END FUNCTION
 
 ' one command line: its options and names, as steps -- C lst name (a
-' compile), L OUT=A,B (a link), J LIB=A,B (a join); 0 if it has a mistake
+' compile), L OUT=A,B (a link; M OUT=A,B with its map), J LIB=A,B (a join);
+' 0 if it has a mistake
 FUNCTION AddCmds (l$)
     DIM w$, ok, lst, conly, savel$, savep
     savel$ = CmdLine$
@@ -107,9 +113,9 @@ FUNCTION AddCmds (l$)
         ELSEIF w$ = "-M" THEN
             JobFlags = JobFlags OR JFMEM
         ELSEIF w$ = "-MAP" THEN
-            JobFlags = JobFlags OR JFMAP
+            MapOn = 1
         ELSEIF w$ = "-L" THEN
-            ok = AddStep("L " + UCASE$(NextWord$))
+            ok = AddStep(MID$("LM", MapOn + 1, 1) + " " + UCASE$(NextWord$))
         ELSEIF w$ = "-J" THEN
             ok = AddStep("J " + UCASE$(NextWord$))
         ELSEIF LEFT$(w$, 1) = "@" THEN
@@ -119,7 +125,7 @@ FUNCTION AddCmds (l$)
             ok = 0
         ELSE
             ok = AddStep("C " + IStr$(lst) + " " + w$)
-            IF ok AND conly = 0 THEN ok = AddStep("L " + DirOf$(w$) + ModOf$(w$))
+            IF ok AND conly = 0 THEN ok = AddStep(MID$("LM", MapOn + 1, 1) + " " + DirOf$(w$) + ModOf$(w$))
             lst = 0
             conly = 0
         END IF

@@ -8,7 +8,7 @@ test in their sub-volumes, and then PI again with a listing (-S: DEMO/PI.LST,
 the host's listing but for the source's name); then the demos STATS and PI and
 the test PROCS run from there (X(ecute BASIC:/DEMO/STATS).  Then, in the
 shell, @BASIC:INSTALL puts the rebuilt compiler in the old one's place (BC2.CODE
-becomes BC.CODE ...), and that one compiles and links DEMO/HELLO, which runs.
+becomes BC.CODE ..., BC2.MAP BC.MAP: BUILD links with -MAP), and that one compiles and links DEMO/HELLO, which runs.
 The volume's directories are checked on the host afterwards.
 
   voltest.py [--pascal]     (--pascal: BIGGY boots SYSTEM.PASCAL, not SYSTEM.C)
@@ -33,7 +33,7 @@ def main(a):
               'TYPE "X"\nWAIT "Execute what file?"\nTYPE "BASIC:/DEMO/STATS\\r"\nWAIT "Command:"\n'
               'TYPE "X"\nWAIT "Execute what file?"\nTYPE "BASIC:/DEMO/PI\\r"\nWAIT "Command:"\n'
               'TYPE "X"\nWAIT "Execute what file?"\nTYPE "BASIC:/TEST/PROCS\\r"\nWAIT "Command:"\n'
-              'TYPE "S"\nWAIT "> "\nTYPE "@BASIC:INSTALL\\r"\nWAIT "BCDEBUG.CODE"\nWAIT "> "\n'
+              'TYPE "S"\nWAIT "> "\nTYPE "@BASIC:INSTALL\\r"\nWAIT "BCDEBUG.MAP"\nWAIT "> "\n'
               'TYPE "bc -q basic:/demo/hello\\r"\nWAIT "exit status"\nWAIT "> "\n'
               'TYPE "basic:/demo/hello\\r"\nWAIT "exit status"\nWAIT "> "\nTYPE "bye\\r"\nWAIT "Command:"\n')
     ok, tr, info = ps.run_script(script, 3000)
@@ -54,6 +54,17 @@ def main(a):
         except BaseException:
             same = False
         print('%s.CODE: %s' % (p, 'the %s2.CODE BUILD made, the same as the host\'s' % p if same else 'DIFFERENT'))
+        bad += not same
+    # (and each one's map: the host's but for the program's name, PROG2)
+    for p, m in PROGS:
+        host = open(os.path.join(ROOT, 'build', p + '.MAP'), 'rb').read().replace(b'\n', b'\r')
+        try:
+            got = v.read(p + '.MAP')[0].rstrip(b'\0').replace(b'BASIC:' + p.encode() + b'2.CODE', p.encode() + b'.CODE')
+            got = got.replace(b'S# 1 ' + p.encode() + b'2,', b'S# 1 ' + p.encode() + b',')
+            same = got == host and not v.find(p + '2.MAP')
+        except BaseException:
+            same = False
+        print('%s.MAP: %s' % (p, 'the %s2.MAP BUILD made, the host\'s' % p if same else 'DIFFERENT'))
         bad += not same
     try:
         lib2 = v.sub('LIB').read('BASLIB2.OBJ')[0]
@@ -89,8 +100,8 @@ def main(a):
     print('DEMO/PI.LST: %s' % ('the host\'s listing' if same else 'DIFFERENT'))
     bad += not same
     i = tr.find('@BASIC:INSTALL')
-    same = i >= 0 and tr.count('(replaced)', i) == len(PROGS) and 'Hello' in tr[tr.find('basic:/demo/hello', i + 30):]
-    print('@BASIC:INSTALL: %s' % ('the %d moved; BC then made HELLO, which ran' % len(PROGS) if same else 'FAILED'))
+    same = i >= 0 and tr.count('(replaced)', i) == 2 * len(PROGS) and 'Hello' in tr[tr.find('basic:/demo/hello', i + 30):]
+    print('@BASIC:INSTALL: %s' % ('the %d and their maps moved; BC then made HELLO, which ran' % len(PROGS) if same else 'FAILED'))
     bad += not same
     for name, exp in [('STATS', 'std. dev. 4.73840690527945'),
                       ('PI', '  24   100663296  3.141592653589792  3.141592653589794  15 15'),

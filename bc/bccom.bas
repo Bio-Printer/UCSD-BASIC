@@ -74,7 +74,7 @@ COMMON SHARED JobHome$, JobFlags, JobCur$, JobName$, ErrName$
 ' CHAIN to it needs no file opened -- ChainTo)
 COMMON SHARED JobBlk$
 CONST MAXERR = 10
-CONST JFASK = 1, JFQUIET = 2, JFMEM = 4, JFMAP = 8, CHJOB = 13, MAXSTEP = 300
+CONST JFASK = 1, JFQUIET = 2, JFMEM = 4, CHJOB = 13, MAXSTEP = 300
 
 ' ---- the token reader (passes 2 and 3)
 COMMON SHARED Tok, TokS$, TokV, TokLine, TokFile$, TokText$, TokNewLine

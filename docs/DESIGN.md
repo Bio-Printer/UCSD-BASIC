@@ -55,6 +55,10 @@ asks for the next command), the step being done, and the steps after it:
 
     C lst NAME       a compile (lst: 1 with a listing)
     L OUT=A,B        a link (a compile without -C is followed by one)
+    M OUT=A,B        a link with its map, NAME.MAP (-MAP before it: on
+                     the command line, or in the batch file -- its links
+                     and those of the batch files it names, AddBatch
+                     keeping MapOn)
     J LIB=A,B        a join
 
 BC takes the first step off, writes the file and chains to BCLEX (a
@@ -633,17 +637,22 @@ statement as nothing and CSP%() as 0.)
 - tests/chain (NAME.progs: the programs it chains to) and tools/chaintest.py
   (CHAIN from programs the shell started: the shell back with the last
   one's exit status; the shell's path along the chain; --pascal).
-- tools/mkvolume.py makes build/BASIC.BLK (6000 blocks: BUILD writes the
-  eight new code files and its temporary files on the volume itself; the sub-volumes SRC, LIB, DEMO,
+- tools/mkvolume.py makes build/BASIC.BLK (8000 blocks: BUILD writes the
+  eight new code files, their maps and its temporary files on the volume
+  itself; BC.CODE ... with their maps BC.MAP ... beside them, made by the
+  host build, tools/mkself.sh: a run-time error in BC says its line, in
+  Z80 mode too; the sub-volumes SRC, LIB, DEMO,
   TEST with TEST/EXPECT, each made on the host as a volume written into
   the volume as a data file, with room for twice what its batch file
   writes, measured with the host build, and 40 blocks); tools/voltest.py
-  runs @BASIC:ALL and -S BASIC:/DEMO/PI on it (BC2.CODE, LIB/BASLIB2.OBJ and
+  runs @BASIC:ALL and -S BASIC:/DEMO/PI on it (BC2.CODE, BC2.MAP (BUILD's
+  -MAP: its own links only, not the demos' and the tests' -- a UCSD
+  directory holds 77 files, and TEST's would be 78), LIB/BASLIB2.OBJ and
   the listing must be the host's,
   every demo and test gets its code file, the directories must hold
   together) and runs a demo and a test from their sub-volumes; then, in the
-  shell, @BASIC:INSTALL (BIGGY 1.32's batch files) puts BC2.CODE ... in the
-  places of BC.CODE ..., and that compiler makes DEMO/HELLO, which runs;
+  shell, @BASIC:INSTALL (BIGGY 1.32's batch files) puts BC2.CODE ... and
+  BC2.MAP ... in the places of BC.CODE ... and BC.MAP ..., and that compiler makes DEMO/HELLO, which runs;
   --pascal boots BIGGY's SYSTEM.PASCAL instead of SYSTEM.C.
 - tools/brun.py runs a code file; tools/objdump.py shows an object file;
   tools/pdis.py disassembles a code file.

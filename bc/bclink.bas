@@ -976,7 +976,7 @@ FUNCTION LinkProg (out$, objs$)
     CLOSE #CHOUT
     ERASE LBuf, Entry
     IF OptQuiet = 0 THEN SayLn "  globals " + IStr$(GlobWords - 3) + " words"
-    IF JobFlags AND JFMAP THEN WriteMap out$
+    IF LEFT$(JobCur$, 1) = "M" THEN WriteMap out$
     IF OptMem THEN SayLn "  least free memory: " + IStr$(FRE(-1)) + " words"
     IF LErr = 0 THEN LinkProg = -1
 done:
@@ -1051,5 +1051,5 @@ END FUNCTION
 
 DIM ok
 ReadJob
-IF LEFT$(JobCur$, 1) = "L" THEN ok = DoLink(MID$(JobCur$, 3)) ELSE ok = DoJoin(MID$(JobCur$, 3))
+IF LEFT$(JobCur$, 1) = "J" THEN ok = DoJoin(MID$(JobCur$, 3)) ELSE ok = DoLink(MID$(JobCur$, 3))
 PhaseDone ok

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""mkvolume.py -- build/BASIC.BLK: the volume BASIC: (6000 blocks: the BUILD writes the eight new code files on it)
+"""mkvolume.py -- build/BASIC.BLK: the volume BASIC: (8000 blocks: the BUILD writes the eight new code files and their maps on it)
 
     BC.CODE            the compiler: its driver; BCLEX.CODE, BCGEN.CODE, BCLIST.CODE,
                        BCLINK.CODE, BCERR.CODE and BCDEBUG.CODE the programs it chains to (each in
@@ -106,9 +106,13 @@ def host_sizes(srcs, links):
 
 
 def main(out=os.path.join(ROOT, 'build', 'BASIC.BLK')):
-    top = Dir('BASIC', 6000)
+    top = Dir('BASIC', 8000)
     for p, m in PROGS:
         top.binary(p + '.CODE', open(os.path.join(ROOT, 'build', p + '.CODE'), 'rb').read())
+    # (each one's map beside it: a run-time error in BC says its line; the lines end in CR, as
+    # BCLINK writes them on the P-System)
+    for p, m in PROGS:
+        top.binary(p + '.MAP', open(os.path.join(ROOT, 'build', p + '.MAP'), 'rb').read().replace(b'\n', b'\r'))
     top.text('README.TEXT', text(os.path.join(ROOT, 'README.md')))
     top.text('LANGUAGE.TEXT', text(os.path.join(ROOT, 'docs', 'LANGUAGE.md')))
     top.text('DESIGN.TEXT', text(os.path.join(ROOT, 'docs', 'DESIGN.md')))
@@ -118,11 +122,12 @@ def main(out=os.path.join(ROOT, 'build', 'BASIC.BLK')):
     top.text('INSTALL.TEXT', "' the compiler @BASIC:/SRC/BUILD rebuilt in the place of the old one: in the\n"
              "' shell, @BASIC:INSTALL.  Each MOVE deletes the old file and renames the new\n"
              "' one; when the new one is not there it says so and leaves the old one.\n" +
-             ''.join('MOVE BASIC:%s2.CODE BASIC:%s.CODE\n' % (p, p) for p, m in PROGS))
+             ''.join('MOVE BASIC:%s2.CODE BASIC:%s.CODE\nMOVE BASIC:%s2.MAP BASIC:%s.MAP\n' % (p, p, p, p) for p, m in PROGS))
 
     src = top.sub('SRC')
     src.text('BUILD.TEXT', "' the compiler: its modules, linked into its %d programs BASIC:BC2.CODE,\n" % len(PROGS) +
-             "' %s (the first module of each its main one)\n" % ', '.join(p + '2' for p, m in PROGS[1:]) +
+             "' %s (the first module of each its main one), each with its\n" % ', '.join(p + '2' for p, m in PROGS[1:]) +
+             "' map (-MAP, this file's links: a run-time error in BC says its line)\n-MAP\n" +
              ''.join('-C BASIC:/SRC/%s\n' % m for m in MODS) +
              ''.join('-L BASIC:%s2=%s\n' % (p, ','.join('BASIC:/SRC/' + x for x in m)) for p, m in PROGS))
     for f in sorted(glob.glob(os.path.join(ROOT, 'bc', '*.bas'))):

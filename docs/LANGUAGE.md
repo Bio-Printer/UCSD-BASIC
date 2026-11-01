@@ -499,9 +499,11 @@ NAME may be a path into sub-volumes: BASIC:/DEMO/HELLO):
     -J LIB=A,B        join object files into one library LIB.OBJ
     @FILE             the commands in FILE.TEXT
     -Q                fewer messages;  -M  memory use
-    -MAP              with each link, NAME.MAP: each segment's
-                      procedures by number (S#, P#) and their lines
-                      (a run-time error's line: section 12)
+    -MAP              with each link after it, NAME.MAP: each
+                      segment's procedures by number (S#, P#) and
+                      their lines (a run-time error's line: section
+                      12); in a batch file, its links and those of the
+                      batch files it names, not the rest of the job
     (an empty line)   ends BC
 
 Several commands may be given on one line; the first that fails stops
