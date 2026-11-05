@@ -147,10 +147,12 @@ COMMON SHARED LineFile$, PrevLine, PrevText$, PrevFile$
 ' ---- B2IO: the record just read (its kind Rk and operands), the header
 ' read (InHead) and the counts written (OutHead)
 COMMON SHARED Rk, RB1, RB2, RB3, RW1, RW2, RS$, RS2$, RNP, RPT(), RPF()
-COMMON SHARED InHead(), OutHead(), OutPos, InPend, InPendK
+' (OutPos counts the bytes written, modulo 65536; OutBlk, OutOff: where
+' the next one goes, a block of 512 and the byte in it -- for SEEK)
+COMMON SHARED InHead(), OutHead(), OutPos, OutBlk, OutOff, InPend, InPendK
 ' the procedure being copied: CBEGIN's fields (CBxxx)
 COMMON SHARED CbKind, CbPw, CbRw, CbResOff, CbResTy, CbMark, CbLocal, CbLab
-COMMON SHARED CbZero, CbFlags, CbName$, CbSeg$, CbPos, InProc
+COMMON SHARED CbZero, CbFlags, CbName$, CbSeg$, CbBlk, CbOff, InProc
 ' the bytes of code being collected for a CBYTES record
 COMMON SHARED OutBuf() AS BYTE, NOutBuf, InBuf() AS BYTE, TempUsed, NGrown
 

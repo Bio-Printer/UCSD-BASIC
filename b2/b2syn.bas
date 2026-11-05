@@ -424,7 +424,7 @@ END SUB
 ' CASE item, ...: RSTMT KCASE, each item a condition on RSEL (RX XCOND
 ' ... RXE), commas between; CASE ELSE: RSTMT SCASEELSE
 SUB SCase ()
-    DIM op, p
+    DIM op, p, pb
     IF NBk > 0 THEN
         IF BkKind(NBk) <> KSELECT THEN
             ErrRec 82, 0, KCASE, ""   ' {t} without its block
@@ -445,7 +445,8 @@ SUB SCase ()
     DO
         ' (MLAST, made MMORE when a comma comes after the item)
         WB RMARK
-        p = OutPos
+        pb = OutBlk
+        p = OutOff
         WB MLAST
         WB RX
         WB XCOND
@@ -489,10 +490,7 @@ SUB SCase ()
         END IF
         WB RXE
         IF Tok <> TCOMMA THEN EXIT DO
-        SEEK #CHOUT, p + 1
-        WB MMORE
-        OutPos = OutPos - 1
-        SEEK #CHOUT, OutPos + 1
+        OutPatch pb, p, MMORE
         GetTok
     LOOP
 END SUB

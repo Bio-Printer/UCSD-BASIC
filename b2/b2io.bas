@@ -175,6 +175,8 @@ SUB OutOpen (n$)
     IF FileExists(n$) THEN KILL n$
     OPEN n$ FOR BINARY AS #CHOUT
     OutPos = 0
+    OutBlk = 0
+    OutOff = 0
     NOutBuf = 0
     FOR i = 0 TO WHWORDS - 1
         WW 0
@@ -201,18 +203,42 @@ SUB WB (v)
     DIM b AS BYTE
     b = v AND 255
     PUT #CHOUT, , b
-    OutPos = OutPos + 1
+    OutAdv 1
 END SUB
 
 SUB WW (w)
     PUT #CHOUT, , w
-    OutPos = OutPos + 2
+    OutAdv 2
 END SUB
 
 SUB WS (s$)
     WB LEN(s$)
     IF LEN(s$) > 0 THEN PUT #CHOUT, , s$
-    OutPos = OutPos + LEN(s$)
+    OutAdv LEN(s$)
+END SUB
+
+' n more bytes written
+SUB OutAdv (n)
+    OutPos = OutPos + n
+    OutOff = OutOff + n
+    IF OutOff >= 512 THEN
+        OutOff = OutOff - 512
+        OutBlk = OutBlk + 1
+    END IF
+END SUB
+
+' the next PUT at byte off of block blk (from 0)
+SUB OutSeek (blk, off)
+    SEEK #CHOUT, blk * 512# + off + 1
+END SUB
+
+' a byte written again, at block blk's byte off (the end stays where it is)
+SUB OutPatch (blk, off, v)
+    DIM b AS BYTE
+    b = v AND 255
+    OutSeek blk, off
+    PUT #CHOUT, , b
+    OutSeek OutBlk, OutOff
 END SUB
 
 ' the code bytes collected: a CBYTES record
@@ -271,7 +297,8 @@ END SUB
 ' its CEND with what was added)
 SUB WBegin ()
     WRec CBEGIN
-    CbPos = OutPos
+    CbBlk = OutBlk
+    CbOff = OutOff
     WW CbKind
     WW CbPw
     WW CbRw
@@ -295,15 +322,21 @@ END SUB
 
 ' ... its end (line, file, text: where, for an error B2ASM finds)
 SUB WEndProc (l, f$, t$)
-    DIM e
+    DIM b, o
     OB1Flush
     IF CbLocal <> Cb0Local OR CbLab <> Cb0Lab OR CbZero <> Cb0Zero THEN
-        e = OutPos
-        SEEK #CHOUT, CbPos + 13
+        ' (CBEGIN's 7th, 8th and 9th words)
+        b = CbBlk
+        o = CbOff + 12
+        IF o >= 512 THEN
+            o = o - 512
+            b = b + 1
+        END IF
+        OutSeek b, o
         PUT #CHOUT, , CbLocal
         PUT #CHOUT, , CbLab
         PUT #CHOUT, , CbZero
-        SEEK #CHOUT, e + 1
+        OutSeek OutBlk, OutOff
     END IF
     WRec CEND
     WW l
