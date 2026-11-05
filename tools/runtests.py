@@ -10,7 +10,7 @@ line says NOMAP): a run-time error says its line.
 
   runtests.py [NAME ...]        (-v: show the differences)
   runtests.py --b2 [NAME ...]   the same, compiled by B2 (build/b2/b2, build/BASLIB2.OBJ
-                                if there is one, else BC's build/BASLIB.OBJ)
+                                if there is one, else BC's build/BASLIB.OBJ; build/B2DEBUG.CODE)
 """
 import difflib, glob, os, shutil, subprocess, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -20,6 +20,7 @@ import brun
 
 COMPILER = os.path.join(ROOT, 'build', 'bc')
 LIBRARY = os.path.join(ROOT, 'build', 'BASLIB.OBJ')
+DEBUGGER = os.path.join(ROOT, 'build', 'BCDEBUG.CODE')
 
 
 def compile_host(src, work, extra=()):
@@ -54,7 +55,7 @@ def run_test(name, verbose=False):
             print('FAIL  %s (compile %s)\n%s%s' % (name, p, r.stdout, r.stderr))
             return False
         files.append(os.path.join(work, b + '.CODE'))
-    files.append(os.path.join(ROOT, 'build', 'BCDEBUG.CODE'))   # (a run-time error chains to it)
+    files.append(DEBUGGER)   # (a run-time error chains to it)
     mp = os.path.join(work, base + '.MAP')
     if os.path.exists(mp):
         # (the map's lines end in CR on the P-System)
@@ -80,10 +81,11 @@ def run_test(name, verbose=False):
 
 
 def main(a):
-    global COMPILER, LIBRARY
+    global COMPILER, LIBRARY, DEBUGGER
     verbose = '-v' in a
     if '--b2' in a:
         COMPILER = os.path.join(ROOT, 'build', 'b2', 'b2')
+        DEBUGGER = os.path.join(ROOT, 'build', 'B2DEBUG.CODE')
         if os.path.exists(os.path.join(ROOT, 'build', 'BASLIB2.OBJ')):
             LIBRARY = os.path.join(ROOT, 'build', 'BASLIB2.OBJ')
     a = [x for x in a if x not in ('-v', '--b2')]

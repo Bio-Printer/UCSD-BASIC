@@ -150,6 +150,11 @@ FUNCTION MsgC$ (n)
     CASE 117: t$ = "procedure too large (more than 60 long jumps): split it"
     CASE 118: t$ = "| needs INTEGERs or BYTEs"
     CASE 119: t$ = "{s} is used before its CONST"
+    CASE 120: t$ = "a name expected after {s}"
+    CASE 121: t$ = "#IFDEF nested more than 8 deep"
+    CASE 122: t$ = "{s} without #IFDEF"
+    CASE 123: t$ = "#ELSE twice"
+    CASE 124: t$ = "#ENDIF expected"
     END SELECT
     MsgC$ = t$
 END FUNCTION

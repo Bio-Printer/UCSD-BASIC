@@ -1,4 +1,5 @@
-' BCLEX -- pass 1: the source (and its #INCLUDE files) into tokens
+' BCLEX -- pass 1: the source (and its #INCLUDE files) into tokens (#DEFINE,
+' #IFDEF, #IFNDEF, #ELSE, #ENDIF too: LexDirective; BC is #DEFINEd)
 '
 ' Comments (' and REM) are dropped.  Each source line with tokens starts
 ' with TLINE: its number and its text (for messages and the listing);
@@ -50,6 +51,10 @@ DIM SHARED LxProc, LxNProc, LxProcName, LxLead, LxParen, LxStmtTok, LxDecl
 DIM SHARED LxGlob, LxParams, LxLoc, LxCode, LxStrB, LxCtl, LxHdrPar, LxMaxPar
 DIM SHARED LxMaxLoc, LxMaxCode, LxMaxCtl, LxMaxStmt, LxBodyCode, LxBodyStrB, LxBodyCtl
 DIM SHARED LxLines, LxMaxLines, LxBodyLines
+' #DEFINE, #IFDEF ... (LexDirective): the names defined (" A B "), the #IFDEFs open
+' (PpN), each one's lines compiled or not (PpOn), the lines of the one outside it
+' compiled (PpAct: 1 for none), #ELSE seen (PpElse)
+DIM SHARED PpDefs$, PpN, PpOn(8), PpAct(8), PpElse(8)
 
 ' n more bytes in the token file
 SUB LxAdv (n)
@@ -928,12 +933,70 @@ SUB LexTokens ()
     END IF
 END SUB
 
+' (a segment of its own: a directive's line is seldom)
+SEGMENT LXDIR
+' #DEFINE NAME, #UNDEF NAME, #IFDEF NAME, #IFNDEF NAME, #ELSE, #ENDIF: -1
+' (done), 0 if t$ is not one of them
+FUNCTION LexDirective (t$)
+    DIM w$, n$, p, ison
+    p = INSTR(t$ + " ", " ")
+    w$ = UCASE$(LEFT$(t$, p - 1))
+    n$ = UCASE$(LTRIM$(MID$(t$, p)))
+    p = INSTR(n$ + " ", " ")
+    n$ = LEFT$(n$, p - 1)
+    SELECT CASE w$
+    CASE "#DEFINE", "#UNDEF"
+        IF PpAct(PpN) = 0 THEN
+        ELSEIF n$ = "" THEN
+            LexErr 120, w$   ' a name expected after {s}
+        ELSE
+            p = INSTR(PpDefs$, " " + n$ + " ")
+            IF p > 0 THEN PpDefs$ = LEFT$(PpDefs$, p) + MID$(PpDefs$, p + LEN(n$) + 2)
+            IF w$ = "#DEFINE" THEN PpDefs$ = PpDefs$ + n$ + " "
+        END IF
+    CASE "#IFDEF", "#IFNDEF"
+        IF n$ = "" AND PpAct(PpN) THEN LexErr 120, w$   ' a name expected after {s}
+        ison = INSTR(PpDefs$, " " + n$ + " ") > 0
+        IF w$ = "#IFNDEF" THEN ison = NOT ison
+        IF PpN >= 8 THEN
+            LexErr 121, ""   ' #IFDEF nested more than 8 deep
+        ELSE
+            PpN = PpN + 1
+            PpOn(PpN) = ison
+            PpElse(PpN) = 0
+            IF PpAct(PpN - 1) AND ison THEN PpAct(PpN) = 1 ELSE PpAct(PpN) = 0
+        END IF
+    CASE "#ELSE"
+        IF PpN = 0 THEN
+            LexErr 122, w$   ' {s} without #IFDEF
+        ELSEIF PpElse(PpN) THEN
+            LexErr 123, ""   ' #ELSE twice
+        ELSE
+            PpElse(PpN) = 1
+            PpOn(PpN) = NOT PpOn(PpN)
+            IF PpAct(PpN - 1) AND PpOn(PpN) THEN PpAct(PpN) = 1 ELSE PpAct(PpN) = 0
+        END IF
+    CASE "#ENDIF"
+        IF PpN = 0 THEN LexErr 122, w$ ELSE PpN = PpN - 1   ' {s} without #IFDEF
+    CASE ELSE
+        EXIT FUNCTION
+    END SELECT
+    LexDirective = -1
+END FUNCTION
+
+SEGMENT
+
 ' one logical line
 SUB LexLine (l$)
     DIM e, t$, q, f$
     e = CommentAt(l$)
     t$ = RTRIM$(LTRIM$(LEFT$(l$, e - 1)))
     IF t$ = "" THEN EXIT SUB
+    IF LEFT$(t$, 1) = "#" THEN
+        IF LexDirective(t$) THEN EXIT SUB
+    END IF
+    ' (the lines of an #IFDEF ... not compiled)
+    IF PpAct(PpN) = 0 THEN EXIT SUB
     IF UCASE$(LEFT$(t$, 8)) = "#INCLUDE" THEN
         q = INSTR(t$, CHR$(34))
         f$ = ""
@@ -1030,7 +1093,12 @@ SUB LexFile (f$)
     CnCap = 384
     REDIM CnTy(CnCap) AS BYTE, CnVal(CnCap), CnTxt$(CnCap)
     LxDepth = 0
+    ' (#DEFINE, #IFDEF ...: BC is defined)
+    PpDefs$ = " BC "
+    PpN = 0
+    PpAct(0) = 1
     LexLines f$, CHSRC
+    IF PpN > 0 THEN LexErr 124, ""   ' #ENDIF expected
     TB TEOF
     ProcMark 0
     IF LxStmtTok > LxMaxStmt THEN LxMaxStmt = LxStmtTok

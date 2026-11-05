@@ -12,6 +12,12 @@
 DECLARE FUNCTION _XOR (a, b)
 
 CONST PXRUN = 25601, PXCHILD = 25602, PXARGS = 25604
+' the program that says where: B2's (B2 compiles this, B2 is #DEFINEd) or BC's
+#IFDEF B2
+CONST DEBUGCODE = "B2DEBUG.CODE", DEBUGVOL = "BASIC2:"
+#ELSE
+CONST DEBUGCODE = "BCDEBUG.CODE", DEBUGVOL = "BASIC:"
+#ENDIF
 
 SEGMENT RTSELDOM
 
@@ -73,7 +79,8 @@ SUB _RTWHERE (f)
         _WCAT b, c
         f = PEEK(f + 2)
     LOOP
-    ' BCDEBUG: beside the program, on the prefix, the boot disk, BASIC:
+    ' BCDEBUG (B2DEBUG): beside the program, on the prefix, the boot disk,
+    ' BASIC: (BASIC2:)
     _WCAT a, b
     FOR k = 1 TO 4
         POKEB c, 0
@@ -85,9 +92,9 @@ SUB _RTWHERE (f)
         CASE 3
             _WCAT c, SADD("*")
         CASE 4
-            _WCAT c, SADD("BASIC:")
+            _WCAT c, SADD(DEBUGVOL)
         END SELECT
-        _WCAT c, SADD("BCDEBUG.CODE")
+        _WCAT c, SADD(DEBUGCODE)
         _WRUN c, a
     NEXT k
     ' (no BCDEBUG) each frame's numbers: s=S#,p=P#,i=I#, the innermost first
