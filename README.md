@@ -1,5 +1,11 @@
 # UCSD-BASIC: a BASIC compiler for the UCSD Pascal II.0 P-System, written in BASIC
 
+> **The Rewrite branch** also has **B2**, the second compiler (`b2/`,
+> [docs/B2DESIGN.md](docs/B2DESIGN.md), [docs/README2.md](docs/README2.md)): the same
+> language plus `#DEFINE`/`#IFDEF`/`#IFNDEF`/`#ELSE`/`#ENDIF`, compiled in many small
+> passes (each a program of its own) through intermediate files, so that memory is never
+> tight.  Its volume is BASIC2: (`tools/mkvolume2.py`), its programs B2*.CODE.
+
 BC compiles a modern BASIC (SUB and FUNCTION, optional line numbers, INTEGER /
 BYTE / SINGLE / DOUBLE / STRING, multi-dimensional arrays from element 0,
 block IF, SELECT CASE, DO/LOOP, WHILE, FOR (30 deep), GOSUB (50 deep), DATA,

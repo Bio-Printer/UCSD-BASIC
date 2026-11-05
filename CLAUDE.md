@@ -132,3 +132,29 @@
   tests/chain (+ chain.progs) and tools/chaintest.py (from the shell; also
   --pascal).  bas2c translates CHAIN (hostrt.h b_chain: execv of the host
   program of that name beside the running one), PEEK and OSVAR (0).
+
+# B2 (the Rewrite branch: b2/, docs/B2DESIGN.md)
+
+- B2 is BC's language in many passes, each a program (tools/b2progs.py: B2, B2LEX, B2CONST,
+  B2SYN, B2DECL, B2NAME, B2EXPR, B2CTL, B2STMT, B2ASM, B2LIST, B2LINK, B2ERR, B2DEBUG).  The
+  passes read and write intermediate files of records (b2com.bas, b2rec.bas: the kinds and
+  each one's operands; B2IO's NextRec / PutRec, the writer's counts in the header).  A new
+  record kind: its operands in NextRec and PutRec (b2io.bas) and in tools/b2dump.py.
+- Build and check: `tools/buildb2.sh` (host: build/b2/), `tools/mklib2.sh` (build/BASLIB2.OBJ),
+  `tools/mkself2.sh` (build/B2*.CODE and maps), then `tools/runtests.py --b2`,
+  `tools/b2self.py` (IDENTICAL 15 times; `PSYS_MODE=z80 VERIFY_HARVARD=0` for Z80 mode, -m
+  for each pass's memory), `tools/crossb2.py` (BC compiled by B2 builds BC identically),
+  `tools/errtest.py --b2` (NAME.expect2 where B2 says other errors),
+  `tools/mkvolume2.py` + `tools/voltest2.py` (BASIC2.BLK; UCSD-Pascal-Volumes gets it too).
+- B2's modules are OPTION EXPLICIT (b2com.bas): every local is DIMmed, every global a COMMON
+  or DIM SHARED, every constant in an include.  A module includes only the includes it uses
+  (B2REC records, B2OPS opcodes, B2SYM symbols, B2NODE nodes, B2BUILT built-ins): each CONST
+  costs the lexer a name.  Procedure names are unique across all of b2/ (mkdecls makes one
+  B2PROCS of every one called from another module), and none is a keyword (WEnd ...) or the
+  name of a COMMON array (SNext ...).
+- No pass loads RTSELDOM in its middle (OPEN, KILL, PassFile$, ReadJob, CompileFailed are
+  RTSELDOM's): names at the start, a second reading with InRewind (SEEK), KILL at the end
+  after ERASE of the tables.  The Z80 mode is where that shows.
+- Positions in an intermediate file are a block and a byte (OutBlk, OutOff): a file passes
+  32K bytes (an INTEGER's).  CBEGIN's counts are written again at CEND (WEndProc).
+- B2 #DEFINEs B2 (BC defines BC): lib/rtwhere.bas chooses B2DEBUG / BCDEBUG with #IFDEF B2.
