@@ -1,0 +1,11 @@
+ERR6.BAS line 4: a label expected
+  GOSUB
+ERR6.BAS line 5: CASE expected, not a name
+  SELECT a
+ERR6.BAS line 6: a comparison expected after IS
+  CASE IS
+ERR6.BAS line 9: INPUT, OUTPUT, APPEND, BINARY or RANDOM expected
+  OPEN "F" FOR READING AS #1
+ERR6.BAS line 10: PRINT USING is not supported
+  PRINT USING "#"; a
+5 error(s): no ERR6.OBJ

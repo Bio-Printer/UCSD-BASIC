@@ -1,0 +1,9 @@
+ERR4.BAS line 6: END IF without its block
+  END IF
+ERR4.BAS line 7: WEND without its block
+  WEND
+ERR4.BAS line 8: LOOP without its block
+  LOOP
+ERR4.BAS line 10: END SUB expected
+  END FUNCTION
+4 error(s): no ERR4.OBJ

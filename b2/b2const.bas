@@ -564,9 +564,9 @@ SUB LxIdent (w$, first)
 END SUB
 
 
-' an error at the line being read
+' an error at the line being read (at a TLINE: the line before, which a
+' CONST statement it ends was on -- ErrRec)
 SUB LexErr (n, s$)
-    Tok = 0
     ErrRec n, 0, 0, s$
 END SUB
 

@@ -6,6 +6,8 @@
 ' B2SYM the symbol table, B2NODE the expression nodes.
 ' (docs/B2DESIGN.md)
 DEFINT A-Z
+' (every name declared: a mistyped one is an error, not a new variable)
+OPTION EXPLICIT
 
 ' ---- limits
 CONST MAXSYM = 640, HSIZE = 128, MAXPAR = 600, MAXNODE = 160
@@ -46,6 +48,8 @@ CONST TEQ = 100, TNE = 101, TLT = 102, TGT = 103, TLE = 104, TGE = 105
 CONST TPLUS = 106, TMINUS = 107, TMUL = 108, TDIV = 109, TIDIV = 110
 CONST TPOW = 111, TLPAR = 112, TRPAR = 113, TCOMMA = 114, TSEMI = 115
 CONST THASH = 116, TAMP = 117, TCOLON = 118, TBAR = 119
+' (in messages: TMEND + KIF is END IF ...)
+CONST TMEND = 200
 ' (B2NAME's: ANDALSO and ORELSE, which the lexer leaves names)
 CONST TANDALSO = 120, TORELSE = 121
 

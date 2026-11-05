@@ -960,10 +960,10 @@ SUB SEnd ()
     SELECT CASE Tok
     CASE KIF
         GetTok
-        IF PopBk(KIF, KEND) THEN Stm SENDIF
+        IF PopBk(KIF, TMEND + KIF) THEN Stm SENDIF
     CASE KSELECT
         GetTok
-        IF PopBk(KSELECT, KEND) THEN Stm SENDSEL
+        IF PopBk(KSELECT, TMEND + KSELECT) THEN Stm SENDSEL
     CASE KSUB, KFUNCTION
         ' (the procedure open is ended, whatever its kind)
         k = Tok
@@ -971,7 +971,7 @@ SUB SEnd ()
         p = FindBk(KSUB)
         IF FindBk(KFUNCTION) > p THEN p = FindBk(KFUNCTION)
         IF p = 0 THEN
-            ErrRec 82, 0, KEND, ""   ' {t} without its block
+            ErrRec 82, 0, TMEND + k, ""   ' {t} without its block
         ELSE
             DO WHILE NBk > p
                 BkMissing BkKind(NBk)

@@ -1,0 +1,9 @@
+ERR2.BAS line 9: DIM SHARED inside a procedure
+  DIM SHARED z
+ERR2.BAS line 12: a SUB or FUNCTION inside a procedure (END SUB missing?)
+  SUB inner
+ERR2.BAS line 12: END SUB expected
+  SUB inner
+ERR2.BAS line 34: only ON ERROR GOTO 0 and ON ERROR RESUME NEXT
+  ON ERROR GOTO lab
+4 error(s): no ERR2.OBJ

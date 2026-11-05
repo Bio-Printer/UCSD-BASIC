@@ -9,6 +9,7 @@
 ' by name (the linker fills in the numbers).  (After, not during, pass 3:
 ' the GEN segment and this one do not fit into the code space together.)
 #INCLUDE "B2COM"
+#INCLUDE "B2OPS"
 
 CONST MAXCODE = 4000, MAXREL = 400
 ' a procedure's code and its relocations (B2ASM's, read back)
