@@ -7,13 +7,13 @@ FUNCTION _SUBSTR (s, st, n)
     DIM t
     IF n <= 0 THEN EXIT FUNCTION
     t = _TALLOC(n)
-    CSP 2, s + st, 0, t + 1, 0, n
+    CSP 2, _SDAT(s) + st, 0, _SDAT(t) + 1, 0, n
     _SUBSTR = t
 END FUNCTION
 
 FUNCTION _ASC (s, p)
     IF p < 1 OR p > _SLEN(s) THEN EXIT FUNCTION
-    _ASC = PEEKB(s + p)
+    _ASC = PEEKB(_SDAT(s) + p)
 END FUNCTION
 
 FUNCTION _CHR (c)
@@ -49,7 +49,7 @@ FUNCTION _RIGHT (s, n)
 END FUNCTION
 
 FUNCTION _INSTR (st, a, b)
-    DIM la, lb, i, j, ok
+    DIM la, lb, i, j, ok, da, db
     IF st < 1 THEN _RTERR 5
     la = _SLEN(a)
     lb = _SLEN(b)
@@ -61,10 +61,12 @@ FUNCTION _INSTR (st, a, b)
         _INSTR = st
         EXIT FUNCTION
     END IF
+    da = _SDAT(a)
+    db = _SDAT(b)
     FOR i = st - 1 TO la - lb
         ok = -1
         FOR j = 1 TO lb
-            IF PEEKB(a + i + j) <> PEEKB(b + j) THEN
+            IF PEEKB(da + i + j) <> PEEKB(db + j) THEN
                 ok = 0
                 EXIT FOR
             END IF
@@ -78,15 +80,16 @@ END FUNCTION
 
 ' upper (up = 1) or lower case
 FUNCTION _CASE (s, up)
-    DIM t, i, c, n
+    DIM t, i, c, n, d
     n = _SLEN(s)
     t = _SUBSTR(s, 1, n)
+    d = _SDAT(t)
     FOR i = 1 TO n
-        c = PEEKB(t + i)
+        c = PEEKB(d + i)
         IF up THEN
-            IF c >= 97 AND c <= 122 THEN POKEB t + i, c - 32
+            IF c >= 97 AND c <= 122 THEN POKEB d + i, c - 32
         ELSE
-            IF c >= 65 AND c <= 90 THEN POKEB t + i, c + 32
+            IF c >= 65 AND c <= 90 THEN POKEB d + i, c + 32
         END IF
     NEXT i
     _CASE = t
@@ -101,21 +104,23 @@ FUNCTION _LCASE (s)
 END FUNCTION
 
 FUNCTION _LTRIM (s)
-    DIM i, n
+    DIM i, n, d
     n = _SLEN(s)
+    d = _SDAT(s)
     i = 1
     DO WHILE i <= n
-        IF PEEKB(s + i) <> 32 THEN EXIT DO
+        IF PEEKB(d + i) <> 32 THEN EXIT DO
         i = i + 1
     LOOP
     _LTRIM = _SUBSTR(s, i, n - i + 1)
 END FUNCTION
 
 FUNCTION _RTRIM (s)
-    DIM n
+    DIM n, d
     n = _SLEN(s)
+    d = _SDAT(s)
     DO WHILE n > 0
-        IF PEEKB(s + n) <> 32 THEN EXIT DO
+        IF PEEKB(d + n) <> 32 THEN EXIT DO
         n = n - 1
     LOOP
     _RTRIM = _SUBSTR(s, 1, n)
@@ -130,7 +135,7 @@ FUNCTION _STRNG (n, c)
     IF n < 0 THEN _RTERR 5
     IF n = 0 THEN EXIT FUNCTION
     t = _TALLOC(n)
-    CSP 10, t + 1, 0, n, c AND 255
+    CSP 10, _SDAT(t) + 1, 0, n, c AND 255
     _STRNG = t
 END FUNCTION
 
@@ -160,7 +165,7 @@ END FUNCTION
 
 ' MID$(s$, st, n) = v$: in the variable's own block
 SUB _MIDSET (slot, st, n, v)
-    DIM s, l, lv, i
+    DIM s, l
     s = PEEK(slot)
     l = _SLEN(s)
     IF st < 1 OR st > l THEN _RTERR 5
@@ -170,10 +175,25 @@ SUB _MIDSET (slot, st, n, v)
         _SASG slot, s
         s = PEEK(slot)
     END IF
+    _MIDPUT s, st, n, v
+END SUB
+
+' MID$(a(i), st, n) = v$: an element of a LENGTH array (the string is there)
+SUB _MIDSETI (s, st, n, v)
+    IF st < 1 OR st > _SLEN(s) THEN _RTERR 5
+    _MIDPUT s, st, n, v
+END SUB
+
+' v's characters into s from character st, n at most, not past s's end
+SUB _MIDPUT (s, st, n, v)
+    DIM l, lv, i, d, dv
+    l = _SLEN(s)
     lv = _SLEN(v)
+    d = _SDAT(s)
+    dv = _SDAT(v)
     FOR i = 0 TO n - 1
         IF i >= lv OR st + i > l THEN EXIT FOR
-        POKEB s + st + i, PEEKB(v + 1 + i)
+        POKEB d + st + i, PEEKB(dv + 1 + i)
     NEXT i
 END SUB
 
@@ -185,6 +205,19 @@ SUB _SWAP (a, b, n)
         POKEB a + i, PEEKB(b + i)
         POKEB b + i, t
     NEXT i
+END SUB
+
+' SWAP of two strings of any kinds (_SGET, _SPUT: LENGTH strings, their
+' arrays' elements)
+SUB _SSWAPK (a, ka, b, kb)
+    DIM t
+    IF ka = 0 AND kb = 0 THEN
+        _SSWAP a, b
+        EXIT SUB
+    END IF
+    t = _STMP(_SGET(a, ka))
+    _SPUT a, ka, _SGET(b, kb)
+    _SPUT b, kb, t
 END SUB
 
 SUB _SSWAP (a, b)
@@ -226,7 +259,7 @@ SUB _CVN (s, addr, n)
     CSP 10, addr, 0, n, 0
     l = _SLEN(s)
     IF l > n THEN l = n
-    IF l > 0 THEN CSP 2, s + 1, 0, addr, 0, l
+    IF l > 0 THEN CSP 2, _SDAT(s) + 1, 0, addr, 0, l
 END SUB
 
 FUNCTION _CVI (s)

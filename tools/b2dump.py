@@ -120,15 +120,15 @@ def dump(path, raw=False):
         elif k == C['RSEL']:
             line.append('SEL')
         elif k == C['RVAR']:
-            kind, ty, cl, off, nd, nm = r.B(), r.B(), r.B(), r.W(), r.B(), r.S()
-            line.append('%s%s[%s %s %d%s]' % (nm, '()' if kind == 2 else '', TY.get(ty), CLS.get(cl, cl), off,
-                                             ' %dD' % nd if kind == 2 else ''))
+            kind, ty, cl, off, nd, nm, ln = r.B(), r.B(), r.B(), r.W(), r.B(), r.S(), r.W()
+            line.append('%s%s[%s %s %d%s%s]' % (nm, '()' if kind == 2 else '', TY.get(ty), CLS.get(cl, cl), off,
+                                               ' %dD' % nd if kind == 2 else '', ' LENGTH %d' % ln if ln else ''))
         elif k == C['RPROC']:
             ty, kind, nm, np = r.B(), r.B(), r.S(), r.B()
-            ps = [(r.B(), r.B()) for _ in range(np)]
+            ps = [(r.B(), r.B(), r.W()) for _ in range(np)]
             txt = r.S()
-            line.append('%s=call %s(%s)%s' % (txt, nm, ','.join(TY[t] + ('&' if f & 1 else '') + ('()' if f & 2 else '')
-                                                                for t, f in ps), ':' + TY[ty] if kind == 5 else ''))
+            line.append('%s=call %s(%s)%s' % (txt, nm, ','.join(TY[t] + ('&' if f & 1 else '') + ('()' if f & 2 else '') + ('*%d' % l if l else '')
+                                                                for t, f, l in ps), ':' + TY[ty] if kind == 5 else ''))
         elif k == C['RBUILT']:
             i = r.B()
             line.append('%s=built%d' % (r.S(), i))
@@ -141,8 +141,8 @@ def dump(path, raw=False):
         elif k == C['RXCE']:
             line.append('}' + (' (temps)' if r.B() & 1 else ''))
         elif k == C['RLVC']:
-            ty, fl = r.B(), r.B()
-            line.append('<target %s:' % TY.get(ty))
+            ty, fl, kd = r.B(), r.B(), r.W()
+            line.append('<target %s%s:' % (TY.get(ty), ' kind %d' % kd if kd else ''))
         elif k == C['RLVL']:
             line.append('| load:')
         elif k == C['RLVS']:

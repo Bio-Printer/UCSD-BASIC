@@ -88,6 +88,13 @@ FUNCTION _LINPUT (ch, prompt)
 END FUNCTION
 
 DECLARE FUNCTION _FLINE (ch)
+DECLARE FUNCTION _FLINEN (ch, max)
+
+' LINE INPUT into a LENGTH string of max characters: from a file up to
+' max (the console's line is 255 at most)
+FUNCTION _LINPUTN (ch, prompt, max)
+    IF ch <> 0 THEN _LINPUTN = _FLINEN(ch, max) ELSE _LINPUTN = _LINPUT(ch, prompt)
+END FUNCTION
 
 ' INPUT: the line, then each variable takes the next field
 SUB _INPUT (ch, prompt, qm)

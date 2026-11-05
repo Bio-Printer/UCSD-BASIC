@@ -64,6 +64,7 @@ END SUB
 FUNCTION _VAL! (s)
     DIM b, n, i, c, j, r!, v, d, k
     n = _SLEN(s)
+    s = _SDAT(s)
     i = 1
     DO WHILE i <= n
         IF PEEKB(s + i) <> 32 THEN EXIT DO

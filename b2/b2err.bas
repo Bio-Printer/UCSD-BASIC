@@ -155,6 +155,9 @@ FUNCTION MsgC$ (n)
     CASE 122: t$ = "{s} without #IFDEF"
     CASE 123: t$ = "#ELSE twice"
     CASE 124: t$ = "#ENDIF expected"
+    CASE 125: t$ = "LENGTH: a string's only"
+    CASE 126: t$ = "LENGTH: a number from 1 to 32000 expected"
+    CASE 127: t$ = "argument {a} of {s}: an array of another LENGTH"
     END SELECT
     MsgC$ = t$
 END FUNCTION

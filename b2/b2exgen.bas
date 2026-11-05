@@ -23,6 +23,7 @@ FUNCTION TempFor (ty)
     SType(s) = ty
     SCls(s) = SCLOCAL
     SOff(s) = NewLocal(TypeWords(ty))
+    SLen(s) = 0
     CbZero = 1
     IF ty = TYSTR THEN
         WRec CFREE
@@ -171,6 +172,16 @@ SUB GenAddr (n)
 END SUB
 
 SEGMENT
+' a string target's kind (the library's _SGET, _SPUT): 0 BASIC's, n a
+' LENGTH n variable's slot, -n an element of a LENGTH n array (the string
+' is in the array: its address is the string's)
+FUNCTION SKindOf (n)
+    DIM s
+    s = NV(n)
+    IF SType(s) <> TYSTR THEN EXIT FUNCTION
+    IF NOp(n) = NELEM THEN SKindOf = -SLen(s) ELSE IF SKind(s) = SKVAR THEN SKindOf = SLen(s)
+END FUNCTION
+
 ' the type a variable or element is stored as (TYBYTE stays)
 FUNCTION StoreType (n)
     StoreType = SType(NV(n))
@@ -187,6 +198,8 @@ SUB GenLoad (n)
         IF ty = TYBYTE THEN
             OB 0
             OB OLDB
+        ELSEIF SKindOf(n) < 0 THEN
+            ' (a LENGTH array's element: the string is there)
         ELSEIF w = 1 THEN
             Ind0
         ELSE
@@ -259,7 +272,16 @@ SUB GenStore (n)
     ty = StoreType(n)
     w = TypeWords(ty)
     IF ty = TYSTR THEN
-        CallRt "_SASG"
+        w = SKindOf(n)
+        IF w = 0 THEN
+            CallRt "_SASG"
+        ELSEIF w > 0 THEN
+            Ldc w
+            CallRt "_SASGN"
+        ELSE
+            Ldc -w
+            CallRt "_SPUTI"
+        END IF
         EXIT SUB
     END IF
     IF NOp(n) = NELEM OR SCls(s) = SCREF THEN
@@ -696,6 +718,7 @@ SUB GenCall (n, want)
             IF NOp(a) = NVAR THEN
                 IF SKind(NV(a)) = SKARRAY THEN
                     IF SType(NV(a)) <> pt THEN ErrRec 109, i, 0, STx$(s)   ' argument {a} of {s}: an array of another type
+                    IF SLen(NV(a)) <> PLen(pk) THEN ErrRec 127, i, 0, STx$(s)   ' argument {a} of {s}: an array of another LENGTH
                     GenSlot NV(a)
                 END IF
             END IF
@@ -703,6 +726,8 @@ SUB GenCall (n, want)
         ELSEIF pf AND PFBYREF THEN
             ok = IsLvalue(a)
             IF ok THEN ok = StoreType(a) = pt
+            ' (a LENGTH array's element: no slot -- a copy)
+            IF ok AND pt = TYSTR THEN ok = SKindOf(a) >= 0
             IF ok THEN
                 GenAddr a
             ELSE
@@ -718,7 +743,12 @@ SUB GenCall (n, want)
         ELSE
             IF pt = TYBYTE THEN pt = TYINT
             GenValueAs a, pt
-            IF pt = TYSTR AND IsLvalue(a) THEN
+            IF pt = TYSTR AND PLen(pk) > 0 THEN
+                ' (a LENGTH parameter's value: cut to its length, a copy)
+                Ldc PLen(pk)
+                CallRt "_SCUT"
+                TempUsed = 1
+            ELSEIF pt = TYSTR AND IsLvalue(a) THEN
                 CallRt "_STMP"
                 TempUsed = 1
             END IF

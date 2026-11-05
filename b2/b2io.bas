@@ -23,7 +23,7 @@ SUB InOpen (n$)
     InName$ = n$
     OPEN n$ FOR BINARY AS #CHIN
     IF IoMade = 0 THEN
-        REDIM InHead(WHWORDS), OutHead(WHWORDS), RPT(31) AS BYTE, RPF(31) AS BYTE
+        REDIM InHead(WHWORDS), OutHead(WHWORDS), RPT(31) AS BYTE, RPF(31) AS BYTE, RPL(31)
         REDIM InBuf(255) AS BYTE, OutBuf(255) AS BYTE
         IoMade = 1
     END IF
@@ -126,6 +126,7 @@ SUB NextRec ()
         RW1 = RdW
         RW2 = RdB
         RS$ = RdS$
+        RW3 = RdW
     CASE RPROC
         RB1 = RdB
         RB2 = RdB
@@ -134,6 +135,7 @@ SUB NextRec ()
         FOR i = 1 TO RNP
             RPT(i) = RdB
             RPF(i) = RdB
+            RPL(i) = RdW
         NEXT i
         RS2$ = RdS$
     CASE RBUILT
@@ -146,6 +148,7 @@ SUB NextRec ()
     CASE RLVC
         RB1 = RdB
         RB2 = RdB
+        RW1 = RdW
     CASE CBYTES
         RB1 = RdB
         FOR i = 0 TO RB1 - 1
@@ -283,7 +286,7 @@ SUB WRec (k)
     CASE CALIGN
         PcEst = PcEst + 1
     CASE CTEMP
-        ' (B2ASM's: LDL m, SRO _TTOP)
+        ' (B2ASM's: LDL m, CXP _TRESET)
         PcEst = PcEst + 6
         NRelW = NRelW + 1
     CASE CFREE
@@ -402,6 +405,7 @@ SUB PutRec ()
         WW RW1
         WB RW2
         WS RS$
+        WW RW3
     CASE RPROC
         WB RB1
         WB RB2
@@ -410,6 +414,7 @@ SUB PutRec ()
         FOR i = 1 TO RNP
             WB RPT(i)
             WB RPF(i)
+            WW RPL(i)
         NEXT i
         WS RS2$
     CASE RBUILT
@@ -422,6 +427,7 @@ SUB PutRec ()
     CASE RLVC
         WB RB1
         WB RB2
+        WW RW1
     CASE CJUMP, CFREE
         WB RB1
         WW RW1

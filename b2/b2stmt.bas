@@ -117,7 +117,8 @@ FUNCTION NextBlock ()
         NextRec
         BTy = RB1
         BFl = RB2
-        IF k = RXC THEN BVal = RW1 ELSE BVal = 0
+        ' (RXC: a constant's value; RLVC: a string target's kind)
+        BVal = RW1
         NextBlock = -1
     END IF
 END FUNCTION
@@ -296,10 +297,17 @@ SUB StInput (isline)
     IF isline THEN
         IF NOT NextBlock THEN EXIT SUB
         IF BTy <> TYSTR THEN ErrNo 55   ' LINE INPUT needs a string variable
+        ty = ABS(BVal)
         CopyCode 0
         PushCh
         IF hasp THEN Lsa p$ ELSE Ldc 0
-        CallRt "_LINPUT"
+        ' (into a LENGTH string longer than 255: as much of the line)
+        IF ty > 255 THEN
+            Ldc ty
+            CallRt "_LINPUTN"
+        ELSE
+            CallRt "_LINPUT"
+        END IF
         TempUsed = 1
         CopyCode 0
         EXIT SUB
@@ -401,7 +409,7 @@ SUB StGetPut (isput)
 END SUB
 
 SUB StDim ()
-    DIM pr, cl, ty, off, n$, nd, i, k
+    DIM pr, cl, ty, off, n$, nd, i, k, ln
     NextRec
     pr = RW1
     DO WHILE PeekRec = RVAR
@@ -410,6 +418,7 @@ SUB StDim ()
         ty = RB2
         off = RW1
         n$ = RS$
+        ln = RW3
         NextRec
         nd = RW1
         FOR i = 1 TO nd
@@ -417,9 +426,15 @@ SUB StDim ()
             CallRt "_ABND"
         NEXT i
         SlotOf cl, off, n$
-        Ldc ElemBytes(ty)
         k = 0
-        IF ty = TYSTR THEN k = 1
+        IF ty = TYSTR AND ln > 0 THEN
+            ' (a LENGTH array: each element holds its string)
+            IF ln < 255 THEN Ldc ln + 1 ELSE Ldc ln + 3
+            k = 4
+        ELSE
+            Ldc ElemBytes(ty)
+            IF ty = TYSTR THEN k = 1
+        END IF
         IF pr THEN k = k + 2
         Ldc k
         Ldc nd
@@ -475,10 +490,13 @@ SUB StStmt (k)
         CallRt "_CHAIN"
     CASE KSWAP
         ty = CopyNext
+        IF ty = TYSTR THEN Ldc BVal
         t = CopyNext
         IF ty <> t THEN ErrNo 66   ' SWAP needs two variables of one type
         IF ty = TYSTR THEN
-            CallRt "_SSWAP"
+            ' (any two kinds: LENGTH strings, their arrays' elements)
+            Ldc BVal
+            CallRt "_SSWAPK"
         ELSE
             Ldc TypeBytes(ty)
             CallRt "_SWAP"
@@ -515,10 +533,11 @@ SUB StStmt (k)
     CASE SMIDSET
         ty = CopyNext
         IF ty <> TYSTR THEN ErrNo 68   ' MID$ needs a string variable
+        t = BVal
         ty = CopyNext
         ty = CopyNext
         ty = CopyNext
-        CallRt "_MIDSET"
+        IF t < 0 THEN CallRt "_MIDSETI" ELSE CallRt "_MIDSET"
     CASE SPOKE, SPOKEB
         ty = CopyNext
         IF k = SPOKEB THEN OB 0

@@ -15,7 +15,7 @@ END SUB
 ' the strings of an array given back (from element k0 on)
 SUB _AFREESTR (p, k0)
     DIM nd, total, i, a, v
-    nd = PEEK(p)
+    nd = PEEK(p) AND 255
     total = 1
     FOR i = 1 TO nd
         total = total * PEEK(p + 2 + i * 2)
@@ -31,12 +31,16 @@ SUB _AFREE (slot)
     DIM p
     p = PEEK(slot)
     IF p = 0 THEN EXIT SUB
-    IF PEEK(p + 2) AND 256 THEN _AFREESTR p, 0
+    IF PEEK(p) AND 256 THEN _AFREESTR p, 0
     _MFREE p
     POKE slot, 0
 END SUB
 
-' DIM / REDIM: flags 1 = strings, 2 = PRESERVE (the elements kept)
+' DIM / REDIM: flags 1 = strings, 2 = PRESERVE (the elements kept), 4 =
+' a LENGTH array's strings (each element holds its string: esize bytes,
+' zeros an empty string).  The array: the dimensions' number (and 256 for
+' strings to give back), the element's bytes, each dimension's elements,
+' the elements
 SUB _ADIM (slot, esize, flags, nd)
     DIM total, i, n, bytes, hdr, p, old, ob, oe
     IF nd <> _NABND THEN _RTERR 9
@@ -52,8 +56,8 @@ SUB _ADIM (slot, esize, flags, nd)
     bytes = total * esize
     p = _MALLOC(hdr + bytes)
     CSP 10, p, 0, hdr + bytes, 0
-    POKE p, nd
-    POKE p + 2, esize OR ((flags AND 1) * 256)
+    POKE p, nd OR ((flags AND 1) * 256)
+    POKE p + 2, esize
     FOR i = 0 TO nd - 1
         POKE p + 4 + i * 2, PEEK(_ABUF + i * 2) + 1
     NEXT i
@@ -61,9 +65,9 @@ SUB _ADIM (slot, esize, flags, nd)
     old = PEEK(slot)
     IF old <> 0 AND (flags AND 2) <> 0 THEN
         ' PRESERVE: the elements as bytes; strings no longer kept go
-        oe = PEEK(old + 2) AND 255
+        oe = PEEK(old + 2)
         ob = 1
-        FOR i = 1 TO PEEK(old)
+        FOR i = 1 TO PEEK(old) AND 255
             ob = ob * PEEK(old + 2 + i * 2)
         NEXT i
         IF flags AND 1 THEN
@@ -71,7 +75,8 @@ SUB _ADIM (slot, esize, flags, nd)
         END IF
         ob = ob * oe
         IF ob > bytes THEN ob = bytes
-        CSP 2, old + 4 + PEEK(old) * 2, 0, p + hdr, 0, ob
+        IF oe <> esize THEN _RTERR 9
+        CSP 2, old + 4 + (PEEK(old) AND 255) * 2, 0, p + hdr, 0, ob
         _MFREE old
     ELSE
         _AFREE slot
@@ -83,7 +88,7 @@ FUNCTION _ARR (slot, nd)
     DIM p
     p = PEEK(slot)
     IF p = 0 THEN _RTERR 9
-    IF PEEK(p) <> nd THEN _RTERR 9
+    IF (PEEK(p) AND 255) <> nd THEN _RTERR 9
     _ARR = p
 END FUNCTION
 
@@ -91,7 +96,7 @@ FUNCTION _AX1 (slot, i)
     DIM p
     p = _ARR(slot, 1)
     IF NOT _ULT(i, PEEK(p + 4)) THEN _RTERR 9
-    _AX1 = p + 6 + i * (PEEK(p + 2) AND 255)
+    _AX1 = p + 6 + i * PEEK(p + 2)
 END FUNCTION
 
 FUNCTION _AX2 (slot, i, j)
@@ -99,7 +104,7 @@ FUNCTION _AX2 (slot, i, j)
     p = _ARR(slot, 2)
     n2 = PEEK(p + 6)
     IF NOT _ULT(i, PEEK(p + 4)) OR NOT _ULT(j, n2) THEN _RTERR 9
-    _AX2 = p + 8 + (i * n2 + j) * (PEEK(p + 2) AND 255)
+    _AX2 = p + 8 + (i * n2 + j) * PEEK(p + 2)
 END FUNCTION
 
 ' 3 or more indexes: each pushed with _AIDX, then _AXN
@@ -120,13 +125,13 @@ FUNCTION _AXN (slot, nd)
         IF NOT _ULT(i, n) THEN _RTERR 9
         lin = lin * n + i
     NEXT k
-    _AXN = p + 4 + nd * 2 + lin * (PEEK(p + 2) AND 255)
+    _AXN = p + 4 + nd * 2 + lin * PEEK(p + 2)
 END FUNCTION
 
 FUNCTION _AUB (slot, k)
     DIM p
     p = PEEK(slot)
     IF p = 0 THEN _RTERR 9
-    IF k < 1 OR k > PEEK(p) THEN _RTERR 9
+    IF k < 1 OR k > (PEEK(p) AND 255) THEN _RTERR 9
     _AUB = PEEK(p + 2 + k * 2) - 1
 END FUNCTION

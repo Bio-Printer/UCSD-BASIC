@@ -10,7 +10,8 @@ line says NOMAP): a run-time error says its line.
 
   runtests.py [NAME ...]        (-v: show the differences)
   runtests.py --b2 [NAME ...]   the same, compiled by B2 (build/b2/b2, build/BASLIB2.OBJ
-                                if there is one, else BC's build/BASLIB.OBJ; build/B2DEBUG.CODE)
+                                if there is one, else BC's build/BASLIB.OBJ; build/B2DEBUG.CODE; NAME.expect2
+                                where B2's program says other numbers)
 """
 import difflib, glob, os, shutil, subprocess, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -21,6 +22,7 @@ import brun
 COMPILER = os.path.join(ROOT, 'build', 'bc')
 LIBRARY = os.path.join(ROOT, 'build', 'BASLIB.OBJ')
 DEBUGGER = os.path.join(ROOT, 'build', 'BCDEBUG.CODE')
+B2 = False
 
 
 def compile_host(src, work, extra=()):
@@ -69,7 +71,10 @@ def run_test(name, verbose=False):
     ok, out, info, ps = brun.run(code, files, keys, dirs=dirs)
     if dirs:
         out += brun.list_dirs(ps, dirs)
-    exp = open(os.path.join(ROOT, 'tests', name + '.expect')).read()
+    ef = os.path.join(ROOT, 'tests', name + ('.expect2' if B2 else '.expect'))
+    if not os.path.exists(ef):
+        ef = os.path.join(ROOT, 'tests', name + '.expect')
+    exp = open(ef).read()
     if out == exp:
         print('PASS  %s' % name)
         shutil.rmtree(work, True)
@@ -81,15 +86,19 @@ def run_test(name, verbose=False):
 
 
 def main(a):
-    global COMPILER, LIBRARY, DEBUGGER
+    global COMPILER, LIBRARY, DEBUGGER, B2
     verbose = '-v' in a
     if '--b2' in a:
+        B2 = True
         COMPILER = os.path.join(ROOT, 'build', 'b2', 'b2')
         DEBUGGER = os.path.join(ROOT, 'build', 'B2DEBUG.CODE')
         if os.path.exists(os.path.join(ROOT, 'build', 'BASLIB2.OBJ')):
             LIBRARY = os.path.join(ROOT, 'build', 'BASLIB2.OBJ')
     a = [x for x in a if x not in ('-v', '--b2')]
     names = a or sorted(os.path.splitext(os.path.basename(f))[0] for f in glob.glob(os.path.join(ROOT, 'tests', '*.expect')))
+    # (a test whose first line says B2ONLY: B2's language, not BC's)
+    if not B2:
+        names = [n for n in names if 'B2ONLY' not in open(os.path.join(ROOT, 'tests', n + '.bas')).readline()]
     n = sum(run_test(x, verbose) for x in names)
     print('%d of %d tests passed' % (n, len(names)))
     return 0 if n == len(names) else 1

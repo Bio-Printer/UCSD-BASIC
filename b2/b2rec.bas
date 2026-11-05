@@ -12,15 +12,18 @@
 ' gone to (GOTO, GOSUB, ON, RESTORE: its text)
 CONST RSTMT = 140, RX = 141, RXE = 142, RLV = 143, RLVE = 144, RMARK = 145, RSEL = 146, RLREF = 147
 ' ---- B2NAME's operands (160..179)
-' RVAR kind type class offset dims name: a variable or array (name: a
-'   COMMON variable's, for the linker; else "")
-' RPROC type kind name np (type flags) * np text: a procedure called
+' RVAR kind type class offset dims name len: a variable or array (name: a
+'   COMMON variable's, for the linker; else its own; len: a string's LENGTH, 0
+'   for BASIC's 255)
+' RPROC type kind name np (type flags len) * np text: a procedure called
 ' RBUILT id text: a built-in function;  RLAB w: a label (by number)
 CONST RVAR = 160, RPROC = 161, RBUILT = 162, RLAB = 163
 ' ---- B2EXPR's (180..199)
 ' RXC type flags value ... RXCE t: a compiled expression (or assignment); t:
 '   it made string temporaries (XFTEMP)
-' RLVC type flags [pre] RLVL [load] RLVS [store] RLVCE t: a compiled target
+' RLVC type flags kind [pre] RLVL [load] RLVS [store] RLVCE t: a compiled
+'   target (kind, a string's: 0 BASIC's, n a LENGTH n string's slot, -n a
+'   LENGTH n array's element: the library's _SGET, _SPUT)
 CONST RXC = 180, RXCE = 181, RLVC = 182, RLVL = 183, RLVS = 184, RLVCE = 185
 ' ---- code (200..219): what B2ASM assembles
 ' CBYTES n bytes; CJUMP op label; CCASE label; CLABEL label; CALIAS l m
@@ -66,7 +69,7 @@ CONST PFBYREF = 1, PFARRAY = 2
 
 ' ---- B2IO: the record just read (its kind Rk and operands), the header
 ' read (InHead) and the counts written (OutHead)
-COMMON SHARED Rk, RB1, RB2, RB3, RW1, RW2, RS$, RS2$, RNP, RPT(), RPF()
+COMMON SHARED Rk, RB1, RB2, RB3, RW1, RW2, RW3, RS$, RS2$, RNP, RPT(), RPF(), RPL()
 ' (OutPos counts the bytes written, modulo 65536; OutBlk, OutOff: where
 ' the next one goes, a block of 512 and the byte in it -- for SEEK)
 COMMON SHARED InHead(), OutHead(), OutPos, OutBlk, OutOff, InPend, InPendK

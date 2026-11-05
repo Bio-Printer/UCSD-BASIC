@@ -66,6 +66,7 @@ FUNCTION OpNew ()
     SAux(NSym) = 0
     SAux2(NSym) = 0
     SFlags(NSym) = 0
+    SLen(NSym) = 0
     OpNew = NSym
 END FUNCTION
 
@@ -82,6 +83,7 @@ FUNCTION OpSym ()
         SAux(s) = RW2
         SName$(s) = RS$
         STx$(s) = RS$
+        SLen(s) = RW3
     ELSE
         SKind(s) = RB2
         SType(s) = RB1
@@ -96,6 +98,7 @@ FUNCTION OpSym ()
         FOR i = 1 TO RNP
             PType(NPar + i) = RPT(i)
             PFlg(NPar + i) = RPF(i)
+            PLen(NPar + i) = RPL(i)
         NEXT i
         NPar = NPar + RNP
     END IF
@@ -1156,6 +1159,7 @@ SUB LvRegion (what)
             WRec RLVC
             WB ty
             WB 0
+            WW SKindOf(lv)
             StorePre lv
             WRec RLVS
             GenStore lv
@@ -1165,6 +1169,7 @@ SUB LvRegion (what)
                 WRec RLVC
                 WB ty
                 WB 0
+                WW SKindOf(lv)
                 StorePre lv
                 WRec RLVL
                 GenLoad lv
@@ -1174,6 +1179,7 @@ SUB LvRegion (what)
                 WRec RLVC
                 WB ty
                 WB XFADDR
+                WW 0
                 GenAddr lv
             END IF
             XTail RLVCE
@@ -1181,6 +1187,7 @@ SUB LvRegion (what)
             WRec RLVC
             WB ty
             WB XFADDR
+            WW SKindOf(lv)
             GenAddr lv
             XTail RLVCE
         END SELECT
@@ -1232,8 +1239,8 @@ ParCap = Capped(InHead(THSTMT) + 32, MAXPAR)
 REDIM NOp(NodeCap) AS BYTE, NTy(NodeCap) AS BYTE, NA(NodeCap), NB(NodeCap)
 REDIM NV(NodeCap), NX(NodeCap), NN(NodeCap), NS$(NodeCap), NIsBool(NodeCap) AS BYTE
 REDIM SName$(SymCap), STx$(SymCap), SKind(SymCap) AS BYTE, SType(SymCap) AS BYTE, SCls(SymCap) AS BYTE
-REDIM SOff(SymCap), SFlags(SymCap) AS BYTE, SAux(SymCap), SAux2(SymCap)
-REDIM PType(ParCap) AS BYTE, PFlg(ParCap) AS BYTE
+REDIM SOff(SymCap), SFlags(SymCap) AS BYTE, SAux(SymCap), SAux2(SymCap), SLen(SymCap)
+REDIM PType(ParCap) AS BYTE, PFlg(ParCap) AS BYTE, PLen(ParCap)
 OutOpen PassFile$(5)
 MemNote "tables"
 ExprPass
@@ -1241,7 +1248,7 @@ CLOSE #CHIN
 OutClose 5
 IF OptMem THEN SayLn "  [nodes " + IStr$(NodeCap) + ", most " + IStr$(HiNode) + "]"
 ' (the tables given back first: KILL is RTSELDOM's)
-ERASE NOp, NTy, NA, NB, NV, NX, NN, NS$, NIsBool, SName$, STx$, SKind, SType, SCls, SOff, SFlags, SAux, SAux2, PType, PFlg
+ERASE NOp, NTy, NA, NB, NV, NX, NN, NS$, NIsBool, SName$, STx$, SKind, SType, SCls, SOff, SFlags, SAux, SAux2, PType, PFlg, SLen, PLen
 IF ErrCount > 0 THEN CompileFailed
 IF OptKeep = 0 THEN KILL PassFile$(4)
 IF OptMem THEN SayLn "  least free memory: " + IStr$(FRE(-1)) + " words (B2EXPR)"

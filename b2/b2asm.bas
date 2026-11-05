@@ -381,10 +381,11 @@ SUB AsCall (n$)
     AsOB 0
 END SUB
 
-' CTEMP: the string temporaries given back
+' CTEMP: the string temporaries given back (the long ones on the heap too:
+' the library's _TRESET)
 SUB AsTemp ()
     AsLdl CbMark
-    AsGlob OSRO, "_TTOP"
+    AsCall "_TRESET"
     UsedMark = 1
 END SUB
 

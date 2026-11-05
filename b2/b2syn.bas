@@ -667,7 +667,7 @@ END SUB
 
 ' DIM / REDIM [SHARED] [PRESERVE] items: TINT shared, TINT preserve, then
 ' each: TIDENT name, TINT n (-1: no ( ), RX TYINT bound RXE * n, [KAS
-' type keyword]
+' type keyword] [TIDENT LENGTH, TINT n]
 SUB SDim (k)
     DIM sh, pr, n
     GetTok
@@ -726,6 +726,15 @@ SUB SDim (k)
             GetTok
             PutRec
             GetTok
+        END IF
+        ' (a string's LENGTH n)
+        IF Tok = TIDENT THEN
+            IF TokS$ = "LENGTH" THEN
+                PutRec
+                GetTok
+                PutRec
+                GetTok
+            END IF
         END IF
         IF Tok <> TCOMMA THEN EXIT DO
         GetTok

@@ -384,19 +384,71 @@ SUB _MFREE (p)
     END IF
 END SUB
 
-' does p point at a string block a variable owns (on the heap)
+' A string is a pointer to its length and its characters, 0 for "": a
+' length byte and up to 254 characters, or (a long string, B2's LENGTH)
+' the byte 255, the length in the next two bytes, then the characters.
+' _SLEN says the length, _SDAT where the characters are: the i-th at
+' _SDAT(p) + i.
+
+FUNCTION _SLEN (p)
+    DIM n
+    IF p = 0 THEN EXIT FUNCTION
+    n = PEEKB(p)
+    IF n = 255 THEN n = PEEKB(p + 1) + PEEKB(p + 2) * 256
+    _SLEN = n
+END FUNCTION
+
+FUNCTION _SDAT (p)
+    IF p = 0 THEN EXIT FUNCTION
+    IF PEEKB(p) = 255 THEN _SDAT = p + 2 ELSE _SDAT = p
+END FUNCTION
+
+' the length n written at t: where its characters go (as _SDAT)
+FUNCTION _SHDR (t, n)
+    IF n < 255 THEN
+        POKEB t, n
+        _SHDR = t
+    ELSE
+        POKEB t, 255
+        POKEB t + 1, n AND 255
+        POKEB t + 2, (n AND &HFF00) \ 256
+        _SHDR = t + 2
+    END IF
+END FUNCTION
+
+' does p point at a string block a variable owns (on the heap; not a long
+' temporary)
 FUNCTION _OWNED (p)
+    DIM b
     IF p = 0 THEN EXIT FUNCTION
     IF _ULT(p, _HEAPLO) THEN EXIT FUNCTION
-    _OWNED = _ULT(p, _HEAPTOP)
+    IF NOT _ULT(p, _HEAPTOP) THEN EXIT FUNCTION
+    b = _TBIG
+    DO WHILE b <> 0
+        IF p = b + 4 THEN EXIT FUNCTION
+        b = PEEK(b)
+    LOOP
+    _OWNED = -1
 END FUNCTION
 
 ' ---- string temporaries
 
-' room for a string of n characters in the arena (the length byte set)
+' room for a string of n characters (its length set): in the arena, or a
+' long one on the heap (two bytes of the arena taken too: a procedure's
+' mark after it is higher, so _TRESET to that mark keeps it)
 FUNCTION _TALLOC (n)
-    DIM t
-    IF n > 255 THEN _RTERR 15
+    DIM t, b
+    IF n < 0 THEN _RTERR 15
+    IF n > 255 THEN
+        t = _TALLOC(1)
+        b = _MALLOC(n + 7)
+        POKE b, _TBIG
+        POKE b + 2, t
+        _TBIG = b
+        b = _SHDR(b + 4, n)
+        _TALLOC = _TBIG + 4
+        EXIT FUNCTION
+    END IF
     t = _TTOP
     _TTOP = t + ((n + 2) AND &HFFFE)
     IF _ULT(_TEND, _TTOP) THEN
@@ -407,52 +459,104 @@ FUNCTION _TALLOC (n)
     _TALLOC = t
 END FUNCTION
 
-' a copy of string p in the arena (a BYVAL argument)
+' the temporaries after mark m given back (the long ones too)
+SUB _TRESET (m)
+    DIM b
+    _TTOP = m
+    DO WHILE _TBIG <> 0
+        IF _ULT(PEEK(_TBIG + 2), m) THEN EXIT DO
+        b = _TBIG
+        _TBIG = PEEK(b)
+        _MFREE b
+    LOOP
+END SUB
+
+' a copy of string p in the temporaries (a BYVAL argument)
 FUNCTION _STMP (p)
     DIM n, t
-    IF p = 0 THEN EXIT FUNCTION
-    n = PEEKB(p)
+    n = _SLEN(p)
     IF n = 0 THEN EXIT FUNCTION
     t = _TALLOC(n)
-    CSP 2, p + 1, 0, t + 1, 0, n
+    CSP 2, _SDAT(p) + 1, 0, _SDAT(t) + 1, 0, n
     _STMP = t
-END FUNCTION
-
-FUNCTION _SLEN (p)
-    IF p THEN _SLEN = PEEKB(p)
 END FUNCTION
 
 ' ---- string variables
 
-' slot := v (a copy in the variable's own block)
-SUB _SASG (slot, v)
-    DIM n, old, cap, nw
-    IF v THEN n = PEEKB(v)
+' slot := v (a copy in the variable's own block), cut to cap characters
+SUB _SASGN (slot, v, cap)
+    DIM n, old, room, nw, d
+    n = _SLEN(v)
+    IF n > cap THEN n = cap
     old = PEEK(slot)
-    IF old = v AND _OWNED(old) THEN EXIT SUB
+    IF old = v AND _OWNED(old) AND n = _SLEN(v) THEN EXIT SUB
     IF _OWNED(old) THEN
-        cap = (PEEK(old - 2) - 1) * 2 - 1
-        IF cap >= n THEN
+        room = (PEEK(old - 2) - 1) * 2 - 1
+        IF n >= 255 THEN room = room - 2
+        IF room >= n THEN
             IF n = 0 THEN
                 _MFREE old
                 POKE slot, 0
                 EXIT SUB
             END IF
-            CSP 2, v + 1, 0, old + 1, 0, n
-            POKEB old, n
+            CSP 2, _SDAT(v) + 1, 0, _SHDR(old, n) + 1, 0, n
             EXIT SUB
         END IF
     END IF
     nw = 0
     IF n > 0 THEN
         ' a little room to grow: strings that are added to
-        IF old <> 0 AND n < 200 THEN nw = _MALLOC(n + 1 + n \ 2) ELSE nw = _MALLOC(n + 1)
-        CSP 2, v + 1, 0, nw + 1, 0, n
-        POKEB nw, n
+        d = 1
+        IF n >= 255 THEN d = 3
+        IF old <> 0 AND n < 200 THEN nw = _MALLOC(n + d + n \ 2) ELSE nw = _MALLOC(n + d)
+        CSP 2, _SDAT(v) + 1, 0, _SHDR(nw, n) + 1, 0, n
     END IF
     IF _OWNED(old) THEN _MFREE old
     POKE slot, nw
 END SUB
+
+' slot := v, a string of BASIC's 255 characters at most
+SUB _SASG (slot, v)
+    _SASGN slot, v, 255
+END SUB
+
+' a string target's value: kind 0 or more a slot (its value the pointer in
+' it), less than 0 an element of a LENGTH array (the string is there:
+' -kind characters at most)
+FUNCTION _SGET (a, kind)
+    IF kind < 0 THEN _SGET = a ELSE _SGET = PEEK(a)
+END FUNCTION
+
+' ... := v: kind 0 a string, more than 0 a LENGTH string's slot (kind
+' characters at most), less than 0 a LENGTH array's element
+SUB _SPUT (a, kind, v)
+    DIM n
+    IF kind = 0 THEN
+        _SASGN a, v, 255
+    ELSEIF kind > 0 THEN
+        _SASGN a, v, kind
+    ELSE
+        n = _SLEN(v)
+        IF n > -kind THEN n = -kind
+        IF a <> v THEN CSP 2, _SDAT(v) + 1, 0, _SHDR(a, n) + 1, 0, n
+    END IF
+END SUB
+
+' a LENGTH array's element a := v (cap characters at most)
+SUB _SPUTI (a, v, cap)
+    _SPUT a, -cap, v
+END SUB
+
+' a copy of s cut to cap characters (a LENGTH parameter's value)
+FUNCTION _SCUT (s, cap)
+    DIM n, t
+    n = _SLEN(s)
+    IF n > cap THEN n = cap
+    IF n = 0 THEN EXIT FUNCTION
+    t = _TALLOC(n)
+    CSP 2, _SDAT(s) + 1, 0, _SDAT(t) + 1, 0, n
+    _SCUT = t
+END FUNCTION
 
 SUB _SFREE (slot)
     DIM v
@@ -471,26 +575,29 @@ FUNCTION _SRET (slot)
 END FUNCTION
 
 FUNCTION _SCAT (a, b)
-    DIM la, lb, t
-    IF a THEN la = PEEKB(a)
-    IF b THEN lb = PEEKB(b)
-    IF la + lb > 255 THEN _RTERR 15
+    DIM la, lb, t, d
+    la = _SLEN(a)
+    lb = _SLEN(b)
+    IF la + lb > 32000 OR la + lb < 0 THEN _RTERR 15
     t = _TALLOC(la + lb)
-    IF la THEN CSP 2, a + 1, 0, t + 1, 0, la
-    IF lb THEN CSP 2, b + 1, 0, t + 1 + la, 0, lb
+    d = _SDAT(t)
+    IF la THEN CSP 2, _SDAT(a) + 1, 0, d + 1, 0, la
+    IF lb THEN CSP 2, _SDAT(b) + 1, 0, d + 1 + la, 0, lb
     _SCAT = t
 END FUNCTION
 
 ' -1, 0, 1 as a < b, a = b, a > b
 FUNCTION _SCMP (a, b)
-    DIM la, lb, n, i, ca, cb
-    IF a THEN la = PEEKB(a)
-    IF b THEN lb = PEEKB(b)
+    DIM la, lb, n, i, ca, cb, da, db
+    la = _SLEN(a)
+    lb = _SLEN(b)
+    da = _SDAT(a)
+    db = _SDAT(b)
     n = la
     IF lb < n THEN n = lb
     FOR i = 1 TO n
-        ca = PEEKB(a + i)
-        cb = PEEKB(b + i)
+        ca = PEEKB(da + i)
+        cb = PEEKB(db + i)
         IF ca <> cb THEN
             IF ca < cb THEN _SCMP = -1 ELSE _SCMP = 1
             EXIT FUNCTION
@@ -629,16 +736,16 @@ END SUB
 
 ' ---- PRINT: ch 0 is the console
 SUB _PSTR (ch, s)
-    DIM i, n
-    IF s = 0 THEN EXIT SUB
-    n = PEEKB(s)
+    DIM i, n, d
+    n = _SLEN(s)
+    d = _SDAT(s)
     IF ch = 0 THEN
         FOR i = 1 TO n
-            _CONPUT PEEKB(s + i)
+            _CONPUT PEEKB(d + i)
         NEXT i
     ELSE
         FOR i = 1 TO n
-            _FPUTC ch, PEEKB(s + i)
+            _FPUTC ch, PEEKB(d + i)
         NEXT i
     END IF
 END SUB

@@ -506,21 +506,43 @@ END FUNCTION
 
 ' LINE INPUT #ch: the next line (a temporary), without its CR
 FUNCTION _FLINE (ch)
+    _FLINE = _FLINEN(ch, 255)
+END FUNCTION
+
+' ... of max characters at most (a LENGTH string's: more than 255, read
+' into a long temporary)
+FUNCTION _FLINEN (ch, max)
     DIM c, n, b, t, e
     e = _FOPENED(ch)
-    b = _INBUF
+    IF max > 255 THEN
+        t = _TALLOC(max)
+        b = _SDAT(t)
+    ELSE
+        b = _INBUF
+        max = 255
+    END IF
     c = _FGETC(ch)
     IF c < 0 THEN _IOERR 62
     DO WHILE c >= 0 AND c <> 13
-        IF c <> 10 AND n < 255 THEN
+        IF c <> 10 AND n < max THEN
             n = n + 1
             POKEB b + n, c
         END IF
         c = _FGETC(ch)
     LOOP
-    t = _TALLOC(n)
-    IF n THEN CSP 2, b + 1, 0, t + 1, 0, n
-    _FLINE = t
+    IF t = 0 THEN
+        t = _TALLOC(n)
+        IF n THEN CSP 2, b + 1, 0, t + 1, 0, n
+    ELSE
+        ' (the long temporary's length: the line's)
+        IF n < 255 THEN
+            POKEB t, n
+            IF n THEN CSP 2, b + 1, 0, t + 1, 0, n
+        ELSE
+            b = _SHDR(t, n)
+        END IF
+    END IF
+    _FLINEN = t
 END FUNCTION
 
 ' ---- writing
@@ -618,12 +640,12 @@ FUNCTION _GETS (ch, n)
     DIM t
     IF n = 0 THEN EXIT FUNCTION
     t = _TALLOC(n)
-    _GETR t + 1, ch, n
+    _GETR _SDAT(t) + 1, ch, n
     _GETS = t
 END FUNCTION
 
 SUB _PUTS (ch, s)
-    IF s THEN _PUTR s + 1, ch, PEEKB(s)
+    IF s THEN _PUTR _SDAT(s) + 1, ch, _SLEN(s)
 END SUB
 
 ' SEEK #ch, pos (from 1): a byte file's position

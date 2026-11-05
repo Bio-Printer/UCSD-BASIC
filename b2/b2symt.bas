@@ -117,7 +117,7 @@ FUNCTION AddSym (n$, kind, ty)
         SymCap = Grown(SymCap, MAXSYM)
         REDIM PRESERVE SName$(SymCap), SKind(SymCap) AS BYTE, SType(SymCap) AS BYTE, SCls(SymCap) AS BYTE
         REDIM PRESERVE SOff(SymCap), SFlags(SymCap) AS BYTE, SScope(SymCap) AS BYTE, SNext(SymCap)
-        REDIM PRESERVE SAux(SymCap), SAux2(SymCap), SSeg(SymCap) AS BYTE
+        REDIM PRESERVE SAux(SymCap), SAux2(SymCap), SSeg(SymCap) AS BYTE, SLen(SymCap)
     END IF
     NSym = NSym + 1
     SName$(NSym) = n$
@@ -130,6 +130,7 @@ FUNCTION AddSym (n$, kind, ty)
     SAux(NSym) = 0
     SAux2(NSym) = 0
     SSeg(NSym) = 0
+    SLen(NSym) = 0
     h = HashName(n$)
     SNext(NSym) = HashHead(h)
     HashHead(h) = NSym
@@ -154,8 +155,8 @@ SUB SymTables (nsym, npar)
     ParCap = Capped(npar, MAXPAR)
     REDIM SName$(SymCap), SKind(SymCap) AS BYTE, SType(SymCap) AS BYTE, SCls(SymCap) AS BYTE
     REDIM SOff(SymCap), SFlags(SymCap) AS BYTE, SScope(SymCap) AS BYTE, SNext(SymCap)
-    REDIM SAux(SymCap), SAux2(SymCap), SSeg(SymCap) AS BYTE, HashHead(HSIZE)
-    REDIM PType(ParCap) AS BYTE, PFlg(ParCap) AS BYTE
+    REDIM SAux(SymCap), SAux2(SymCap), SSeg(SymCap) AS BYTE, HashHead(HSIZE), SLen(SymCap)
+    REDIM PType(ParCap) AS BYTE, PFlg(ParCap) AS BYTE, PLen(ParCap)
     REDIM SegName$(MAXSEG), DefType(25), ParName$(30), ParFlags(30)
 END SUB
 
@@ -226,6 +227,7 @@ FUNCTION DeclType (n$, isproc)
     DIM ty
     DeclName$ = n$
     DeclFlags = 0
+    DeclLen = 0
     ty = NameType(n$)
     IF Tok = KAS THEN
         GetTok
@@ -237,6 +239,21 @@ FUNCTION DeclType (n$, isproc)
             DeclFlags = SFAS
         ELSE
             DeclName$ = n$ + TypeChar$(ty)
+        END IF
+    END IF
+    ' a string's LENGTH n: its characters at most (n a number)
+    IF Tok = TIDENT AND isproc = 0 THEN
+        IF TokS$ = "LENGTH" THEN
+            GetTok
+            IF ty <> TYSTR THEN ErrNo 125   ' LENGTH: a string's only
+            IF Tok <> TINT THEN
+                ErrNo 126   ' LENGTH: a number from 1 to 32000 expected
+            ELSEIF TokV < 1 OR TokV > 32000 THEN
+                ErrNo 126   ' LENGTH: a number from 1 to 32000 expected
+            ELSE
+                IF ty = TYSTR THEN DeclLen = TokV
+                GetTok
+            END IF
         END IF
     END IF
     DeclType = ty
@@ -277,10 +294,11 @@ FUNCTION ParseParams ()
         IF NPar + n > ParCap THEN
             IF ParCap >= MAXPAR THEN FatalRec 15, ""   ' too many parameters
             ParCap = Grown(ParCap, MAXPAR)
-            REDIM PRESERVE PType(ParCap) AS BYTE, PFlg(ParCap) AS BYTE
+            REDIM PRESERVE PType(ParCap) AS BYTE, PFlg(ParCap) AS BYTE, PLen(ParCap)
         END IF
         PType(NPar + n) = ty
         PFlg(NPar + n) = fl
+        PLen(NPar + n) = DeclLen
         IF n <= 30 THEN
             ParName$(n) = DeclName$
             ParFlags(n) = DeclFlags
@@ -380,10 +398,12 @@ SUB SymSave ()
         PUT #CHSYM, , SOff(i)
         PUT #CHSYM, , SAux(i)
         PUT #CHSYM, , SAux2(i)
+        PUT #CHSYM, , SLen(i)
     NEXT i
     FOR i = 1 TO NPar
         SymPutB PType(i)
         SymPutB PFlg(i)
+        PUT #CHSYM, , PLen(i)
     NEXT i
     FOR i = 2 TO NSegName
         SymPutS SegName$(i)
@@ -415,11 +435,13 @@ SUB SymLoad (extra, xpar)
         GET #CHSYM, , SOff(h)
         GET #CHSYM, , SAux(h)
         GET #CHSYM, , SAux2(h)
+        GET #CHSYM, , SLen(h)
     NEXT i
     NPar = np
     FOR i = 1 TO np
         PType(i) = SymGetB
         PFlg(i) = SymGetB
+        GET #CHSYM, , PLen(i)
     NEXT i
     NSegName = ns
     FOR i = 2 TO ns

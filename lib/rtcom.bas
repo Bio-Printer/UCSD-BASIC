@@ -12,6 +12,9 @@ DEFINT A-Z
 
 ' ---- the arena, the heap, the GOSUB stack (the compiler uses _TTOP, _GSSP)
 COMMON SHARED _TTOP, _TBASE, _TEND, _GSSP, _GSBASE
+' the long temporaries (more than 255 characters: on the heap, _TALLOC), the
+' newest first: each block's words 0 the next, 1 the arena's top it was made at
+COMMON SHARED _TBIG
 COMMON SHARED _HEAPLO, _HEAPTOP, _FREETAB, _BIGFREE
 ' ---- errors: ON ERROR RESUME NEXT, ERR
 COMMON SHARED _ERRTRAP, _ERRCODE
@@ -49,6 +52,12 @@ DECLARE FUNCTION _OWNED (p)
 DECLARE FUNCTION _TALLOC (n)
 DECLARE FUNCTION _STMP (p)
 DECLARE FUNCTION _SLEN (p)
+DECLARE FUNCTION _SDAT (p)
+DECLARE FUNCTION _SHDR (t, n)
+DECLARE SUB _TRESET (m)
+DECLARE SUB _SASGN (slot, v, cap)
+DECLARE FUNCTION _SGET (a, kind)
+DECLARE SUB _SPUT (a, kind, v)
 DECLARE SUB _SASG (slot, v)
 DECLARE SUB _CONPUT (c)
 DECLARE SUB _CONFLUSH ()
