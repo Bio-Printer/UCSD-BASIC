@@ -232,6 +232,8 @@ END SUB
 ' a channel: #n (XCHAN), and the , or ; after it
 SUB SChan ()
     GetTok
+    WB RMARK
+    WB MCHAN
     SExpr XCHAN
 END SUB
 
@@ -422,7 +424,7 @@ END SUB
 ' CASE item, ...: RSTMT KCASE, each item a condition on RSEL (RX XCOND
 ' ... RXE), commas between; CASE ELSE: RSTMT SCASEELSE
 SUB SCase ()
-    DIM op
+    DIM op, p
     IF NBk > 0 THEN
         IF BkKind(NBk) <> KSELECT THEN
             ErrRec 82, 0, KCASE, ""   ' {t} without its block
@@ -441,6 +443,10 @@ SUB SCase ()
     END IF
     Stm KCASE
     DO
+        ' (MLAST, made MMORE when a comma comes after the item)
+        WB RMARK
+        p = OutPos
+        WB MLAST
         WB RX
         WB XCOND
         IF Tok = KIS THEN
@@ -483,7 +489,10 @@ SUB SCase ()
         END IF
         WB RXE
         IF Tok <> TCOMMA THEN EXIT DO
-        PutRec
+        SEEK #CHOUT, p + 1
+        WB MMORE
+        OutPos = OutPos - 1
+        SEEK #CHOUT, OutPos + 1
         GetTok
     LOOP
 END SUB
@@ -545,8 +554,8 @@ SUB SPrint ()
             SExpr TYINT
             Expect TRPAR
         ELSE
+            ' (items need nothing between them: PRINT "a" "b")
             SExpr XANY
-            IF NOT AtEnd AND Tok <> TSEMI AND Tok <> TCOMMA THEN EXIT DO
         END IF
     LOOP
 END SUB
@@ -617,7 +626,7 @@ END SUB
 ' TYSNG pos], then GET: RLV LVGET v RLVE / PUT: RX XPUT e RXE, and RX
 ' TYINT n again
 SUB SGetPut (k)
-    DIM haspos, i
+    DIM haspos, i, k2, s$, v
     GetTok
     Stm k
     IF Tok = THASH THEN GetTok
@@ -634,12 +643,18 @@ SUB SGetPut (k)
     IF haspos THEN
         WB RX
         WB TYINT
+        k2 = Rk
+        s$ = RS$
+        v = RW1
         FOR i = 1 TO NTb
             Rk = TbK(i)
             RS$ = TbS$(i)
             RW1 = TbV(i)
             PutRec
         NEXT i
+        Rk = k2
+        RS$ = s$
+        RW1 = v
         WB RXE
         SExpr TYSNG
     END IF
@@ -720,7 +735,10 @@ END SUB
 
 ' the bounds kept (RX ... RXE each): written, RX TYINT
 SUB DimBounds ()
-    DIM i
+    DIM i, k, s$, v
+    k = Rk
+    s$ = RS$
+    v = RW1
     FOR i = 1 TO NTb
         IF TbK(i) = RX THEN
             WB RX
@@ -734,6 +752,9 @@ SUB DimBounds ()
         END IF
     NEXT i
     NTb = 0
+    Rk = k
+    RS$ = s$
+    RW1 = v
 END SUB
 
 ' the rest of the statement as it is (B2DECL and B2NAME read it):

@@ -9,6 +9,8 @@ build/BCDEBUG.CODE and NAME.MAP (linked with -MAP, unless NAME.bas's first
 line says NOMAP): a run-time error says its line.
 
   runtests.py [NAME ...]        (-v: show the differences)
+  runtests.py --b2 [NAME ...]   the same, compiled by B2 (build/b2/b2, build/BASLIB2.OBJ
+                                if there is one, else BC's build/BASLIB.OBJ)
 """
 import difflib, glob, os, shutil, subprocess, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -16,16 +18,19 @@ ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 import brun
 
+COMPILER = os.path.join(ROOT, 'build', 'bc')
+LIBRARY = os.path.join(ROOT, 'build', 'BASLIB.OBJ')
+
 
 def compile_host(src, work, extra=()):
     base = os.path.splitext(os.path.basename(src))[0].upper()
     shutil.copy(src, os.path.join(work, base.lower() + '.bas'))
     for e in extra:
         shutil.copy(e, work)
-    shutil.copy(os.path.join(ROOT, 'build', 'BASLIB.OBJ'), work)
+    shutil.copy(LIBRARY, os.path.join(work, 'BASLIB.OBJ'))
     # (-MAP: NAME.MAP, a run-time error's line; not when the first line says NOMAP)
     opts = ['-Q'] if 'NOMAP' in open(src).readline() else ['-Q', '-MAP']
-    r = subprocess.run([os.path.join(ROOT, 'build', 'bc')] + opts + [base], cwd=work, capture_output=True, text=True)
+    r = subprocess.run([COMPILER] + opts + [base], cwd=work, capture_output=True, text=True)
     return base, r
 
 
@@ -75,8 +80,13 @@ def run_test(name, verbose=False):
 
 
 def main(a):
+    global COMPILER, LIBRARY
     verbose = '-v' in a
-    a = [x for x in a if x != '-v']
+    if '--b2' in a:
+        COMPILER = os.path.join(ROOT, 'build', 'b2', 'b2')
+        if os.path.exists(os.path.join(ROOT, 'build', 'BASLIB2.OBJ')):
+            LIBRARY = os.path.join(ROOT, 'build', 'BASLIB2.OBJ')
+    a = [x for x in a if x not in ('-v', '--b2')]
     names = a or sorted(os.path.splitext(os.path.basename(f))[0] for f in glob.glob(os.path.join(ROOT, 'tests', '*.expect')))
     n = sum(run_test(x, verbose) for x in names)
     print('%d of %d tests passed' % (n, len(names)))

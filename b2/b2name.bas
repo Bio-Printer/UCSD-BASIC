@@ -4,7 +4,7 @@
 ' outside every SUB and FUNCTION: one procedure, MODULE'BODY), then each
 ' SUB and FUNCTION -- with the module's symbols B2DECL saved, and writes
 ' each procedure between CBEGIN and CEND: every name resolved (RVAR: a
-' variable's or array's class, type, offset; RCALL: a procedure called,
+' variable's or array's class, type, offset; RPROC: a procedure called,
 ' its linker name and parameters; RBUILT: a built-in), the locals laid
 ' out (CBEGIN's frame), labels made numbers (CLABEL where one is, RLAB
 ' where one is gone to), the declarations used up (DIM of a variable,
@@ -58,7 +58,7 @@ END SUB
 SUB WCall (s)
     DIM i
     FlushLine
-    WRec RCALL
+    WRec RPROC
     WB SType(s)
     WB SKind(s)
     WS LinkName$(s)
@@ -471,10 +471,14 @@ SUB BndSkip ()
 END SUB
 
 SUB BndOut ()
-    DIM i, p, pk
-    ' (NameExpr peeks at the record after a name: the one kept)
+    DIM i, p, pk, k, t$, v
+    ' (NameExpr peeks at the record after a name: the one kept; the
+    ' current record is put back after)
     p = InPend
     pk = InPendK
+    k = Rk
+    t$ = TokS$
+    v = TokV
     FOR i = 1 TO NBn
         SELECT CASE BnK(i)
         CASE TIDENT
@@ -502,6 +506,12 @@ SUB BndOut ()
     NBn = 0
     InPend = p
     InPendK = pk
+    Rk = k
+    Tok = k
+    TokS$ = t$
+    RS$ = t$
+    TokV = v
+    RW1 = v
 END SUB
 
 ' ERASE a, b: RVAR each
@@ -645,6 +655,8 @@ SUB BeginProc (s, pw)
     IF s = 0 THEN CbKind = 1
     ProcSym = s
     ProcKeep = NSym
+    ' (each procedure's line table names its file)
+    LastFile$ = ""
     CbLocal = pw
     CbPw = pw
     CbLab = 2

@@ -101,7 +101,7 @@ SUB NextRec ()
     CASE TFILE
         RS$ = RdS$
         TokFile$ = RS$
-    CASE RSTMT, RX, RLV, RMARK, COBJB
+    CASE RSTMT, RX, RLV, RMARK, COBJB, RXCE, RLVCE
         RB1 = RdB
     CASE RVAR
         RB1 = RdB
@@ -110,7 +110,7 @@ SUB NextRec ()
         RW1 = RdW
         RW2 = RdB
         RS$ = RdS$
-    CASE RCALL
+    CASE RPROC
         RB1 = RdB
         RB2 = RdB
         RS$ = RdS$
@@ -159,7 +159,7 @@ SUB NextRec ()
         CbFlags = RdW
         CbName$ = RdS$
         CbSeg$ = RdS$
-        InProc = CbKind = 0
+        IF CbKind = 0 THEN InProc = 1 ELSE InProc = 0
     CASE CEND
         RW1 = RdW
         RS$ = RdS$
@@ -290,7 +290,7 @@ SUB WBegin ()
     PcEst = 0
     NJmp = 0
     NRelW = 0
-    InProc = CbKind = 0
+    IF CbKind = 0 THEN InProc = 1 ELSE InProc = 0
 END SUB
 
 ' ... its end (line, file, text: where, for an error B2ASM finds)
@@ -309,9 +309,9 @@ SUB WEndProc (l, f$, t$)
     WW l
     WS f$
     WS t$
-    ' (the entry and exit code, B2ASM's: at most 48 bytes, 6 relocations
+    ' (the entry and exit code, B2ASM's: at most 64 bytes, 6 relocations
     ' and 2 jumps besides those counted)
-    IF PcEst + 48 > OutHead(WHCODE) THEN OutHead(WHCODE) = PcEst + 48
+    IF PcEst + 64 > OutHead(WHCODE) THEN OutHead(WHCODE) = PcEst + 64
     IF CbLab + 2 > OutHead(WHLABS) THEN OutHead(WHLABS) = CbLab + 2
     IF NJmp + 2 > OutHead(WHJUMPS) THEN OutHead(WHJUMPS) = NJmp + 2
     IF NRelW + 6 > OutHead(WHRELS) THEN OutHead(WHRELS) = NRelW + 6
@@ -344,7 +344,7 @@ SUB PutRec ()
     CASE TLINE
         WW RW1
         WS RS$
-    CASE RSTMT, RX, RLV, RMARK, COBJB
+    CASE RSTMT, RX, RLV, RMARK, COBJB, RXCE, RLVCE
         WB RB1
     CASE RVAR
         WB RB1
@@ -353,7 +353,7 @@ SUB PutRec ()
         WW RW1
         WB RW2
         WS RS$
-    CASE RCALL
+    CASE RPROC
         WB RB1
         WB RB2
         WS RS$
@@ -540,3 +540,7 @@ FUNCTION TypeWords (ty)
     CASE ELSE: TypeWords = 1
     END SELECT
 END FUNCTION
+
+SUB Ind0 ()
+    OB OSIND0
+END SUB

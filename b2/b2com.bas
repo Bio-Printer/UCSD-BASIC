@@ -18,7 +18,7 @@ CONST WHCODE = 10, WHLABS = 11, WHJUMPS = 12, WHRELS = 13, WHBLK = 14, WHPASS = 
 
 ' ---- file numbers
 CONST CHSRC = 1, CHIN = 2, CHOUT = 3, CHOBJ = 4, CHLTMP = 5, CHBAT = 6, CHINC = 7
-CONST CHLREC = 11, CHLCOD = 12, CHJOB = 13, CHSYM = 14, CHDAT = 15
+CONST CHLREC = 11, CHLCOD = 12, CHJOB = 13, CHSYM = 14, CHDAT = 15, CHLST = 10
 
 ' ---- token codes: keywords 1..99, operators 100..127, others 128..139
 CONST KPRINT = 1, KINPUT = 2, KLET = 3, KIF = 4, KTHEN = 5, KELSE = 6
@@ -53,19 +53,21 @@ CONST TLINE = 133, TLABEL = 134, TEOF = 135, TFILE = 136, TSKIP = 137
 ' RSTMT b: a statement of kind b starts (a keyword's code, or SAAAA)
 ' RX b ... RXE: an expression (b: XAAAA, how it is wanted)
 ' RLV b ... RLVE: a target (b: LVAAAA, what is made of it)
-' RMARK b: PRINT's TAB( and SPC( (MTAB, MSPC)
+' RMARK b: PRINT's TAB( and SPC( (MTAB, MSPC), a #channel (MCHAN), a CASE's
+' item, the last (MLAST) or not (MMORE)
 ' RSEL: the value of SELECT CASE (in a CASE's condition); RLREF s: a label
 ' gone to (GOTO, GOSUB, ON, RESTORE: its text)
 CONST RSTMT = 140, RX = 141, RXE = 142, RLV = 143, RLVE = 144, RMARK = 145, RSEL = 146, RLREF = 147
 ' ---- B2NAME's operands (160..179)
 ' RVAR kind type class offset dims name: a variable or array (name: a
 '   COMMON variable's, for the linker; else "")
-' RCALL type kind name np (type flags) * np text: a procedure called
+' RPROC type kind name np (type flags) * np text: a procedure called
 ' RBUILT id text: a built-in function;  RLAB w: a label (by number)
-CONST RVAR = 160, RCALL = 161, RBUILT = 162, RLAB = 163
+CONST RVAR = 160, RPROC = 161, RBUILT = 162, RLAB = 163
 ' ---- B2EXPR's (180..199)
-' RXC type flags value ... RXCE: a compiled expression (or assignment)
-' RLVC type flags [pre] RLVL [load] RLVS [store] RLVCE: a compiled target
+' RXC type flags value ... RXCE t: a compiled expression (or assignment); t:
+'   it made string temporaries (XFTEMP)
+' RLVC type flags [pre] RLVL [load] RLVS [store] RLVCE t: a compiled target
 CONST RXC = 180, RXCE = 181, RLVC = 182, RLVL = 183, RLVS = 184, RLVCE = 185
 ' ---- code (200..219): what B2ASM assembles
 ' CBYTES n bytes; CJUMP op label; CCASE label; CLABEL label; CALIAS l m
@@ -95,7 +97,7 @@ CONST XCHAN = 15, XPUT = 16, XRAW = 17
 ' code), its parts before and after the value (LVPS), GET's (LVGET), its
 ' address (LVADDR)
 CONST LVASSIGN = 1, LVPS = 2, LVGET = 3, LVADDR = 4
-CONST MTAB = 1, MSPC = 2
+CONST MTAB = 1, MSPC = 2, MCHAN = 3, MLAST = 4, MMORE = 5
 ' RXC's flags: made string temporaries; an INTEGER constant (its value
 ' follows); a real constant, negative; an address (PUT's lvalue)
 CONST XFTEMP = 1, XFICON = 2, XFRCON = 4, XFNEG = 8, XFADDR = 16
@@ -159,6 +161,14 @@ COMMON SHARED SOff(), SFlags() AS BYTE, SScope() AS BYTE, SNext()
 COMMON SHARED SAux(), SAux2(), SSeg() AS BYTE, HashHead()
 COMMON SHARED PType() AS BYTE, PFlg() AS BYTE, SegName$(), DefType()
 COMMON SHARED StaticWords, DeclName$, DeclFlags, ParName$(), ParFlags(), NData
+
+' ---- B2EXPR's: one statement's expression nodes, and the operands they
+' name (its symbols: SKind ... above, STx$ their names in messages)
+COMMON SHARED NNode, NOp() AS BYTE, NTy() AS BYTE, NA(), NB(), NV(), NX()
+COMMON SHARED NN(), NS$(), NIsBool() AS BYTE, PreNode, ArgCount, HiNode, STx$()
+CONST NICON = 1, NRCON = 2, NSCON = 3, NVAR = 4, NELEM = 5, NCALL = 6
+CONST NBUILT = 7, NNEG = 8, NNOT = 9, NBIN = 10, NCONV = 11, NBOOL = 12
+CONST NADDR = 13
 
 ' ---- the procedures one module calls in another (generated: tools/mkdecls.py)
 #INCLUDE "B2PROCS"

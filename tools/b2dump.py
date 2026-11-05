@@ -116,14 +116,14 @@ def dump(path, raw=False):
         elif k == C['RLVE']:
             line.append('>')
         elif k == C['RMARK']:
-            line.append('(TAB' if r.B() == 1 else '(SPC')
+            line.append({1: 'TAB', 2: 'SPC', 3: '#', 4: '(last)', 5: '(more)'}.get(r.B(), '?'))
         elif k == C['RSEL']:
             line.append('SEL')
         elif k == C['RVAR']:
             kind, ty, cl, off, nd, nm = r.B(), r.B(), r.B(), r.W(), r.B(), r.S()
             line.append('%s%s[%s %s %d%s]' % (nm, '()' if kind == 2 else '', TY.get(ty), CLS.get(cl, cl), off,
                                              ' %dD' % nd if kind == 2 else ''))
-        elif k == C['RCALL']:
+        elif k == C['RPROC']:
             ty, kind, nm, np = r.B(), r.B(), r.S(), r.B()
             ps = [(r.B(), r.B()) for _ in range(np)]
             txt = r.S()
@@ -136,9 +136,10 @@ def dump(path, raw=False):
             line.append('L%d' % r.W())
         elif k == C['RXC']:
             ty, fl, v = r.B(), r.B(), r.W()
-            line.append('{code %s%s%s:' % (TY.get(ty), ' temps' if fl & 1 else '', ' =%d' % v if fl & 2 else ''))
+            line.append('{code %s%s%s%s:' % (TY.get(ty), ' =%d' % v if fl & 2 else '', ' real' if fl & 4 else '',
+                                              ' neg' if fl & 8 else '') + (' address' if fl & 16 else ''))
         elif k == C['RXCE']:
-            line.append('}')
+            line.append('}' + (' (temps)' if r.B() & 1 else ''))
         elif k == C['RLVC']:
             ty, fl = r.B(), r.B()
             line.append('<target %s:' % TY.get(ty))
@@ -147,7 +148,7 @@ def dump(path, raw=False):
         elif k == C['RLVS']:
             line.append('| store:')
         elif k == C['RLVCE']:
-            line.append('>')
+            line.append('>' + (' (temps)' if r.B() & 1 else ''))
         elif k == C['CBYTES']:
             n = r.B()
             bs = r.b[r.p:r.p + n]
