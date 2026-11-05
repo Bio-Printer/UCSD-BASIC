@@ -8,6 +8,8 @@
 ' order, so a parameter gets the type its letter has where the procedure
 ' is.  Writes them to the symbol file :B2TEMP.SYM for B2NAME.
 #INCLUDE "B2COM"
+#INCLUDE "B2REC"
+#INCLUDE "B2SYM"
 
 ' SUB/FUNCTION NAME (params) [AS type] [STATIC]: the procedure's symbol
 ' (made, or the DECLAREd one checked).  isfunc: a FUNCTION; the name is

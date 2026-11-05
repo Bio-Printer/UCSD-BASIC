@@ -10,6 +10,8 @@
 ' and PUT need a block in another order than it comes: it is kept (KeepBlk:
 ' as large as B2EXPR's largest, the header's WHBLK) and written later.
 #INCLUDE "B2COM"
+#INCLUDE "B2REC"
+#INCLUDE "B2OPS"
 
 ' the blocks kept (Kp: the records' bytes, KpS$: their names; KpN each
 ' slot's length); the channel of PRINT # ... (a constant, or minus a local)

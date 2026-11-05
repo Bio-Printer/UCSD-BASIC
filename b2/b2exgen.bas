@@ -3,7 +3,12 @@
 ' B2IO's records -- an LDC's words aligned by B2ASM, CALIGN)
 #INCLUDE "B2BUILT"
 #INCLUDE "B2COM"
+#INCLUDE "B2REC"
+#INCLUDE "B2OPS"
+#INCLUDE "B2SYM"
+#INCLUDE "B2NODE"
 
+SEGMENT XGEN
 ' a symbol's load, store or address (a global's operand for the linker)
 SUB GlobSym (op, s, add)
     GlobOp op, SCls(s), SOff(s), SName$(s), add
@@ -105,6 +110,7 @@ END SUB
 
 ' ---- code: values
 
+SEGMENT
 FUNCTION IsLvalue (n)
     IF NOp(n) = NVAR THEN
         IsLvalue = SKind(NV(n)) = SKVAR
@@ -113,6 +119,7 @@ FUNCTION IsLvalue (n)
     END IF
 END FUNCTION
 
+SEGMENT XGEN
 ' an array's slot: its address (an array parameter holds the caller's)
 SUB GenSlot (s)
     SELECT CASE SCls(s)
@@ -163,11 +170,13 @@ SUB GenAddr (n)
     END SELECT
 END SUB
 
+SEGMENT
 ' the type a variable or element is stored as (TYBYTE stays)
 FUNCTION StoreType (n)
     StoreType = SType(NV(n))
 END FUNCTION
 
+SEGMENT XGEN
 SUB GenLoad (n)
     DIM s, w, ty
     s = NV(n)
@@ -726,3 +735,5 @@ SUB GenCall (n, want)
     IF SType(s) = TYSTR THEN TempUsed = 1
     IF want = 0 THEN DropWords rw
 END SUB
+
+SEGMENT

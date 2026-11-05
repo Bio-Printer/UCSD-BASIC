@@ -9,6 +9,8 @@
 ' next passes make their tables that large.  A CBEGIN's frame and label
 ' counts are written again at its CEND (SEEK back): what this pass added.
 #INCLUDE "B2COM"
+#INCLUDE "B2REC"
+#INCLUDE "B2OPS"
 
 ' the writer's counts in the procedure being written; where the compiled
 ' block being written started; the CBEGIN's fields when it was written
@@ -31,6 +33,20 @@ SUB InOpen (n$)
         IF i < WHCODE THEN OutHead(i) = InHead(i)
     NEXT i
     IF InHead(THMAGIC) <> TOKMAGIC THEN FatalRec 83, n$   ' not B2's file: {s}
+    InPend = 0
+    TokLine = 0
+    TokText$ = ""
+    TokFile$ = SrcName$
+    LineFile$ = SrcName$
+END SUB
+
+' the file read again from its start (no OPEN: that is RTSELDOM's)
+SUB InRewind ()
+    DIM i
+    SEEK #CHIN, 1
+    FOR i = 0 TO WHWORDS - 1
+        GET #CHIN, , InHead(i)
+    NEXT i
     InPend = 0
     TokLine = 0
     TokText$ = ""

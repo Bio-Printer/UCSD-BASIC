@@ -9,6 +9,7 @@
 ' B2NAME resolves them.  What each statement becomes is written above its
 ' procedure below; B2DECL, B2NAME, B2EXPR, B2CTL and B2STMT read it so.
 #INCLUDE "B2COM"
+#INCLUDE "B2REC"
 
 ' the open blocks (BkKind: KIF, KFOR, KDO, KWHILE, KSELECT, KSUB, KFUNCTION)
 DIM SHARED BkKind(MAXCTL), NBk, NFor, FnName$, InFn

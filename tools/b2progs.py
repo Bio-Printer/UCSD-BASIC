@@ -9,6 +9,7 @@ import os, sys
 
 PROGS = [('B2', ['B2', 'B2UTIL']),                                       # the driver
          ('B2LEX', ['B2LEX', 'B2KW', 'B2UTIL']),                         # pass 1: tokens
+         ('B2CONST', ['B2CONST', 'B2IO', 'B2UTIL']),                     # 1b: names, CONSTs, counts
          ('B2SYN', ['B2SYN', 'B2IO', 'B2UTIL']),                         # 2: the statements' syntax
          ('B2DECL', ['B2DECL', 'B2SYMT', 'B2IO', 'B2UTIL']),             # 3: declarations
          ('B2NAME', ['B2NAME', 'B2SYMT', 'B2IO', 'B2UTIL']),             # 4: names

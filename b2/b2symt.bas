@@ -4,6 +4,8 @@
 ' token reader of the two passes (GetTok: B2IO's records, TFILE skipped)
 ' and what reads a declaration (DeclType, ParseParams, DefLetters).
 #INCLUDE "B2COM"
+#INCLUDE "B2REC"
+#INCLUDE "B2SYM"
 
 ' ---- the token reader
 

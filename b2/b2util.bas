@@ -315,9 +315,8 @@ END SUB
 ' ---- B2ERR's: the step failed (the errors said); its files go
 SUB StepFailed ()
     DIM i
-    IF FileExists(TokName$) THEN KILL TokName$
     IF OptKeep = 0 THEN
-        FOR i = 2 TO 7
+        FOR i = 0 TO 7
             IF FileExists(PassFile$(i)) THEN KILL PassFile$(i)
         NEXT i
     END IF
@@ -335,12 +334,11 @@ SUB CompileDone ()
     PhaseDone -1
 END SUB
 
-' the file pass n writes (1 the token file): with -K beside the source,
-' NAME.Wn (B2DUMP shows it), else a temporary one on the prefix volume
+' the file pass n writes (0 B2LEX's tokens, 1 B2CONST's): with -K beside
+' the source, NAME.Wn (B2DUMP shows it), else a temporary one on the
+' prefix volume
 FUNCTION PassFile$ (n)
-    IF n = 1 THEN
-        PassFile$ = TokName$
-    ELSEIF OptKeep THEN
+    IF OptKeep THEN
         PassFile$ = DirOf$(SrcName$) + LEFT$(ModName$, 10) + ".W" + IStr$(n)
     ELSE
         PassFile$ = ":B2TEMP.W" + IStr$(n)

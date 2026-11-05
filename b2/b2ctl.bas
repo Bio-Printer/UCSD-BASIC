@@ -9,6 +9,8 @@
 ' The labels and FOR's temporaries are new ones (CBEGIN's counts).  A
 ' statement's string temporaries are given back (CTEMP) where BC did.
 #INCLUDE "B2COM"
+#INCLUDE "B2REC"
+#INCLUDE "B2OPS"
 
 ' the open blocks: kind (KIF ...), labels (Bl1: false / next / top, Bl2:
 ' end / exit, Bl3: continue), a condition made temporaries (BlF); a CASE

@@ -4,7 +4,7 @@ text: each BASIC line as a comment, then what it has become in that pass.
 
   b2dump.py FILE [--raw]
 
-The record kinds are read from b2/b2com.bas (docs/B2DESIGN.md section 3).
+The record kinds are read from b2/b2com.bas, b2rec.bas and b2ops.bas (docs/B2DESIGN.md section 3).
 """
 import os, re, struct, sys
 
@@ -13,7 +13,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 def consts():
     c = {}
-    for l in open(os.path.join(HERE, '..', 'b2', 'b2com.bas'), encoding='latin1'):
+    for l in (x for f in ('b2com', 'b2rec', 'b2ops') for x in open(os.path.join(HERE, '..', 'b2', f + '.bas'), encoding='latin1')):
         l = l.split("'")[0]
         if l.strip().upper().startswith('CONST'):
             for m in re.finditer(r'([A-Z0-9_]+)\s*=\s*(&H[0-9A-F]+|-?\d+)', l[5:]):

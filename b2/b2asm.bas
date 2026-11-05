@@ -15,6 +15,8 @@
 ' compiled blocks' brackets) is passed over.  The tables are as large as
 ' the header says the largest procedure needs.
 #INCLUDE "B2COM"
+#INCLUDE "B2REC"
+#INCLUDE "B2OPS"
 
 ' the long jumps' targets; the listing's statement record (written one
 ' behind: AsSetLabel may move it); the highest label known; where the

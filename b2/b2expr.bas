@@ -12,9 +12,16 @@
 ' (B2CTL puts its statement's label in).  An assignment (RLV LVASSIGN and
 ' the RX XLVT after it) is all code here.  SELECT CASE's value goes into a
 ' temporary (RSEL in the CASEs' conditions); a string one is given back
-' after END SELECT.  The rest is copied through.
+' after END SELECT.  The rest is copied through.  The parsing is the
+' segment XPARSE, the code's making XGEN (B2EXGEN): an expression is parsed,
+' then its code made, so the two are never in memory together; what both
+' use (the nodes, ConvNode) is in the main segment.
 #INCLUDE "B2BUILT"
 #INCLUDE "B2COM"
+#INCLUDE "B2REC"
+#INCLUDE "B2OPS"
+#INCLUDE "B2SYM"
+#INCLUDE "B2NODE"
 
 ' the targets' type (XLVT: the expressions after FOR's target too), an
 ' assignment's target waiting for its value; SELECT CASE's temporaries
@@ -63,6 +70,7 @@ FUNCTION OpNew ()
 END FUNCTION
 
 ' the operand just read (RVAR, RPROC): a symbol
+SEGMENT XPARSE
 FUNCTION OpSym ()
     DIM s, i
     s = OpNew
@@ -107,6 +115,7 @@ FUNCTION SelSym ()
     SelSym = s
 END FUNCTION
 
+SEGMENT
 FUNCTION SymNode (s)
     DIM n
     n = NewNode(NVAR, SType(s))
@@ -116,6 +125,7 @@ FUNCTION SymNode (s)
 END FUNCTION
 
 ' the target of an assignment, INPUT, READ ...: a variable or an element
+SEGMENT XPARSE
 FUNCTION LValue ()
     DIM s
     IF Tok <> RVAR THEN
@@ -138,6 +148,7 @@ FUNCTION LValue ()
     LValue = SymNode(s)
 END FUNCTION
 
+SEGMENT XGEN
 SUB Assign (lv, e)
     DIM ty
     ty = StoreType(lv)
@@ -147,6 +158,7 @@ SUB Assign (lv, e)
     GenStore lv
 END SUB
 
+SEGMENT XPARSE
 ' NOT c as a condition
 FUNCTION NotCond (c)
     DIM n
@@ -161,6 +173,7 @@ FUNCTION NotCond (c)
     END IF
 END FUNCTION
 
+SEGMENT
 ' ---- nodes
 
 SUB ResetNodes ()
@@ -253,6 +266,7 @@ FUNCTION ToInt (n)
 END FUNCTION
 
 ' a converted argument keeps its place in the argument chain
+SEGMENT XPARSE
 FUNCTION ConvKeep (a, ty)
     DIM m
     m = ConvNode(a, ty)
@@ -946,6 +960,7 @@ FUNCTION Primary ()
     END SELECT
     Primary = n
 END FUNCTION
+SEGMENT
 ' ---- the pass
 
 SUB ResetStmt ()
@@ -991,6 +1006,7 @@ SUB XTail (k)
     TempUsed = 0
 END SUB
 
+SEGMENT XPARSE
 ' a SUB called: name args / name(args) / CALL name(args)
 FUNCTION CallStmtNode ()
     DIM s, n, a, k, last, x
@@ -1030,6 +1046,7 @@ FUNCTION CallStmtNode ()
     CallStmtNode = n
 END FUNCTION
 
+SEGMENT
 ' RX how ... RXE (RX read): its code
 SUB ExprRegion (how)
     DIM e, ty, s
@@ -1223,6 +1240,8 @@ ExprPass
 CLOSE #CHIN
 OutClose 5
 IF OptMem THEN SayLn "  [nodes " + IStr$(NodeCap) + ", most " + IStr$(HiNode) + "]"
+' (the tables given back first: KILL is RTSELDOM's)
+ERASE NOp, NTy, NA, NB, NV, NX, NN, NS$, NIsBool, SName$, STx$, SKind, SType, SCls, SOff, SFlags, SAux, SAux2, PType, PFlg
 IF ErrCount > 0 THEN CompileFailed
 IF OptKeep = 0 THEN KILL PassFile$(4)
 IF OptMem THEN SayLn "  least free memory: " + IStr$(FRE(-1)) + " words (B2EXPR)"

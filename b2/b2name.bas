@@ -13,6 +13,8 @@
 ' COMMON variables, the statics.  After this pass no pass needs a symbol.
 #INCLUDE "B2BUILT"
 #INCLUDE "B2COM"
+#INCLUDE "B2REC"
+#INCLUDE "B2SYM"
 
 ' the procedure's symbol, the symbols before its own, its result's offset;
 ' the line waiting to be written (written before the next record of the
@@ -779,9 +781,9 @@ SUB NamePass ()
     ' the module's body
     ResetDefs
     InProc = 0
-    InOpen PassFile$(2)
+    InOpen InName$
     OutHead(WHPASS) = 4
-    OutOpen PassFile$(4)
+    OutOpen OutName$
     CbRw = 0
     BeginProc 0, 0
     IF NData > 0 THEN
@@ -796,16 +798,14 @@ SUB NamePass ()
             WS l$
         NEXT s
         CLOSE #CHDAT
-        KILL DatName$
     END IF
     GetTok
     NameBlock
     EndProc
-    CLOSE #CHIN
     MemNote "body"
-    ' the procedures
+    ' the procedures (the file read again: no OPEN, RTSELDOM's)
     ResetDefs
-    InOpen PassFile$(2)
+    InRewind
     GetTok
     DO WHILE Tok <> TEOF
         IF Tok = RSTMT THEN
@@ -850,7 +850,10 @@ END SUB
 ReadJob
 StepNames
 ErrCount = 0
-InOpen PassFile$(2)
+' (the files' names now: PassFile$ is RTSELDOM's)
+InName$ = PassFile$(2)
+OutName$ = PassFile$(4)
+InOpen InName$
 CLOSE #CHIN
 ' (the module's symbols, and the most of one procedure)
 SymLoad InHead(THLOC) + 8, InHead(THMAXPAR) + 1
@@ -858,8 +861,12 @@ BnCap = Capped(InHead(THSTMT) + 8, 2000)
 REDIM BnK(BnCap), BnS$(BnCap), BnV(BnCap)
 MemNote "symbols"
 NamePass
+IF OptMem THEN SayLn "  least free memory: " + IStr$(FRE(-1)) + " words (B2NAME)"
+' (the tables given back first: KILL, CompileFailed are RTSELDOM's)
+ERASE SName$, SKind, SType, SCls, SOff, SFlags, SScope, SNext, SAux, SAux2, SSeg, HashHead, PType, PFlg
+ERASE BnK, BnS$, BnV
 IF ErrCount > 0 THEN CompileFailed
 KILL SymName$
-IF OptKeep = 0 THEN KILL PassFile$(2)
-IF OptMem THEN SayLn "  least free memory: " + IStr$(FRE(-1)) + " words (B2NAME)"
+IF NData > 0 THEN KILL DatName$
+IF OptKeep = 0 THEN KILL InName$
 ChainTo "B2EXPR", ""
