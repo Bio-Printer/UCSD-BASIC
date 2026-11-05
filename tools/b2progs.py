@@ -20,7 +20,8 @@ PROGS = [('B2', ['B2', 'B2UTIL']),                                       # the d
          ('B2LIST', ['B2LIST', 'B2UTIL']),                               # the listing
          ('B2LINK', ['B2LINK', 'B2UTIL']),                               # the linker
          ('B2ERR', ['B2ERR', 'B2KW', 'B2UTIL']),                         # a compile's errors
-         ('B2DEBUG', ['B2DEBUG'])]                                       # a run-time error's line
+         ('B2DEBUG', ['B2DEBUG']),                                       # a run-time error's line
+         ('B2DUMP', ['B2DUMP', 'B2IO', 'B2KW', 'B2UTIL'])]               # a pass's file as text (-K)
 _here = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'b2')
 PROGS = [(p, m) for p, m in PROGS if all(os.path.exists(os.path.join(_here, x.lower() + '.bas')) for x in m)]
 MODS = []
