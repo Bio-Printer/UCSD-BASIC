@@ -4,8 +4,11 @@
 imported into #5 before the boot (run_verify's VERIFY_IMPORT: Options > Import File) and must
 become a text file, header and all: BC compiles and links #5:PI and PI runs.  When the script
 has ended #5:PI.BAS is exported (VERIFY_EXPORT: Options > Export File) and must be the Windows
-file again.  build/psys/run_verify must be built from the emulator's sources (tools/setup.sh
-builds it again when they are newer).
+file again.  Then (emulator 2.11) several files into a nested sub-volume, WORK:/A/B, one of them
+twice: the second replaces the first (no question), its blocks taken by the next file (the first
+free area that holds it); a file named as a sub-volume is refused; the shell TYPEs the new one.
+build/psys/run_verify must be built from the emulator's sources (tools/setup.sh builds it again
+when they are newer).
 """
 import os, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -13,6 +16,7 @@ ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 import psys, ucsdvol
 from bcprogs import PROGS
+from mkvolume import Dir
 
 LAST = '  15      196608  3.141592653456104  3.141592653857171  10 10'
 
@@ -49,5 +53,48 @@ def main():
     return 1 if bad else 0
 
 
+def several():
+    h = tempfile.mkdtemp(prefix='bcimp2_')
+    os.makedirs(h + '/v1')
+    os.makedirs(h + '/v2')
+    open(h + '/v1/HELLO.TEXT', 'wb').write(b'first version\r\n' * 200)
+    open(h + '/v2/HELLO.TEXT', 'wb').write(b'second version\r\n')
+    open(h + '/v1/BIG.DAT', 'wb').write(bytes(range(256)) * 20)
+    open(h + '/v1/SMALL.DAT', 'wb').write(b'x' * 100)
+    open(h + '/v1/B', 'wb').write(b'not a sub-volume')
+    top = Dir('WORK', 3000)
+    a = top.sub('A')
+    a.total = 600
+    b = a.sub('B')
+    b.total = 200
+    b.text('OLD.TEXT', 'old\n')
+    ps = psys.PSystem()
+    open(ps.src, 'wb').write(top.image())
+    os.environ['VERIFY_IMPORT'] = ';'.join(['5/A/B:' + h + '/v1/HELLO.TEXT', '5/A/B:' + h + '/v1/BIG.DAT',
+                                            '5/A/B:' + h + '/v2/HELLO.TEXT', '5/A/B:' + h + '/v1/SMALL.DAT',
+                                            '5/A:' + h + '/v1/B'])
+    os.environ['VERIFY_EXPORT'] = '5/A/B:HELLO.TEXT:' + h + '/back.txt'
+    script = ('WAIT "Command:"\nTYPE "S"\nWAIT "> "\nTYPE "type work:/a/b/hello.text\\r"\nWAIT "> "\n'
+              'TYPE "bye\\r"\nWAIT "Command:"\n')
+    ok, tr, info = ps.run_script(script, 300)
+    v = ucsdvol.Volume(os.path.join(ps.out, 'VERIFY_SOURCE.BLK'))
+    ents = [(e[0], e[1], e[3]) for e in v.sub('A').sub('B').entries]
+    checks = [('several into WORK:/A/B, HELLO.TEXT replaced, SMALL.DAT in its old place',
+               ents == [(6, 10, 'OLD.TEXT'), (10, 14, 'HELLO.TEXT'), (14, 15, 'SMALL.DAT'), (20, 30, 'BIG.DAT')]),
+              ('the sub-volume B not replaced', [e[3] for e in v.sub('A').entries] == ['B']),
+              ('the shell reads the new HELLO.TEXT', 'second version' in tr and 'first version' not in tr),
+              ('exported back', open(h + '/back.txt', 'rb').read() == b'second version\r\n')]
+    for n, good in checks:
+        print('%-5s %s' % ('ok' if good else 'FAIL', n))
+    if not all(g for n, g in checks):
+        print(ents, tr[-800:])
+    return 0 if all(g for n, g in checks) else 1
+
+
 if __name__ == '__main__':
-    sys.exit(main())
+    r = main()
+    for k in ('VERIFY_IMPORT', 'VERIFY_EXPORT'):
+        os.environ.pop(k, None)
+    r2 = several()
+    print('several files: %s' % ('FAILED' if r2 else 'PASSED'))
+    sys.exit(r or r2)
