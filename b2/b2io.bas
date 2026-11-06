@@ -30,7 +30,7 @@ SUB InOpen (n$)
     ' (B2LEX's counts go on to the next pass; the others are this pass's)
     FOR i = 0 TO WHWORDS - 1
         GET #CHIN, , InHead(i)
-        IF i < WHCODE THEN OutHead(i) = InHead(i)
+        IF i < WHCODE OR i >= THSRC THEN OutHead(i) = InHead(i)
     NEXT i
     IF InHead(THMAGIC) <> TOKMAGIC THEN FatalRec 83, n$   ' not B2's file: {s}
     InPend = 0
@@ -39,6 +39,18 @@ SUB InOpen (n$)
     TokFile$ = SrcName$
     LineFile$ = SrcName$
 END SUB
+
+' the source's path the header holds (B2LEX's: THSRC)
+FUNCTION HeadPath$ ()
+    DIM s$, i, n, w
+    n = InHead(THSRC)
+    IF n < 0 OR n > 2 * (WHWORDS - THSRC - 1) THEN n = 0
+    FOR i = 1 TO n
+        w = InHead(THSRC + (i + 1) \ 2)
+        IF i AND 1 THEN s$ = s$ + CHR$(w AND 255) ELSE s$ = s$ + CHR$((w \ 256) AND 255)
+    NEXT i
+    HeadPath$ = s$
+END FUNCTION
 
 ' the file read again from its start (no OPEN: that is RTSELDOM's)
 SUB InRewind ()

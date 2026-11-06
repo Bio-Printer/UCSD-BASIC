@@ -334,15 +334,76 @@ SUB CompileDone ()
     PhaseDone -1
 END SUB
 
-' the file pass n writes (0 B2LEX's tokens, 1 B2CONST's): with -K beside
-' the source, NAME.Wn (B2DUMP shows it), else a temporary one on the
-' prefix volume
+' the file pass n writes (0 B2LEX's tokens, 1 B2CONST's): with -K NAME.Wn
+' (B2DUMP shows it) in BASIC2:/MAP or beside the source (AuxDir$), else a
+' temporary one on the prefix volume
 FUNCTION PassFile$ (n)
     IF OptKeep THEN
-        PassFile$ = DirOf$(SrcName$) + LEFT$(ModName$, 10) + ".W" + IStr$(n)
+        PassFile$ = AuxDir$(SrcName$) + LEFT$(ModName$, 10) + ".W" + IStr$(n)
     ELSE
         PassFile$ = ":B2TEMP.W" + IStr$(n)
     END IF
+END FUNCTION
+
+' where -K's NAME.Wn and -MAP's NAME.MAP go: BASIC2:/MAP/ when the volume
+' BASIC2: has the sub-volume MAP (the driver looked: JFMAPDIR), else beside
+' the file f$ they are made of
+FUNCTION AuxDir$ (f$)
+    IF JobFlags AND JFMAPDIR THEN AuxDir$ = "BASIC2:/MAP/" ELSE AuxDir$ = DirOf$(f$)
+END FUNCTION
+
+' f$ named by its volume's name, not its unit's number: VOL:NAME for
+' #5:NAME, *NAME (the boot volume's: the system's SYVID, its global words
+' 63..66) and NAME or :NAME (the prefix's, DKVID: 59..62), VOL:/A/NAME for
+' one in a sub-volume.  The host: f$.
+FUNCTION FullName$ (f$)
+    DIM d(255), k, v$, r$, a, i, n, c
+    FullName$ = f$
+    IF OSVAR(1) = 0 THEN EXIT FUNCTION
+    k = INSTR(f$, ":")
+    r$ = UCASE$(MID$(f$, k + 1))
+    IF k > 0 THEN v$ = UCASE$(LEFT$(f$, k - 1))
+    IF v$ = "" AND LEFT$(r$, 1) = "*" THEN
+        v$ = "*"
+        r$ = MID$(r$, 2)
+    END IF
+    IF v$ = "*" THEN
+        a = OSADDR(63)
+    ELSEIF v$ = "" THEN
+        a = OSADDR(59)
+    ELSEIF LEFT$(v$, 1) = "#" THEN
+        ' (the unit's directory: the volume's name at its byte 6)
+        CSP 5, VAL(MID$(v$, 2)), VARPTR(d(0)), 0, 512, 2, 0
+        IF CSP%(34) <> 0 THEN EXIT FUNCTION
+        a = VARPTR(d(0)) + 6
+    END IF
+    IF a <> 0 THEN
+        v$ = ""
+        n = PEEK(a) AND 255
+        IF n > 7 THEN EXIT FUNCTION
+        FOR i = 1 TO n
+            c = PEEK(a + (i AND &HFFFE))
+            IF i AND 1 THEN c = (c \ 256) AND 255 ELSE c = c AND 255
+            v$ = v$ + CHR$(c)
+        NEXT i
+    END IF
+    IF v$ = "" THEN EXIT FUNCTION
+    IF INSTR(r$, "/") > 0 AND LEFT$(r$, 1) <> "/" THEN r$ = "/" + r$
+    FullName$ = v$ + ":" + r$
+END FUNCTION
+
+' the header's word THSRC + i for the path p$ (B2LEX's, B2CONST's)
+FUNCTION PathWord (p$, i)
+    DIM a, b
+    IF i = 0 THEN
+        a = LEN(p$)
+        IF a > 2 * (WHWORDS - THSRC - 1) THEN a = 2 * (WHWORDS - THSRC - 1)
+        PathWord = a
+        EXIT FUNCTION
+    END IF
+    IF 2 * i - 1 <= LEN(p$) THEN a = ASC(p$, 2 * i - 1)
+    IF 2 * i <= LEN(p$) THEN b = ASC(p$, 2 * i) AND 127
+    PathWord = a + 256 * b
 END FUNCTION
 
 SEGMENT

@@ -535,7 +535,9 @@ END SUB
 ' the token file: its header (WHWORDS words: room for it first, written
 ' at the end, when the counts are known), then the tokens
 SUB LexFile (f$)
-    DIM i
+    DIM i, p$
+    ' (the source's path, its volume's name in it, for the header)
+    p$ = FullName$(f$)
     IF FileExists(TokName$) THEN KILL TokName$
     OPEN TokName$ FOR BINARY AS #CHOUT
     FOR i = 1 TO WHWORDS
@@ -560,6 +562,10 @@ SUB LexFile (f$)
     TW 0
     TW LxDecls
     TW LxConsts
+    SEEK #CHOUT, 2 * THSRC + 1
+    FOR i = THSRC TO WHWORDS - 1
+        TW PathWord(p$, i - THSRC)
+    NEXT i
     CLOSE #CHOUT
 END SUB
 

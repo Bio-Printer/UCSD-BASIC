@@ -833,7 +833,7 @@ class Trans:
         if n == 'FRE':
             self.args()
             return ('((bint)0)', T_INT, False)
-        if n in ('PEEK', 'OSVAR', 'VARPTR'):
+        if n in ('PEEK', 'OSVAR', 'OSADDR', 'VARPTR'):
             # (the P-System's memory: nothing on the host)
             self.args()
             return ('((bint)0)', T_INT, False)

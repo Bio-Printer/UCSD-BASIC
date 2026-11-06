@@ -4,7 +4,9 @@
 '   B2DUMP NAME.W5         writes NAME.D5 (beside it): each BASIC line as a
 '                          comment, then what the passes so far made of it
 '
-' (B2 -K keeps the files: NAME.W0 B2LEX's tokens ... NAME.W7 B2STMT's.)
+' (B2 -K keeps the files: NAME.W0 B2LEX's tokens ... NAME.W7 B2STMT's, in
+' BASIC2:/MAP when there is one: NAME.W5 without a volume is looked for
+' there too.)  Its first lines: the file, the pass, the source's path.
 ' Each statement on a line of its own, the expressions in { }, the targets
 ' in < >, the code bytes in hex, labels as Ln:, jumps as UJP Ln, FJP Ln ...
 #INCLUDE "B2COM"
@@ -224,6 +226,10 @@ IF f$ = "" THEN
     LINE INPUT f$
     f$ = UCASE$(LTRIM$(RTRIM$(f$)))
 END IF
+' (-K's files are in BASIC2:/MAP when it is there)
+IF NOT FileExists(f$) AND INSTR(f$, ":") = 0 THEN
+    IF FileExists("BASIC2:/MAP/" + f$) THEN f$ = "BASIC2:/MAP/" + f$
+END IF
 IF NOT FileExists(f$) THEN
     PRINT "B2DUMP: no file "; f$
     SYSTEM 1
@@ -234,6 +240,7 @@ IF p > 0 THEN o$ = LEFT$(f$, p) + "D" + MID$(f$, p + 2) ELSE o$ = f$ + ".D"
 InOpen f$
 OPEN o$ FOR OUTPUT AS #CHLST
 PRINT #CHLST, "; "; f$; " (pass "; IStr$(InHead(WHPASS)); ")"
+PRINT #CHLST, "; the source: "; HeadPath$
 DumpPass
 CLOSE #CHLST
 CLOSE #CHIN

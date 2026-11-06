@@ -508,7 +508,8 @@ first (the library's procedures among them):
     s=1,p=48,i=30 s=1,p=3,i=73 s=1,p=2,i=36 (no RTERR.MAP: link with -MAP)
 
 The map is a file on the disk: the program is the same with it or
-without.  "Out of memory" is said this way too: the program's strings and
+without.  B2 (BASIC2:) writes it into BASIC2:/MAP when that is there, and
+its B2DEBUG looks there first (BASIC2:README.TEXT).  "Out of memory" is said this way too: the program's strings and
 arrays are given back first.
 
      3 RETURN without GOSUB        4 Out of DATA

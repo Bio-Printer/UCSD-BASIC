@@ -3,7 +3,9 @@
 
     B2.CODE            the compiler: its driver; B2LEX.CODE, B2CONST.CODE, B2SYN.CODE ...
                        B2ASM.CODE its passes, B2LIST, B2LINK, B2ERR, B2DEBUG the programs it
-                       chains to (each in memory alone), each with its map
+                       chains to (each in memory alone)
+    MAP/               their maps (B2.MAP ...), and what B2 -MAP and -K make: NAME.MAP,
+                       NAME.W0 ... NAME.W7 (B2DEBUG and B2DUMP look for them there)
     README.TEXT LANGUAGE.TEXT B2DESIGN.TEXT DESIGN.TEXT   the documentation
     ALL.TEXT           @BASIC2:ALL runs the four batch files below
     INSTALL.TEXT       in the shell, after @BASIC2:/SRC/BUILD: @BASIC2:INSTALL puts
@@ -19,7 +21,7 @@
 The compiler and library are the host build's (tools/mkself2.sh, tools/mklib2.sh), which
 B2 on the P-System rebuilds byte for byte (tools/b2self.py).
 """
-import glob, os, shutil, subprocess, sys, tempfile
+import glob, os, re, shutil, subprocess, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
@@ -28,6 +30,9 @@ from mkvolume import Dir, blocks, text, LIBS, DEMOS, NOTEST
 from b2progs import PROGS, MODS
 
 B2 = os.path.join(ROOT, 'build', 'b2', 'b2')
+# the sub-volume MAP: B2's maps (about 400 blocks), BUILD's while INSTALL has not moved them,
+# what -MAP and -K make (B2EXPR's NAME.W0 ... W7: 800 blocks)
+MAPBLOCKS = 1600
 LIB = os.path.join(ROOT, 'build', 'BASLIB2.OBJ')
 
 
@@ -48,13 +53,28 @@ def host_sizes(srcs, links):
         shutil.rmtree(work, True)
 
 
+def volume_map(p):
+    """build/PROG.MAP (the host's link) as the volume has it in MAP/: its files named as BUILD's
+    link on the P-System names them -- BASIC2:PROG.CODE, BASIC2:/SRC/NAME.BAS and .OBJ, the
+    library BASIC2:/LIB/BASLIB.OBJ (B2DEBUG reads a source beside the one the map names); the
+    lines end in CR"""
+    t = open(os.path.join(ROOT, 'build', p + '.MAP')).read()
+    t = t.replace(p + '.CODE: its ', 'BASIC2:' + p + '.CODE: its ', 1)
+    t = re.sub(r'^  MODULE (\S+) from (\S+) \(object (\S+)\)$',
+               lambda m: '  MODULE %s from BASIC2:/SRC/%s (object BASIC2:/SRC/%s)' % m.groups(), t, flags=re.M)
+    t = t.replace('\n  LIBRARY BASLIB.OBJ\n', '\n  LIBRARY BASIC2:/LIB/BASLIB.OBJ\n', 1)
+    return t.replace('\n', '\r').encode('latin1')
+
+
 def main(out=os.path.join(ROOT, 'build', 'BASIC2.BLK')):
-    top = Dir('BASIC2', 9000)
+    top = Dir('BASIC2', 10000)
     for p, m in PROGS:
         top.binary(p + '.CODE', open(os.path.join(ROOT, 'build', p + '.CODE'), 'rb').read())
-    # (each one's map beside it: a run-time error in B2 says its line; the lines end in CR)
+    # (each one's map in MAP/: a run-time error in B2 says its line; and what -MAP and -K make)
+    maps = top.sub('MAP')
+    maps.total = MAPBLOCKS
     for p, m in PROGS:
-        top.binary(p + '.MAP', open(os.path.join(ROOT, 'build', p + '.MAP'), 'rb').read().replace(b'\n', b'\r'))
+        maps.binary(p + '.MAP', volume_map(p))
     top.text('README.TEXT', text(os.path.join(ROOT, 'docs', 'README2.md')))
     top.text('LANGUAGE.TEXT', text(os.path.join(ROOT, 'docs', 'LANGUAGE.md')))
     top.text('B2DESIGN.TEXT', text(os.path.join(ROOT, 'docs', 'B2DESIGN.md')))
@@ -64,12 +84,12 @@ def main(out=os.path.join(ROOT, 'build', 'BASIC2.BLK')):
     top.text('INSTALL.TEXT', "' the compiler @BASIC2:/SRC/BUILD rebuilt in the place of the old one: in\n"
              "' the shell, @BASIC2:INSTALL.  Each MOVE deletes the old file and renames the\n"
              "' new one; when the new one is not there it says so and leaves the old one.\n" +
-             ''.join('MOVE BASIC2:%s2.CODE BASIC2:%s.CODE\nMOVE BASIC2:%s2.MAP BASIC2:%s.MAP\n' % (p, p, p, p) for p, m in PROGS))
+             ''.join('MOVE BASIC2:%s2.CODE BASIC2:%s.CODE\nMOVE BASIC2:/MAP/%s2.MAP BASIC2:/MAP/%s.MAP\n' % (p, p, p, p) for p, m in PROGS))
 
     src = top.sub('SRC')
     src.text('BUILD.TEXT', "' B2: its modules, linked into its %d programs BASIC2:B22.CODE,\n" % len(PROGS) +
              "' %s (the first module of each its main one), each with its\n" % ', '.join(p + '2' for p, m in PROGS[1:]) +
-             "' map (-MAP, this file's links: a run-time error in B2 says its line)\n-MAP\n" +
+             "' map in BASIC2:/MAP (-MAP, this file's links: a run-time error in B2 says its line)\n-MAP\n" +
              ''.join('-C BASIC2:/SRC/%s\n' % m for m in MODS) +
              ''.join('-L BASIC2:%s2=%s\n' % (p, ','.join('BASIC2:/SRC/' + x for x in m)) for p, m in PROGS))
     for f in sorted(glob.glob(os.path.join(ROOT, 'b2', '*.bas'))):

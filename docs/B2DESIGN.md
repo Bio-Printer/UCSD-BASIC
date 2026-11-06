@@ -26,7 +26,7 @@ to one token set a pass.
   the next with `CHAIN "@unit,block NAME"` (B2UTIL's ChainTo; the library's
   RTCHAIN is a 510-byte segment of its own): no directory read, no FOPEN.
 - **Tables sized from counts made before.**  Every intermediate file starts
-  with a header of 16 words (section 3) that the pass writing it fills in at
+  with a header of 58 words (section 3) that the pass writing it fills in at
   the end with SEEK: the counts the next passes need.  A pass makes its
   arrays that large, once, before anything else is in memory: nothing grows,
   nothing leaves a hole behind (REDIM PRESERVE copies, and the old block is a
@@ -76,9 +76,11 @@ to one token set a pass.
     B2DEBUG      where a program's run-time error was
 
 Each pass reads the file the one before wrote and writes the next: on the
-prefix volume as :B2TEMP.Wn, or with -K beside the source as NAME.Wn, kept
-(tools/b2dump.py shows any of them as text, each BASIC line as a comment
-above what it has become).  The order is chosen so that a pass knows what it
+prefix volume as :B2TEMP.Wn, or with -K as NAME.Wn, kept: in BASIC2:/MAP
+when the volume BASIC2: has that sub-volume (the driver looks: JFMAPDIR in
+the job's options, B2UTIL's AuxDir$), else beside the source (B2DUMP on the
+P-System and tools/b2dump.py on the host show any of them as text, each
+BASIC line as a comment above what it has become).  The order is chosen so that a pass knows what it
 needs from the ones before: after B2NAME every operand carries its type, so
 B2EXPR types and compiles every expression; a compiled expression carries
 its type, so B2STMT knows which PRINT routine to call and B2CTL which FOR
@@ -87,7 +89,7 @@ the next pass's errors are said once they are mended.
 
 ## 3. The intermediate file
 
-A header of 16 words, then records: a byte, the record's kind, and its
+A header of 58 words, then records: a byte, the record's kind, and its
 operands (b a byte, w a word, s a string: a length byte, its characters).
 
     header  0 16980; 1..9 B2CONST's counts (BC's: the module's names, the most
@@ -95,7 +97,11 @@ operands (b a byte, w a word, s a string: a length byte, its characters).
             the longest statement's tokens, one line's parameters, the
             longest procedure's lines); 10..14 B2IO's, of the pass that wrote
             the file: the most code bytes, labels, jumps, relocations of one
-            procedure, the largest compiled block; 15 the pass
+            procedure, the largest compiled block; 15 the pass; 16..57
+            the source's path (B2LEX's, every pass's after it): its length,
+            then two characters a word -- the path with its volume's name,
+            not "#5:" or the prefix's ":" (B2UTIL's FullName$: a unit's
+            directory, the system's DKVID and SYVID, OS words 59 and 63)
 
     1..99    keywords (KPRINT ..);  100..127 operators (TANDALSO, TORELSE too)
     128..137 tokens: TIDENT s, TINT w, TSNG s, TDBL s, TSTR s, TLINE w s,
@@ -164,7 +170,17 @@ all the others.
 
 ## 6. The object file, the library, the linker
 
-As BC's (DESIGN.md sections 7, 8, 9).  B2 compiles lib/ itself (BASLIB2.OBJ
+As BC's (DESIGN.md sections 7, 8, 9), with one record more: after "BCOB",
+F (70) the source's path (the header's), which B2LINK's map says and -J
+leaves out of a library (BASLIB.OBJ is the same wherever its modules were
+compiled).  -MAP's NAME.MAP goes where -K's files go (BASIC2:/MAP or beside
+the code file); its first lines are the code file (FullName$), each module
+with its source and object file ("  MODULE NAME from VOL:/A/NAME.BAS (object
+VOL:/A/NAME.OBJ)") and the library.  B2DEBUG reads BASIC2:/MAP/NAME.MAP when
+its first line names the program's code file, else NAME.MAP beside it, else
+BASIC2:/MAP/NAME.MAP all the same (a program renamed with its map, as
+INSTALL does B2's); it reads a line's source beside each source the map
+names first.  B2 compiles lib/ itself (BASLIB2.OBJ
 on the host, BASIC2:/LIB/BASLIB.OBJ); with B2 #DEFINEd, lib/rtwhere.bas
 chains to B2DEBUG.CODE and looks for it on BASIC2: (BC's lexer knows #IFDEF
 too, with BC defined).

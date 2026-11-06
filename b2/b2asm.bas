@@ -600,6 +600,12 @@ MemNote "tables"
 ' statements half of the rest
 IF OptList THEN OPEN ObjName$ + "[*]" FOR OUTPUT AS #CHOBJ ELSE OPEN ObjName$ FOR OUTPUT AS #CHOBJ
 PUT #CHOBJ, , "BCOB"
+' (the source's path first, its volume's name in it: B2LINK's map says it,
+' -J leaves it out of a library)
+IF HeadPath$ <> "" THEN
+    AsObjByte 70
+    AsObjStr HeadPath$
+END IF
 AsObjByte 77
 AsObjStr ModName$
 IF OptList THEN

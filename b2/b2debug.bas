@@ -5,12 +5,14 @@
 ' the innermost out: each one's segment, procedure and offset (I#, after
 ' the call).  BCDEBUG finds the code file's name in the unit's directory
 ' (and in the sub-volumes' on the way: Tiny-C's, data files holding a
-' volume), reads NAME.MAP beside it (BCLINK -MAP) for the first frame
-' that has lines there (the library's have none), and says
+' volume), reads its map (B2LINK -MAP: BASIC2:/MAP/NAME.MAP when that one
+' names this code file, else NAME.MAP beside it, else BASIC2:/MAP/NAME.MAP:
+' a program renamed, its map moved) for the first frame that has lines
+' there (the library's have none), and says
 '   FILE line N, in NAME (S# s, P# p, I# i):
 '   the line
-' (the line read from the source file, beside the code file first when its
-' name has no volume).  Without the map: each frame's numbers,
+' (the line read from the source file: beside each source the map names
+' first, then beside the code file, then as named).  Without the map: each frame's numbers,
 ' s=S#,p=P#,i=I#.  It ends with the exit status 1.
 DEFINT A-Z
 
@@ -19,6 +21,8 @@ CONST CHMAP = 1, CHSRC = 2, MAXF = 20
 ' the command line, where its next number is; the code file's unit, its
 ' path ("#u:" or "#u:/A/B/") and name; a directory read (DirBuf); the frames
 DIM SHARED Cmd$, CPos, Unit, Path$, Prog$, DirBuf(1023)
+' the unit's volume name; the map read; the sources it names
+DIM SHARED Vol$, MapAt$, NSrc, Src$(MAXF)
 DIM SHARED NFr, FrS(MAXF), FrP(MAXF), FrI(MAXF)
 ' what LookUp found: the procedure's name, the line's file and number
 DIM SHARED FoundNm$, FoundF$, FoundLn
@@ -78,6 +82,11 @@ FUNCTION FindProg (blk)
     FOR depth = 1 TO 4
         CSP 5, Unit, VARPTR(DirBuf(0)), 0, 2048, base + 2, 0
         IF CSP%(34) <> 0 THEN EXIT FUNCTION
+        IF depth = 1 THEN
+            FOR k = 1 TO DByte(6)
+                Vol$ = Vol$ + CHR$(DByte(6 + k))
+            NEXT k
+        END IF
         n = DWord(16)
         IF n > 77 THEN n = 77
         FOR i = 1 TO n
@@ -109,21 +118,55 @@ FUNCTION MapName$ ()
     IF RIGHT$(Prog$, 5) = ".CODE" THEN MapName$ = LEFT$(Prog$, LEN(Prog$) - 5) + ".MAP" ELSE MapName$ = Prog$ + ".MAP"
 END FUNCTION
 
+' the code file a map's first line names ("" if there is no map f$)
+FUNCTION MapHead$ (f$)
+    DIM l$, k
+    ON ERROR RESUME NEXT
+    OPEN f$ FOR INPUT AS #CHMAP
+    IF ERR <> 0 THEN EXIT FUNCTION
+    ON ERROR GOTO 0
+    LINE INPUT #CHMAP, l$
+    CLOSE #CHMAP
+    k = INSTR(l$, ": its ")
+    IF k > 0 THEN l$ = LEFT$(l$, k - 1)
+    MapHead$ = l$ + " "
+END FUNCTION
+
+' the map to read (MapAt$)
+SUB FindMap ()
+    DIM a$, b$, me$
+    a$ = "BASIC2:/MAP/" + MapName$
+    b$ = Path$ + MapName$
+    me$ = Vol$ + ":" + MID$(Path$, INSTR(Path$, ":") + 1) + Prog$ + " "
+    MapAt$ = a$
+    IF MapHead$(a$) = me$ THEN EXIT SUB
+    IF MapHead$(b$) <> "" THEN MapAt$ = b$
+END SUB
+
 ' the frame S# s, P# p, I# i in the map: 1 its line found (FoundNm$,
 ' FoundF$, FoundLn), 0 no line (the library's), -1 no map
 FUNCTION LookUp (s, p, i)
     DIM l$, inseg, inproc, f$, j, c, a, b, part, k
     ON ERROR RESUME NEXT
-    OPEN Path$ + MapName$ FOR INPUT AS #CHMAP
+    OPEN MapAt$ FOR INPUT AS #CHMAP
     IF ERR <> 0 THEN
         LookUp = -1
         EXIT FUNCTION
     END IF
     ON ERROR GOTO 0
     FoundLn = 0
+    NSrc = 0
     DO WHILE NOT EOF(CHMAP)
         LINE INPUT #CHMAP, l$
-        IF LEFT$(l$, 3) = "S# " THEN
+        IF LEFT$(l$, 9) = "  MODULE " THEN
+            ' "  MODULE NAME from VOL:/A/NAME.BAS (object ...)"
+            j = INSTR(l$, " from ")
+            k = INSTR(l$, " (object ")
+            IF j > 0 AND k > j AND NSrc < MAXF THEN
+                NSrc = NSrc + 1
+                Src$(NSrc) = MID$(l$, j + 6, k - j - 6)
+            END IF
+        ELSEIF LEFT$(l$, 3) = "S# " THEN
             IF inproc THEN EXIT DO
             inseg = LeadNum(MID$(l$, 4)) = s
         ELSEIF inseg AND LEFT$(l$, 5) = "  P# " THEN
@@ -170,6 +213,18 @@ FUNCTION LookUp (s, p, i)
     LOOP
     CLOSE #CHMAP
     IF FoundLn > 0 THEN LookUp = 1
+END FUNCTION
+
+' VOL:/A/ of VOL:/A/NAME
+FUNCTION DirPart$ (f$)
+    DIM i, c
+    FOR i = LEN(f$) TO 1 STEP -1
+        c = ASC(f$, i)
+        IF c = 58 OR c = 47 THEN
+            DirPart$ = LEFT$(f$, i)
+            EXIT FUNCTION
+        END IF
+    NEXT i
 END FUNCTION
 
 ' line ln of the source file f$, without its indentation: 0 if the file
@@ -221,6 +276,7 @@ IF NOT FindProg(blk) THEN
     SayFrames "the code file not found"
     SYSTEM 1
 END IF
+FindMap
 ' the first frame with lines in the map
 FOR k = 1 TO NFr
     r = LookUp(FrS(k), FrP(k), FrI(k))
@@ -233,7 +289,14 @@ ELSEIF r = 0 THEN
 ELSE
     PRINT FoundF$; " line "; NumS$(FoundLn); ", in "; FoundNm$; " (S# "; NumS$(FrS(k)); ", P# "; NumS$(FrP(k)); ", I# "; NumS$(FrI(k)); "):"
     r = 0
-    IF INSTR(FoundF$, ":") = 0 THEN r = SayLine(Path$ + FoundF$, FoundLn)
+    IF INSTR(FoundF$, ":") = 0 THEN
+        ' (beside each source the map names: an #INCLUDE file is beside its
+        ' module's, mostly)
+        FOR k = 1 TO NSrc
+            IF r = 0 THEN r = SayLine(DirPart$(Src$(k)) + FoundF$, FoundLn)
+        NEXT k
+        IF r = 0 THEN r = SayLine(Path$ + FoundF$, FoundLn)
+    END IF
     IF r = 0 THEN r = SayLine(FoundF$, FoundLn)
 END IF
 SYSTEM 1

@@ -13,7 +13,10 @@
 '   -MAP            with each link, NAME.MAP (B2DEBUG says a run-time
 '                   error's line from it)
 '   -D A,B          the compiles after it: A and B #DEFINEd
-'   -K              keep each pass's file, NAME.W2 ... (B2DUMP shows them)
+'   -K              keep each pass's file, NAME.W0 ... NAME.W7 (B2DUMP
+'                   shows them)
+' -K's and -MAP's files go into BASIC2:/MAP when the volume BASIC2: has that
+' sub-volume, else beside the source or the code file.
 '   @FILE           the commands in FILE.TEXT, one or more a line
 '   -Q              fewer messages;  -M  each pass's memory
 ' The compiler is many programs, each in memory alone (CHAIN,
@@ -179,6 +182,18 @@ SUB ReadSteps ()
     CLOSE #CHJOB
 END SUB
 
+' -K or -MAP: their files in BASIC2:/MAP when it is there (JFMAPDIR)
+SUB MapDirLook ()
+    DIM i, want
+    want = JobFlags AND JFKEEP
+    FOR i = 1 TO NSteps
+        IF LEFT$(Steps$(i), 1) = "M" THEN want = 1
+    NEXT i
+    IF want THEN
+        IF FileExists("BASIC2:MAP") THEN JobFlags = JobFlags OR JFMAPDIR
+    END IF
+END SUB
+
 ' the next step: the job file without it, and its program run (CHAIN)
 SUB RunStep ()
     DIM i
@@ -250,6 +265,7 @@ IF LEFT$(cmd$, 3) = "-Z " THEN
     END IF
 ELSEIF cmd$ <> "" THEN
     IF NOT AddCmds(cmd$) THEN SYSTEM 1
+    MapDirLook
 ELSE
     JobFlags = JFASK
     PRINT "B2 -- BASIC compiler for the UCSD P-System"
@@ -266,5 +282,6 @@ DO
     failed = 0
     JobFlags = JFASK
     IF NOT AddCmds(l$) THEN NSteps = 0
+    MapDirLook
 LOOP
 END

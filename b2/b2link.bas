@@ -286,6 +286,9 @@ SUB Pass1 ()
             SELECT CASE c
             CASE 0
                 EXIT DO
+            CASE 70
+                ' (the source's path: the map's)
+                nm$ = LkRdS$
             CASE 77
                 IF NLM >= CapLM THEN
                     IF CapLM >= MAXLM THEN Fatal "Link: too many modules"
@@ -514,7 +517,9 @@ SUB MakeEntry ()
     EB 0
 END SUB
 
-' ---- NAME.MAP (-MAP): beside the code file, a text file: each segment
+' ---- NAME.MAP (-MAP): in BASIC2:/MAP or beside the code file (AuxDir$), a
+' file of lines: the code file, each module's source and object file (the
+' source's path is the object's record 70), the library; then each segment
 ' (S#) and its procedures by number (P#), with their names and lengths,
 ' and -- the program's own, not the library's -- their lines: where each
 ' line's code starts (the procedure's offset, I#) and its number, "I#:N",
@@ -586,7 +591,7 @@ SUB MapFile (s)
         SELECT CASE c
         CASE 0
             EXIT DO
-        CASE 77
+        CASE 70, 77
             nm$ = LkRdS$
         CASE 80
             x = LkRdB
@@ -616,10 +621,28 @@ END SUB
 SEGMENT
 
 SUB WriteMap (out$)
-    DIM k, s, f, m$
-    m$ = DirOf$(out$) + ModOf$(out$) + ".MAP"
+    DIM k, s, f, m$, c, src$, nm$
+    m$ = AuxDir$(out$) + ModOf$(out$) + ".MAP"
     OPEN m$ FOR OUTPUT AS #CHMAP
-    PRINT #CHMAP, out$; ": its segments (S#), procedures (P#) and lines (I#:N)"
+    PRINT #CHMAP, FullName$(out$); ": its segments (S#), procedures (P#) and lines (I#:N)"
+    ' each object file's module, the source it was compiled from (its path
+    ' then: record 70) and the object file; the library (the last file)
+    FOR f = 1 TO NLF - 1
+        OPEN LFile$(f) FOR BINARY AS #LCHIN
+        LEof = 0
+        src$ = ""
+        nm$ = ""
+        c = LkNextRec
+        IF c = 70 THEN
+            src$ = LkRdS$
+            c = LkNextRec
+        END IF
+        IF c = 77 THEN nm$ = LkRdS$
+        CLOSE #LCHIN
+        IF src$ <> "" THEN src$ = " from " + src$
+        PRINT #CHMAP, "  MODULE " + nm$ + src$ + " (object " + FullName$(LFile$(f)) + ")"
+    NEXT f
+    PRINT #CHMAP, "  LIBRARY " + FullName$(LFile$(NLF))
     FOR k = 1 TO 15
         FOR s = 1 TO NLSeg
             IF LSegNum(s) = k THEN
@@ -690,7 +713,7 @@ SUB WriteSeg (s, jt(), BYREF slen)
             SELECT CASE c
             CASE 0
                 EXIT DO
-            CASE 77
+            CASE 70, 77
                 nm$ = LkRdS$
             CASE 80
                 fl = LkRdB
@@ -757,9 +780,9 @@ SUB LinkUndef ()
         LEof = 0
         DO
             c = LkNextRec
-            IF c <> 77 AND c <> 80 AND c <> 68 AND c <> 71 AND c <> 69 THEN EXIT DO
+            IF c <> 70 AND c <> 77 AND c <> 80 AND c <> 68 AND c <> 71 AND c <> 69 THEN EXIT DO
             SELECT CASE c
-            CASE 77
+            CASE 70, 77
                 t$ = LkRdS$
             CASE 80
                 x = LkRdB
@@ -989,7 +1012,7 @@ END FUNCTION
 ' bytes that fill a file's last block are left out
 SEGMENT JOIN
 FUNCTION JoinLib (out$, objs$)
-    DIM f, c, z, i
+    DIM f, c, z, i, n
     LErr = 0
     ObjFiles objs$, 0
     IF LErr > 0 THEN EXIT FUNCTION
@@ -1000,6 +1023,20 @@ FUNCTION JoinLib (out$, objs$)
         OPEN LFile$(f) FOR BINARY AS #LCHIN
         LEof = 0
         z = 0
+        ' ("BCOB", then the source's path, left out: a library is the same
+        ' wherever its modules were compiled)
+        FOR i = 1 TO 4
+            OutB LkRdB
+        NEXT i
+        c = LkRdB
+        IF c = 70 THEN
+            n = LkRdB
+            FOR i = 1 TO n
+                c = LkRdB
+            NEXT i
+        ELSEIF NOT LEof THEN
+            OutB c
+        END IF
         DO
             c = LkRdB
             IF LEof THEN EXIT DO

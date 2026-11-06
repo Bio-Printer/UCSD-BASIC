@@ -19,9 +19,8 @@ from Tiny-C's shell: `BASIC2:B2 -C PROG`):
 * `-J LIB=A,B` -- join object files into a library
 * `-MAP` -- the links after it write NAME.MAP: a run-time error says its line
 * `-D A,B` -- the compiles after it have A and B #DEFINEd (B2 is always)
-* `-K` -- keep each pass's file beside the source: NAME.W0 ... NAME.W7, the
-  tokens and what each pass made of them, the BASIC lines in them
-  (tools/b2dump.py on the host shows one as text)
+* `-K` -- keep each pass's file: NAME.W0 ... NAME.W7, the tokens and what
+  each pass made of them, the BASIC lines in them (B2DUMP shows one as text)
 * `@FILE` -- the commands in FILE.TEXT; `-M` -- each pass's memory; `-Q` fewer messages
 
 ```
@@ -33,11 +32,37 @@ compiles the PRINT only with `B2 -D DEBUG PROG` or after `#DEFINE DEBUG`.
 The lines skipped are not read as BASIC; #IFDEFs nest 8 deep, through
 #INCLUDE files too.
 
+## BASIC2:/MAP
+
+-K's and -MAP's files go into the sub-volume BASIC2:/MAP, not beside your
+program (when BASIC2: is not on line, or has no MAP, beside the source and
+the code file as before).  Each names the source it was made from, with its
+volume's name (`WORK:/A/PROG.BAS`, not `#5:` or the prefix).  Two programs
+of one name on two volumes share MAP's NAME.MAP: its first lines say whose
+it is.  A sub-volume holds 77 files: delete the ones you are done with.
+
+| File | What is in it | Shown with |
+|---|---|---|
+| `NAME.MAP` (-MAP) | the code file; each module, its source and object file; the library; then each segment (S#), its procedures (P#) with their lengths, and each line's code offset (I#:N, after `FILE NAME.BAS`) | in the shell: `TYPE BASIC2:/MAP/NAME.MAP`; B2DEBUG reads it after a run-time error |
+| `NAME.W0` | B2LEX's tokens: each line's text, its tokens, #INCLUDE files, #IFDEFs done | in the shell: `B2DUMP NAME.W0` (or `X(ecute BASIC2:B2DUMP`, then `NAME.W0`) writes BASIC2:/MAP/NAME.D0; then `TYPE BASIC2:/MAP/NAME.D0` |
+| `NAME.W1` | B2CONST's: CONSTs replaced by their values, DECLAREs never used marked, the header's table counts | `B2DUMP NAME.W1` |
+| `NAME.W2` | B2SYN's: every statement in its parts, expressions and targets marked out | `B2DUMP NAME.W2` |
+| `NAME.W4` | B2NAME's: every name resolved (variable, array, procedure, built-in, label), the module's body first, then the procedures | `B2DUMP NAME.W4` |
+| `NAME.W5` | B2EXPR's: every expression and target compiled to P-code, with its type | `B2DUMP NAME.W5` |
+| `NAME.W6` | B2CTL's: IF, loops, SELECT, GOTO, GOSUB as jumps and labels | `B2DUMP NAME.W6` |
+| `NAME.W7` | B2STMT's: all of it P-code and the library's calls, for B2ASM | `B2DUMP NAME.W7` |
+
+(There is no NAME.W3: B2DECL writes the module's declarations to a
+temporary symbol file.)  Each W file starts with the source's path; B2DUMP
+looks for a NAME.Wn named without a volume in BASIC2:/MAP too, and writes
+NAME.Dn beside it.  On the host, `tools/b2dump.py NAME.W5` shows the same.
+
 ## The volume
 
 | File | What |
 |---|---|
-| `B2.CODE` | the compiler's driver; `B2LEX`, `B2CONST`, `B2SYN`, `B2DECL`, `B2NAME`, `B2EXPR`, `B2CTL`, `B2STMT`, `B2ASM` its passes, `B2LIST` (the listing), `B2LINK` (the linker), `B2ERR` (a compile's errors), `B2DEBUG` (where a run-time error was), each with its map |
+| `B2.CODE` | the compiler's driver; `B2LEX`, `B2CONST`, `B2SYN`, `B2DECL`, `B2NAME`, `B2EXPR`, `B2CTL`, `B2STMT`, `B2ASM` its passes, `B2LIST` (the listing), `B2LINK` (the linker), `B2ERR` (a compile's errors), `B2DEBUG` (where a run-time error was), `B2DUMP` (shows a -K file) |
+| `MAP/` | their maps (B2.MAP ...), and what -MAP and -K make |
 | `ALL.TEXT` | `@BASIC2:ALL`: the four batch files below |
 | `INSTALL.TEXT` | after `@BASIC2:/SRC/BUILD`, in the shell: `@BASIC2:INSTALL` puts the rebuilt compiler in the old one's place |
 | `SRC/` | B2's sources; `@BASIC2:/SRC/BUILD` rebuilds it as BASIC2:B22.CODE, B2LEX2.CODE ... |

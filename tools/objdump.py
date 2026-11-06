@@ -46,7 +46,9 @@ def dump(path, quiet=False):
             r.p += 3
             continue
         c = chr(c)
-        if c == 'M':
+        if c == 'F':
+            print('SOURCE', r.s())
+        elif c == 'M':
             print('MODULE', r.s())
         elif c == 'P':
             fl, nm, sg = r.b(), r.s(), r.s()

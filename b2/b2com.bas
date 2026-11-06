@@ -16,8 +16,9 @@ CONST MAXSEG = 12, MAXCTL = 40, MAXLNF = 16, MAXERR = 10, MAXSTEP = 300
 ' ---- the intermediate files' header: WHWORDS words.  0..9 B2LEX's counts
 ' (THxxx: for B2DECL, B2NAME and B2EXPR's tables); 10..14 counted by B2IO's
 ' writer in every pass, per procedure, the most of one (for the next
-' passes' tables); 15 the pass that wrote it
-CONST WHWORDS = 16, THMAGIC = 0, THGLOB = 1, THLOC = 2, THPARAMS = 3, THCONSTS = 4
+' passes' tables); 15 the pass that wrote it; 16.. the source's path (B2LEX's,
+' each pass's after it: its length, then two characters a word)
+CONST WHWORDS = 58, THSRC = 16, THMAGIC = 0, THGLOB = 1, THLOC = 2, THPARAMS = 3, THCONSTS = 4
 CONST THCODE = 5, THCTL = 6, THSTMT = 7, THMAXPAR = 8, THLINES = 9, TOKMAGIC = 16980
 CONST WHCODE = 10, WHLABS = 11, WHJUMPS = 12, WHRELS = 13, WHBLK = 14, WHPASS = 15
 
@@ -69,7 +70,8 @@ COMMON SHARED SymName$, InName$, OutName$, Defines$
 ' ---- the job file (B2UTIL): where the programs are (#unit:), their first
 ' blocks (" B2LEX=123 ..."), the options (JF...), the step being done
 COMMON SHARED JobHome$, JobFlags, JobCur$, JobName$, ErrName$, DatName$, JobBlk$
-CONST JFASK = 1, JFQUIET = 2, JFMEM = 4, JFKEEP = 8
+' (JFMAPDIR: -K's and -MAP's files in BASIC2:/MAP, the driver found it there)
+CONST JFASK = 1, JFQUIET = 2, JFMEM = 4, JFKEEP = 8, JFMAPDIR = 16
 
 ' ---- the token reader (B2SYN, B2DECL: the token file) and the record
 ' reader (B2IO: the passes after) -- where they are, for errors

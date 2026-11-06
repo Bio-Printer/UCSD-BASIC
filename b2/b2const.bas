@@ -767,6 +767,11 @@ TW LxMaxCtl
 TW LxMaxStmt
 TW LxMaxPar
 TW LxMaxLines
+' (the source's path: B2LEX's)
+SEEK #CHOUT, 2 * THSRC + 1
+FOR i = THSRC TO WHWORDS - 1
+    TW InHead(i)
+NEXT i
 CLOSE #CHOUT
 CLOSE #CHIN
 IF OptMem THEN SayLn "  [names " + IStr$(NNm) + ", CONSTs " + IStr$(NCn) + "]"

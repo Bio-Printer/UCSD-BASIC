@@ -62,8 +62,11 @@ class R:
 def dump(path, raw=False):
     b = open(path, 'rb').read()
     r = R(b)
-    head = [r.W() for _ in range(16)]
-    out = ['; %s  (pass %d)  header %s' % (os.path.basename(path), head[15], head)]
+    head = [r.W() for _ in range(C['WHWORDS'])]
+    n = head[C['THSRC']]
+    src = b''.join(struct.pack('<h', w) for w in head[C['THSRC'] + 1:])[:n].decode('latin1')
+    out = ['; %s  (pass %d)  header %s' % (os.path.basename(path), head[15], head[:C['THSRC']]),
+           '; the source: %s' % src]
     line = []
     ind = 0
 

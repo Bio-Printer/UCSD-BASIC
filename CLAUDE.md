@@ -158,3 +158,8 @@
 - Positions in an intermediate file are a block and a byte (OutBlk, OutOff): a file passes
   32K bytes (an INTEGER's).  CBEGIN's counts are written again at CEND (WEndProc).
 - B2 #DEFINEs B2 (BC defines BC): lib/rtwhere.bas chooses B2DEBUG / BCDEBUG with #IFDEF B2.
+- -K's NAME.Wn and -MAP's NAME.MAP go into BASIC2:/MAP when it is there (the driver's
+  MapDirLook sets JFMAPDIR; B2UTIL's AuxDir$), else beside the file.  The header's words
+  16..57 hold the source's path with its volume's name (FullName$; HeadPath$ reads it), the
+  object's record F (70, after BCOB) too, B2LINK's map its MODULE lines; -J leaves the F
+  record out, so BASLIB.OBJ is the same wherever it was compiled.  voltest2 checks them.
