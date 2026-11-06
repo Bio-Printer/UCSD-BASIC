@@ -101,8 +101,9 @@ def main(out=os.path.join(ROOT, 'build', 'BASIC2.BLK')):
 
     src.text('DUMPALL.TEXT', "' every pass's file of every module of B2, as text: in the shell, after\n"
              "' B2 -K -MAP @BASIC2:/SRC/BUILD, @BASIC2:/SRC/DUMPALL.  B2DUMP makes each\n"
-             "' BASIC2:/MAP/Wn/NAME.Wn into BASIC2:/MAP/Dn/NAME.Dn (TYPE shows one).\n" +
-             ''.join('BASIC2:B2DUMP BASIC2:/MAP/W%d/%s.W%d\n' % (n, m[:10], n) for m in MODS for n in WPASSES))
+             "' BASIC2:/MAP/Wn/NAME.Wn into BASIC2:/MAP/Dn/NAME.Dn (-MAP: not beside the\n"
+             "' sources, which have no room for 140 more files; TYPE shows one).\n" +
+             ''.join('BASIC2:B2DUMP -MAP BASIC2:/MAP/W%d/%s.W%d\n' % (n, m[:10], n) for m in MODS for n in WPASSES))
     src.text('BUILD.TEXT', "' B2: its modules, linked into its %d programs BASIC2:B22.CODE,\n" % len(PROGS) +
              "' %s (the first module of each its main one), each with its\n" % ', '.join(p + '2' for p, m in PROGS[1:]) +
              "' map in BASIC2:/MAP (-MAP, this file's links: a run-time error in B2 says its line)\n-MAP\n" +

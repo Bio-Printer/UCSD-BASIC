@@ -1,14 +1,18 @@
 ' B2DUMP -- one of B2's intermediate files as text (on the P-System: as
 ' tools/b2dump.py shows it on the host)
 '
-'   B2DUMP NAME.W5         writes NAME.D5 (beside it): each BASIC line as a
+'   B2DUMP NAME.W5         writes NAME.D5 beside the module's source (the
+'                          path the file names): each BASIC line as a
 '                          comment, then what the passes so far made of it
+'   B2DUMP -MAP NAME.W5    writes it into BASIC2:/MAP/D5 (or BASIC2:/MAP)
 '
 ' (B2 -K keeps the files: NAME.W0 B2LEX's tokens ... NAME.W7 B2STMT's, in
 ' BASIC2:/MAP/W0 ... W7 or BASIC2:/MAP when there are those: NAME.W5
-' without a volume is looked for there too, and its dump NAME.D5 goes into
-' BASIC2:/MAP/D5 when there is one.)  Its first lines: the file, the pass,
-' the source's path.  BASIC2:/SRC/DUMPALL dumps a whole -K build's.
+' without a volume is looked for there too.)  When the source is not there
+' (its volume not on line, or the file gone), the dump goes beside the W
+' file.  Its first lines: the file, the pass, the source's path.
+' BASIC2:/SRC/DUMPALL dumps a whole -K build's, with -MAP: 140 dumps are
+' more than a sub-volume's 77 files beside the sources.
 ' Each statement on a line of its own, the expressions in { }, the targets
 ' in < >, the code bytes in hex, labels as Ln:, jumps as UJP Ln, FJP Ln ...
 #INCLUDE "B2COM"
@@ -221,12 +225,17 @@ END SUB
 
 ' ---- B2DUMP, the program
 
-DIM f$, o$, p
+DIM f$, o$, p, nm$, d$, tomap
 f$ = UCASE$(LTRIM$(RTRIM$(COMMAND$)))
 IF f$ = "" THEN
-    PRINT "Dump what file (NAME.Wn)? ";
+    PRINT "Dump what file ([-MAP] NAME.Wn)? ";
     LINE INPUT f$
     f$ = UCASE$(LTRIM$(RTRIM$(f$)))
+END IF
+' -MAP: the dump into BASIC2:/MAP/Dn
+IF LEFT$(f$, 5) = "-MAP " THEN
+    tomap = 1
+    f$ = LTRIM$(MID$(f$, 6))
 END IF
 ' (-K's files are in BASIC2:/MAP when it is there)
 IF NOT FileExists(f$) AND INSTR(f$, ":") = 0 THEN
@@ -241,16 +250,25 @@ IF NOT FileExists(f$) THEN
     PRINT "B2DUMP: no file "; f$
     SYSTEM 1
 END IF
-' NAME.Wn -> NAME.Dn: beside it, or in BASIC2:/MAP/Dn for one in BASIC2:/MAP/Wn
-' (a whole build's dumps: 140 files, more than the Wn have room for)
-p = INSTR(f$, ".W")
-IF p > 0 THEN o$ = LEFT$(f$, p) + "D" + MID$(f$, p + 2) ELSE o$ = f$ + ".D"
-IF LEFT$(f$, 13) = "BASIC2:/MAP/W" AND MID$(f$, 15, 1) = "/" THEN
-    IF FileExists("BASIC2:/MAP/D" + MID$(f$, 14, 1)) THEN o$ = "BASIC2:/MAP/D" + MID$(f$, 14, 1) + MID$(o$, 15)
+InOpen f$
+' NAME.Wn -> NAME.Dn: beside the source (the header's path), or with -MAP in
+' BASIC2:/MAP/Dn (BASIC2:/MAP); else beside the W file
+nm$ = MID$(f$, LEN(DirOf$(f$)) + 1)
+p = INSTR(nm$, ".W")
+IF p > 0 THEN nm$ = LEFT$(nm$, p) + "D" + MID$(nm$, p + 2) ELSE nm$ = nm$ + ".D"
+o$ = DirOf$(f$) + nm$
+d$ = HeadPath$
+IF tomap THEN
+    IF FileExists("BASIC2:/MAP/D" + RIGHT$(nm$, 1)) THEN
+        o$ = "BASIC2:/MAP/D" + RIGHT$(nm$, 1) + "/" + nm$
+    ELSEIF FileExists("BASIC2:MAP") THEN
+        o$ = "BASIC2:/MAP/" + nm$
+    END IF
+ELSEIF d$ <> "" THEN
+    IF FileExists(d$) THEN o$ = DirOf$(d$) + nm$
 END IF
 ' (an old dump goes first: the new one has its room)
 IF FileExists(o$) THEN KILL o$
-InOpen f$
 OPEN o$ FOR OUTPUT AS #CHLST
 PRINT #CHLST, "; "; f$; " (pass "; IStr$(InHead(WHPASS)); ")"
 PRINT #CHLST, "; the source: "; HeadPath$

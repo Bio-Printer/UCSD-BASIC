@@ -48,7 +48,7 @@ program that fills its disk stops with "Run-time error 61: Disk full".
 | File | What is in it | Shown with |
 |---|---|---|
 | `NAME.MAP` (-MAP) | the code file; each module, its source and object file; the library; then each segment (S#), its procedures (P#) with their lengths, and each line's code offset (I#:N, after `FILE NAME.BAS`) | in the shell: `TYPE BASIC2:/MAP/NAME.MAP`; B2DEBUG reads it after a run-time error |
-| `NAME.W0` | B2LEX's tokens: each line's text, its tokens, #INCLUDE files, #IFDEFs done | in the shell: `B2DUMP NAME.W0` (or `X(ecute BASIC2:B2DUMP`, then `NAME.W0`) writes BASIC2:/MAP/D0/NAME.D0; then `TYPE BASIC2:/MAP/D0/NAME.D0` |
+| `NAME.W0` | B2LEX's tokens: each line's text, its tokens, #INCLUDE files, #IFDEFs done | in the shell: `B2DUMP NAME.W0` (or `X(ecute BASIC2:B2DUMP`, then `NAME.W0`) writes NAME.D0 beside the source (`B2DUMP -MAP NAME.W0`: into BASIC2:/MAP/D0); then `TYPE` it |
 | `NAME.W1` | B2CONST's: CONSTs replaced by their values, DECLAREs never used marked, the header's table counts | `B2DUMP NAME.W1` |
 | `NAME.W2` | B2SYN's: every statement in its parts, expressions and targets marked out | `B2DUMP NAME.W2` |
 | `NAME.W4` | B2NAME's: every name resolved (variable, array, procedure, built-in, label), the module's body first, then the procedures | `B2DUMP NAME.W4` |
@@ -58,8 +58,10 @@ program that fills its disk stops with "Run-time error 61: Disk full".
 
 (There is no NAME.W3: B2DECL writes the module's declarations to a
 temporary symbol file.)  Each W file starts with the source's path; B2DUMP
-looks for a NAME.Wn named without a volume in BASIC2:/MAP/Wn (and BASIC2:/MAP) too, and writes
-NAME.Dn into BASIC2:/MAP/Dn (beside the W file when it is elsewhere), an old one replaced.
+looks for a NAME.Wn named without a volume in BASIC2:/MAP/Wn (and BASIC2:/MAP) too.  It
+writes NAME.Dn beside the module's source (the path the W file names: `BASIC2:/SRC/B2LEX.D0`),
+or, with `-MAP`, into BASIC2:/MAP/Dn (`B2DUMP -MAP NAME.W0`); when the source is not on line,
+beside the W file.  An old dump is replaced.
 
 A whole build, every pass of every module, as text: in the shell,
 
@@ -68,7 +70,8 @@ B2 -K -MAP @BASIC2:/SRC/BUILD
 @BASIC2:/SRC/DUMPALL
 ```
 
-DUMPALL runs B2DUMP on each of the 140 W files; the dumps fill MAP/D0 ... D7
+DUMPALL runs `B2DUMP -MAP` on each of the 140 W files (beside the sources
+they would be more than SRC's 77 files); the dumps fill MAP/D0 ... D7
 (1900 blocks each, 1360 to 1810 of them for B2's build).  Options > Export
 File > Export All in the emulator (2.12) copies MAP, or the whole volume,
 to a Windows folder, the dumps as Windows text.  On the host, `tools/b2dump.py NAME.W5` shows the same.

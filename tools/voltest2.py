@@ -12,7 +12,8 @@ becomes B2.CODE ..., MAP/B22.MAP MAP/B2.MAP: BUILD links with -MAP), and that on
 which runs; then B2 -K -MAP compiles TEST/RTERR (its NAME.W0 ... W7 in BASIC2:/MAP/W0 ... W7, NAME.MAP in
 BASIC2:/MAP, each
 naming BASIC2:/TEST/RTERR.BAS), RTERR runs (B2DEBUG says its line from that map) and B2DUMP RTERR.W5
-finds the file in BASIC2:/MAP/W5 and writes RTERR.D5 into BASIC2:/MAP/D5.  The volume's directories are checked on the host afterwards.
+finds the file in BASIC2:/MAP/W5 and writes RTERR.D5 beside the source, in BASIC2:/TEST, and
+B2DUMP -MAP RTERR.W4 writes RTERR.D4 into BASIC2:/MAP/D4.  The volume's directories are checked on the host afterwards.
 
   voltest.py [--pascal]     (--pascal: BIGGY boots SYSTEM.PASCAL, not SYSTEM.C)
 """
@@ -41,7 +42,8 @@ def main(a):
               'TYPE "basic2:/demo/hello\\r"\nWAIT "exit status"\nWAIT "> "\n'
               'TYPE "b2 -q -k -map basic2:/test/rterr\\r"\nWAIT "exit status"\nWAIT "> "\n'
               'TYPE "basic2:/test/rterr\\r"\nWAIT "exit status"\nWAIT "> "\n'
-              'TYPE "b2dump rterr.w5\\r"\nWAIT "exit status"\nWAIT "> "\nTYPE "bye\\r"\nWAIT "Command:"\n')
+              'TYPE "b2dump rterr.w5\\r"\nWAIT "exit status"\nWAIT "> "\n'
+              'TYPE "b2dump -map rterr.w4\\r"\nWAIT "exit status"\nWAIT "> "\nTYPE "bye\\r"\nWAIT "Command:"\n')
     ok, tr, info = ps.run_script(script, 6000)
     tr = tr.replace('\n\n', '\n')
     print(tr[tr.find('BASIC2:B2'):])
@@ -116,13 +118,16 @@ def main(a):
         w = [mp.sub('W%d' % i).read('RTERR.W%d' % i)[0] for i in (0, 1, 2, 4, 5, 6, 7)]
         hs = [x[34:34 + 2 * ((x[32] + 1) // 2)][:x[32]] for x in w]
         mtext = mp.read('RTERR.MAP')[0]
-        dump = mp.sub('D5').read('RTERR.D5')[0]
+        dump = v.sub('TEST').read('RTERR.D5')[0]           # beside the source
+        dump4 = mp.sub('D4').read('RTERR.D4')[0]           # -MAP
         same = all(h == src for h in hs) and b'  MODULE RTERR from ' + src + b' (object BASIC2:/TEST/RTERR.OBJ)' in mtext
         same = same and mtext.startswith(b'BASIC2:/TEST/RTERR.CODE: ') and b'; the source: ' + src in dump
-        same = same and not any(n.startswith('RTERR.W') or n == 'RTERR.MAP' for n in [e[3] for e in v.sub('TEST').entries])
+        same = same and b'; the source: ' + src in dump4 and not mp.sub('D5').find('RTERR.D5')
+        same = same and not any(n.startswith('RTERR.W') or n == 'RTERR.MAP' or n == 'RTERR.D4' for n in [e[3] for e in v.sub('TEST').entries])
     except BaseException:
         same = False
-    print('-K -MAP: %s' % ('RTERR.W0 ... W7 in MAP/W0 ... W7, RTERR.MAP in MAP/, each naming its source' if same else 'WRONG'))
+    print('-K -MAP: %s' % ('RTERR.W0 ... W7 in MAP/W0 ... W7, RTERR.MAP in MAP/, each naming its source; '
+                           'B2DUMP RTERR.W5 into TEST/ (the source\'s), -MAP RTERR.W4 into MAP/D4' if same else 'WRONG'))
     bad += not same
     i = tr.find('basic2:/test/rterr\n')
     same = i >= 0 and 'RTERR.BAS line 8, in FILL' in tr[i:] and 'x(a) = a' in tr[i:]
