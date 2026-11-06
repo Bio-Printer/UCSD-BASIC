@@ -12,10 +12,10 @@ ERR1.BAS line 20: a comparison expected after IS
   CASE IS
 ERR1.BAS line 23: INPUT, OUTPUT, APPEND, BINARY or RANDOM expected
   OPEN "F" FOR READING AS #1
-ERR1.BAS line 24: PRINT USING is not supported
-  PRINT USING "#"; a
 ERR1.BAS line 28: RETURN with a value outside a FUNCTION
   RETURN 5
 ERR1.BAS line 29: not inside such a block
   EXIT FOR
+ERR1.BAS line 30: not inside such a block
+  CONTINUE SELECT
 10 error(s): no ERR1.OBJ
