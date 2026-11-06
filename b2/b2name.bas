@@ -787,9 +787,7 @@ SUB NamePass ()
     ' the module's body
     ResetDefs
     InProc = 0
-    InOpen InName$
     OutHead(WHPASS) = 4
-    OutOpen OutName$
     CbRw = 0
     BeginProc 0, 0
     IF NData > 0 THEN
@@ -797,7 +795,6 @@ SUB NamePass ()
         WB RSTMT
         WB SDATAL
         WVar FindSym("$DB")
-        OPEN DatName$ FOR INPUT AS #CHDAT
         FOR s = 1 TO NData
             LINE INPUT #CHDAT, l$
             WRec TSTR
@@ -859,8 +856,11 @@ ErrCount = 0
 ' (the files' names now: PassFile$ is RTSELDOM's)
 InName$ = PassFile$(2)
 OutName$ = PassFile$(4)
+' (the files opened first, with nothing in memory yet: OPEN is RTSELDOM's,
+' with a directory's buffer -- B2SYN's file, this one's, the DATA's)
 InOpen InName$
-CLOSE #CHIN
+OutOpen OutName$
+IF FileExists(DatName$) THEN OPEN DatName$ FOR INPUT AS #CHDAT
 ' (the module's symbols, and the most of one procedure)
 SymLoad InHead(THLOC) + 8, InHead(THMAXPAR) + 1
 BnCap = Capped(InHead(THSTMT) + 8, 2000)
