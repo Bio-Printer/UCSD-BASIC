@@ -527,8 +527,8 @@ SUB SInput (k)
     LOOP
 END SUB
 
-' PRINT [#n,] items: [RX XCHAN], then RX XANY e RXE, TSEMI, TCOMMA, RMARK
-' MTAB / MSPC RX TYINT e RXE
+' PRINT [#n,] [USING f$;] items: [RMARK MCHAN, RX XCHAN], [RMARK MUSING, RX
+' TYSTR f RXE], then RX XANY e RXE, TSEMI, TCOMMA, RMARK MTAB / MSPC RX TYINT e RXE
 SUB SPrint ()
     GetTok
     Stm KPRINT
@@ -537,9 +537,12 @@ SUB SPrint ()
         IF Tok = TCOMMA OR Tok = TSEMI THEN GetTok ELSE ErrNo 53   ' , expected
     END IF
     IF Tok = KUSING THEN
-        ErrNo 54   ' PRINT USING is not supported
-        SkipStmt
-        EXIT SUB
+        ' USING f$; items: RMARK MUSING, RX TYSTR f RXE
+        GetTok
+        WB RMARK
+        WB MUSING
+        SExpr TYSTR
+        IF Tok = TSEMI OR Tok = TCOMMA THEN GetTok ELSE ErrRec 1, TSEMI, Tok, ""   ' ; expected, not {t}
     END IF
     DO WHILE NOT AtEnd
         IF Tok = TSEMI OR Tok = TCOMMA THEN

@@ -790,6 +790,10 @@ FUNCTION Builtin (id, nm$)
         END IF
     CASE BSADD
         IF nargs <> 1 THEN ErrNo 99 ELSE a = ConvKeep(a, TYSTR)   ' SADD: one argument expected
+    CASE BUSING
+        ' USING$(f$, items): the format a string, the items as they are
+        ty = TYSTR
+        IF nargs < 2 THEN ErrRec 91, 0, 0, nm$ ELSE a = ConvKeep(a, TYSTR)   ' {s}: arguments expected
     CASE BCSPI, BCSPS, BCSPD, BOSCALLI
         IF nargs < 1 THEN ErrRec 91, 0, 0, nm$   ' {s}: arguments expected
         IF NOp(a) <> NICON THEN ErrRec 100, 0, 0, nm$   ' {s}: a constant first

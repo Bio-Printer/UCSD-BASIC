@@ -469,6 +469,25 @@ SUB GenBuiltin (n)
             EmitCsp NV(a)
         END IF
         EXIT SUB
+    CASE BUSING
+        ' (the library's RTUSING: _USTART f$, each item _UNUM or _USTR, _UEND)
+        GenValue a
+        CallRt "_USTART"
+        x = NN(a)
+        DO WHILE x > 0
+            IF NTy(x) = TYSTR THEN
+                GenValue x
+                CallRt "_USTR"
+            ELSE
+                GenValueAs x, TYDBL
+                CallRt "_UNUM"
+            END IF
+            x = NN(x)
+        LOOP
+        DropPad 1
+        CallRt "_UEND"
+        TempUsed = 1
+        EXIT SUB
     CASE BOSVAR
         OB OLOD
         OB 2

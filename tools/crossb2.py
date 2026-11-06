@@ -16,7 +16,7 @@ sys.path.insert(0, HERE)
 os.environ.setdefault('VERIFY_HARVARD', '1')
 import psys, ucsdvol
 from bcprogs import PROGS, MODS
-LIBS = ['RTCORE', 'RTFILE', 'RTSTR', 'RTNUM', 'RTARR', 'RTINPUT', 'RTDATA', 'RTSUBV', 'RTCHAIN', 'RTWHERE']
+LIBS = ['RTCORE', 'RTFILE', 'RTSTR', 'RTNUM', 'RTARR', 'RTINPUT', 'RTDATA', 'RTSUBV', 'RTCHAIN', 'RTWHERE', 'RTUSING']
 
 
 def build_cross():

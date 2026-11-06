@@ -200,7 +200,7 @@ END SUB
 ' ---- the statements
 
 SUB StPrint ()
-    DIM k, nl, ty
+    DIM k, nl, ty, usng
     Chan = 0
     nl = 1
     DO
@@ -210,13 +210,21 @@ SUB StPrint ()
             nl = 0
         ELSEIF k = TCOMMA THEN
             NextRec
-            PushCh
-            CallRt "_PCOMMA"
+            IF usng = 0 THEN
+                PushCh
+                CallRt "_PCOMMA"
+            END IF
             nl = 0
         ELSEIF k = RMARK THEN
             NextRec
             IF RB1 = MCHAN THEN
                 ChanBlk
+            ELSEIF RB1 = MUSING THEN
+                ' (the library's RTUSING makes the line: _USTART, an item
+                ' each _UNUM or _USTR, _UEND)
+                ty = CopyNext
+                CallRt "_USTART"
+                usng = 1
             ELSE
                 k = RB1
                 PushCh
@@ -225,6 +233,18 @@ SUB StPrint ()
                 nl = 1
                 TempReset
             END IF
+        ELSEIF k = RXC AND usng <> 0 THEN
+            IF NextBlock THEN
+                CopyCode 0
+                IF BTy = TYSTR THEN
+                    CallRt "_USTR"
+                ELSE
+                    IF BTy = TYINT THEN EmitCsp 108 ELSE IF BTy = TYSNG THEN EmitCsp 106
+                    CallRt "_UNUM"
+                END IF
+            END IF
+            nl = 1
+            TempReset
         ELSEIF k = RXC THEN
             IF NextBlock THEN
                 PushCh
@@ -242,6 +262,13 @@ SUB StPrint ()
             EXIT DO
         END IF
     LOOP
+    IF usng THEN
+        PushCh
+        OB 0
+        CallRt "_UEND"
+        CallRt "_PSTR"
+        TempUsed = 1
+    END IF
     IF nl THEN
         PushCh
         CallRt "_PNL"

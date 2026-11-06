@@ -7,7 +7,7 @@
 ' RX b ... RXE: an expression (b: XAAAA, how it is wanted)
 ' RLV b ... RLVE: a target (b: LVAAAA, what is made of it)
 ' RMARK b: PRINT's TAB( and SPC( (MTAB, MSPC), a #channel (MCHAN), a CASE's
-' item, the last (MLAST) or not (MMORE)
+' item, the last (MLAST) or not (MMORE), PRINT's USING format (MUSING)
 ' RSEL: the value of SELECT CASE (in a CASE's condition); RLREF s: a label
 ' gone to (GOTO, GOSUB, ON, RESTORE: its text)
 CONST RSTMT = 140, RX = 141, RXE = 142, RLV = 143, RLVE = 144, RMARK = 145, RSEL = 146, RLREF = 147
@@ -53,7 +53,7 @@ CONST XCHAN = 15, XPUT = 16, XRAW = 17
 ' code), its parts before and after the value (LVPS), GET's (LVGET), its
 ' address (LVADDR)
 CONST LVASSIGN = 1, LVPS = 2, LVGET = 3, LVADDR = 4
-CONST MTAB = 1, MSPC = 2, MCHAN = 3, MLAST = 4, MMORE = 5
+CONST MTAB = 1, MSPC = 2, MCHAN = 3, MLAST = 4, MMORE = 5, MUSING = 6
 ' RXC's flags: made string temporaries; an INTEGER constant (its value
 ' follows); a real constant, negative; an address (PUT's lvalue)
 CONST XFTEMP = 1, XFICON = 2, XFRCON = 4, XFNEG = 8, XFADDR = 16

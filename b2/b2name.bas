@@ -164,7 +164,7 @@ FUNCTION BuiltTable$ (part)
         tb$ = "RND     TIMER   EOF     INKEY$  COMMAND$ERR     MKI$    CVI     MKS$    "
         tb$ = tb$ + "CVS     MKD$    CVD     LBOUND  UBOUND  FRE     VARPTR  PEEK    PEEKB   "
         tb$ = tb$ + "CSP%    CSP#    CSP!    OSCALL% OSVAR   POS     FREEFILELOF     DVI%    "
-        tb$ = tb$ + "MDI%    SADD    OSADDR  "
+        tb$ = tb$ + "MDI%    SADD    OSADDR  USING$  "
     END SELECT
     BuiltTable$ = tb$
 END FUNCTION
