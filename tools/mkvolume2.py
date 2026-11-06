@@ -116,7 +116,8 @@ def main(out=os.path.join(ROOT, 'build', 'BASIC2.BLK')):
     test.extra = host_sizes(srcs, [(n, [n]) for n in names])
     exp = test.sub('EXPECT')
     for n in names:
-        exp.text(n + '.TEXT', text(os.path.join(ROOT, 'tests', n.lower() + '.expect')))
+        e2 = os.path.join(ROOT, 'tests', n.lower() + '.expect2')
+        exp.text(n + '.TEXT', text(e2 if os.path.exists(e2) else os.path.join(ROOT, 'tests', n.lower() + '.expect')))
 
     # FILES.TEXT: made twice, to list itself with its own size
     top.items.append(('FILES.TEXT', b'', 3))

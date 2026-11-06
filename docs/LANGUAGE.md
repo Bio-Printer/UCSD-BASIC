@@ -47,6 +47,14 @@ header, was lost), and Export File writes it back as PC text.
   (looked for beside the source first -- on its volume, in its
   sub-volume -- then as named, on the prefix volume).
   Include files may be nested 3 deep.
+- `#DEFINE NAME`, `#UNDEF NAME`, `#IFDEF NAME`, `#IFNDEF NAME`, `#ELSE`,
+  `#ENDIF`, each on a line of its own: the lines between `#IFDEF NAME` and
+  `#ELSE` (or `#ENDIF`) are compiled only when NAME is defined (`#IFNDEF`:
+  when it is not), those between `#ELSE` and `#ENDIF` only when they are
+  not; the lines left out are not read as BASIC.  They nest 8 deep, through
+  #INCLUDE files too.  A name is defined by `#DEFINE` (from there on in the
+  module, until `#UNDEF`), or for every compile after it by B2's option `-D
+  NAME,NAME`; B2 defines B2 itself, BC defines BC.
 - `?` is short for PRINT.
 
 Names: a letter or _ first, then letters, digits and _, then optionally
@@ -252,6 +260,18 @@ Output
   console the end of a line is CR and LF; CHR$(13) is a CR alone (back to
   the line's start: PRINT n; CHR$(13); shows a count on one line) and
   CHR$(10) a LF alone.  In a file the end of a line is a CR.
+- `PRINT [#n,] USING format$; items` (B2) -- each item in a field of the
+  format (QuickBASIC's), the format's other characters as they are; after
+  its last field the format starts again.  Numbers: `#` a digit, `.` the
+  point, `,` before the point separates the thousands, `+` first or last
+  the sign, `-` last a minus (or a blank), `$$` a $ before the digits, `**`
+  * in the place of the blanks before them, `**$` both, `^^^^` (`^^^^^`) an
+  exponent E+nn (E+nnn); a number too large for its field is printed with
+  % before it.  Strings: `!` the first character, `&` all of it, `\  \` as
+  many as the field is wide.  `_` prints the next character as it is.  The
+  items are separated by ; or , (both nothing between).  `PRINT USING
+  "###.##"; x` prints x with two decimals, rounded (a half away from 0).
+  `USING$(format$, items)` is the text such a PRINT prints, as a string.
 - `WRITE [#n,] items` -- items separated by commas, strings in quotes,
   numbers without blanks, then the end of the line.
 
@@ -378,11 +398,31 @@ Other
 
 ## 9. Strings
 
-A string holds 0 to 255 characters (longer gives run-time error 15).
+A string holds 0 to 255 characters; one declared with B2's `LENGTH n` 0 to
+n (n up to 32000).  Assigning a longer value keeps its first 255 (or n)
+characters; an expression's strings may be up to 32000 characters long
+(longer gives run-time error 15).
+
+    DIM name AS STRING LENGTH 20, line$ LENGTH 4096
+    DIM table(500) AS STRING LENGTH 8      ' 500 strings of 0..8 characters
+    SUB Show (t AS STRING LENGTH 3, v() AS STRING LENGTH 8)
+
+LENGTH (B2) comes after `AS STRING` or after a name with `$`, in DIM,
+REDIM, SHARED, COMMON, STATIC and a SUB's or FUNCTION's parameters.  An
+array declared with it holds its strings itself, each element n characters'
+room (n + 1 bytes, n + 3 for n of 255 or more): no block of its own for
+each string -- the memory it saves.  An array parameter declared with LENGTH
+takes only arrays of that LENGTH; a string parameter with LENGTH gets the
+argument's first n characters.  An element of a LENGTH array passed to a
+BYREF parameter is passed as a copy.  Every string function, operator and
+statement takes strings of any length, LENGTH ones and others mixed; LINE
+INPUT # fills a LENGTH string up to its length (the console's line is 255
+characters at most).
 Strings are values: `b$ = a$` copies.  A string variable owns its own
 memory, given back when the variable is assigned a longer value or goes
 away.  The intermediate strings of an expression are made in a string
-work area (1.5K) and given back after each statement.
+work area (1.5K; a longer one on the heap) and given back after each
+statement.
 
 ## 10. Files and devices
 
@@ -582,7 +622,8 @@ of the library.  The programs BC makes run in any layout.
 
 ## 14. Limits
 
-- A source line: 255 characters.  A string: 255 characters.
+- A source line: 255 characters.  A string: 255 characters (B2's LENGTH:
+  32000).
 - An array: 32000 bytes, 8 dimensions.
 - FOR loops nested 30 deep, GOSUB 50 deep, blocks 40 deep.
 - A procedure: about 3200 bytes of P-code, 60 far jump targets, 260
@@ -592,6 +633,6 @@ of the library.  The programs BC makes run in any layout.
 
 ## 15. Not supported
 
-PRINT USING, TYPE ... END TYPE, LONG and other types, DEF FN, ON ERROR
+TYPE ... END TYPE, LONG and other types, DEF FN, ON ERROR
 GOTO label (only RESUME NEXT and GOTO 0), INPUT$, LOF, a shared DATA
 list per module (all modules' DATA form one list), automatic arrays.

@@ -165,7 +165,7 @@ def main(out=os.path.join(ROOT, 'build', 'BASIC.BLK')):
 
     test = top.sub('TEST')
     names = sorted(os.path.basename(f)[:-7].upper() for f in glob.glob(os.path.join(ROOT, 'tests', '*.expect')))
-    names = [n for n in names if n not in NOTEST]
+    names = [n for n in names if n not in NOTEST and 'B2ONLY' not in open(os.path.join(ROOT, 'tests', n.lower() + '.bas')).readline()]
     test.text('TESTS.TEXT', "' the tests: each compiled and linked into TEST/NAME.CODE; what it\n"
               "' prints is in TEST/EXPECT/NAME.TEXT\n" + ''.join('BASIC:/TEST/%s\n' % n for n in names))
     srcs = {n: os.path.join(ROOT, 'tests', n.lower() + '.bas') for n in names}
