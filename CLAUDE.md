@@ -31,7 +31,7 @@
   and P-Code mode without the Harvard layout); for the console's line ends
   `tools/crtest.py` (a CR alone, CHR$(13), goes back to the line's start;
   PRINT's line end is CR LF: the library's UNITWRITE has CRLFBIT); for the
-  emulator's Import/Export of NAME.BAS and of several files, replacing, into nested sub-volumes `tools/importtest.py` (emulator 2.11;
+  emulator's Import/Export of NAME.BAS and of several files, replacing, into nested sub-volumes, Export All of a volume `tools/importtest.py` (emulator 2.12;
   setup.sh rebuilds build/psys/run_verify when the emulator's sources are
   newer).  New cross-module calls need
   `tools/mkdecls.py` (buildhost.sh runs it).

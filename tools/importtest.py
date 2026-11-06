@@ -7,6 +7,7 @@ has ended #5:PI.BAS is exported (VERIFY_EXPORT: Options > Export File) and must 
 file again.  Then (emulator 2.11) several files into a nested sub-volume, WORK:/A/B, one of them
 twice: the second replaces the first (no question), its blocks taken by the next file (the first
 free area that holds it); a file named as a sub-volume is refused; the shell TYPEs the new one.
+Then (2.12) Export All of that volume: a folder WORK with A/B/ in it, the text files as PC text.
 build/psys/run_verify must be built from the emulator's sources (tools/setup.sh builds it again
 when they are newer).
 """
@@ -84,10 +85,26 @@ def several():
               ('the sub-volume B not replaced', [e[3] for e in v.sub('A').entries] == ['B']),
               ('the shell reads the new HELLO.TEXT', 'second version' in tr and 'first version' not in tr),
               ('exported back', open(h + '/back.txt', 'rb').read() == b'second version\r\n')]
+    # Export All of WORK: a folder WORK holding A/ holding B/, the text files as PC text
+    os.makedirs(os.path.join(h, 'out'))
+    tree = os.path.join(h, 'out', 'WORK')
+    os.environ['VERIFY_EXPORT_TREE'] = '5:' + tree
+    os.environ.pop('VERIFY_IMPORT')
+    os.environ.pop('VERIFY_EXPORT')
+    open(ps.src, 'wb').write(open(os.path.join(ps.out, 'VERIFY_SOURCE.BLK'), 'rb').read())
+    ps.run_script('WAIT "Command:"\n', 120)
+    os.environ.pop('VERIFY_EXPORT_TREE')
+    b = os.path.join(tree, 'A', 'B')
+    files = sorted(os.path.relpath(os.path.join(d, f), tree) for d, _, fs in os.walk(tree) for f in fs)
+    checks.append(('Export All: WORK/A/B/ with its four files, HELLO.TEXT and OLD.TEXT as PC text',
+                   files == sorted(['A/B/OLD.TEXT', 'A/B/HELLO.TEXT', 'A/B/SMALL.DAT', 'A/B/BIG.DAT'])
+                   and open(os.path.join(b, 'HELLO.TEXT'), 'rb').read() == b'second version\r\n'
+                   and open(os.path.join(b, 'OLD.TEXT'), 'rb').read() == b'old\r\n'
+                   and open(os.path.join(b, 'BIG.DAT'), 'rb').read() == bytes(range(256)) * 20))
     for n, good in checks:
         print('%-5s %s' % ('ok' if good else 'FAIL', n))
     if not all(g for n, g in checks):
-        print(ents, tr[-800:])
+        print(ents, files, tr[-800:])
     return 0 if all(g for n, g in checks) else 1
 
 
