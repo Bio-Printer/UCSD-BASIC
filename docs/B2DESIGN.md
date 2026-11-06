@@ -198,6 +198,15 @@ the lexer's peak).  Early folding of finished stretches' jumps (when B2STMT
 is done, a FOR loop's body is code and its jumps can be resolved before
 B2ASM) is a pass that can be added where B2ASM's tables are the largest.
 
+LENGTH strings added a list of lengths to the symbol tables; to keep them
+small it is sparse (only the symbols and parameters that have a LENGTH),
+B2NAME opens its files before it loads the symbols (an OPEN in RTSELDOM
+after them was its peak), and the intermediate files' KILLs are the
+driver's (TempGone).  The Z80 self-compile then had, in words free at the
+least: B2's four largest modules compiled, 2768 (B2CONST on B2EXPR.BAS) and
+1805 (B2ASM on B2EXPR.BAS); the links, 954 (B2LINK on B2DUMP, as it reads
+RTCHAIN).  tools/b2mem.py shows each pass's for chosen modules.
+
 ## 9. Testing
 
 - tools/runtests.py --b2: the tests compiled by B2 (with B2's library and
