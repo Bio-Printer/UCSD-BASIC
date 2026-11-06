@@ -48,7 +48,7 @@ program that fills its disk stops with "Run-time error 61: Disk full".
 | File | What is in it | Shown with |
 |---|---|---|
 | `NAME.MAP` (-MAP) | the code file; each module, its source and object file; the library; then each segment (S#), its procedures (P#) with their lengths, and each line's code offset (I#:N, after `FILE NAME.BAS`) | in the shell: `TYPE BASIC2:/MAP/NAME.MAP`; B2DEBUG reads it after a run-time error |
-| `NAME.W0` | B2LEX's tokens: each line's text, its tokens, #INCLUDE files, #IFDEFs done | in the shell: `B2DUMP NAME.W0` (or `X(ecute BASIC2:B2DUMP`, then `NAME.W0`) writes BASIC2:/MAP/W0/NAME.D0; then `TYPE BASIC2:/MAP/W0/NAME.D0` |
+| `NAME.W0` | B2LEX's tokens: each line's text, its tokens, #INCLUDE files, #IFDEFs done | in the shell: `B2DUMP NAME.W0` (or `X(ecute BASIC2:B2DUMP`, then `NAME.W0`) writes BASIC2:/MAP/D0/NAME.D0; then `TYPE BASIC2:/MAP/D0/NAME.D0` |
 | `NAME.W1` | B2CONST's: CONSTs replaced by their values, DECLAREs never used marked, the header's table counts | `B2DUMP NAME.W1` |
 | `NAME.W2` | B2SYN's: every statement in its parts, expressions and targets marked out | `B2DUMP NAME.W2` |
 | `NAME.W4` | B2NAME's: every name resolved (variable, array, procedure, built-in, label), the module's body first, then the procedures | `B2DUMP NAME.W4` |
@@ -59,17 +59,28 @@ program that fills its disk stops with "Run-time error 61: Disk full".
 (There is no NAME.W3: B2DECL writes the module's declarations to a
 temporary symbol file.)  Each W file starts with the source's path; B2DUMP
 looks for a NAME.Wn named without a volume in BASIC2:/MAP/Wn (and BASIC2:/MAP) too, and writes
-NAME.Dn beside it.  On the host, `tools/b2dump.py NAME.W5` shows the same.
+NAME.Dn into BASIC2:/MAP/Dn (beside the W file when it is elsewhere), an old one replaced.
+
+A whole build, every pass of every module, as text: in the shell,
+
+```
+B2 -K -MAP @BASIC2:/SRC/BUILD
+@BASIC2:/SRC/DUMPALL
+```
+
+DUMPALL runs B2DUMP on each of the 140 W files; the dumps fill MAP/D0 ... D7
+(1900 blocks each, 1360 to 1810 of them for B2's build).  Options > Export
+File > Export All in the emulator (2.12) copies MAP, or the whole volume,
+to a Windows folder, the dumps as Windows text.  On the host, `tools/b2dump.py NAME.W5` shows the same.
 
 ## The volume
 
 | File | What |
 |---|---|
 | `B2.CODE` | the compiler's driver; `B2LEX`, `B2CONST`, `B2SYN`, `B2DECL`, `B2NAME`, `B2EXPR`, `B2CTL`, `B2STMT`, `B2ASM` its passes, `B2LIST` (the listing), `B2LINK` (the linker), `B2ERR` (a compile's errors), `B2DEBUG` (where a run-time error was), `B2DUMP` (shows a -K file) |
-| `MAP/` | their maps (B2.MAP ...) and what -MAP makes; `MAP/W0` ... `MAP/W7` what -K makes |
+| `MAP/` | their maps (B2.MAP ...) and what -MAP makes; `MAP/W0` ... `MAP/W7` what -K makes, `MAP/D0` ... `MAP/D7` B2DUMP's dumps of them |
 | `ALL.TEXT` | `@BASIC2:ALL`: the four batch files below |
-| `INSTALL.TEXT` | after `@BASIC2:/SRC/BUILD`, in the shell: `@BASIC2:INSTALL` puts the rebuilt compiler in the old one's place |
-| `SRC/` | B2's sources; `@BASIC2:/SRC/BUILD` rebuilds it as BASIC2:B22.CODE, B2LEX2.CODE ... |
+| `SRC/` | B2's sources; `@BASIC2:/SRC/BUILD` rebuilds it as BASIC2:B22.CODE, B2LEX2.CODE ...; then, in the shell, `@BASIC2:/SRC/INSTALL` puts the rebuilt compiler in the old one's place; `@BASIC2:/SRC/DUMPALL` dumps a `-K` build's files (above) |
 | `LIB/` | BASLIB.OBJ (compiled by B2) and its sources; `@BASIC2:/LIB/LIBS` rebuilds it |
 | `DEMO/`, `TEST/` | the demos and the tests, `DEMOS.TEXT` and `TESTS.TEXT` compile them |
 

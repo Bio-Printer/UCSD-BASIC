@@ -9,11 +9,12 @@
                        W0 ... (B2DUMP looks for them there)
     README.TEXT LANGUAGE.TEXT B2DESIGN.TEXT DESIGN.TEXT   the documentation
     ALL.TEXT           @BASIC2:ALL runs the four batch files below
-    INSTALL.TEXT       in the shell, after @BASIC2:/SRC/BUILD: @BASIC2:INSTALL puts
-                       B22.CODE, B2LEX2.CODE ... in the places of B2.CODE, B2LEX.CODE ...
     FILES.TEXT         every file, the sub-volumes' too
     SRC/               B2's sources (B2*.BAS); BUILD.TEXT: @BASIC2:/SRC/BUILD rebuilds B2
-                       as BASIC2:B22.CODE, B2LEX2.CODE ...
+                       as BASIC2:B22.CODE, B2LEX2.CODE ...; INSTALL.TEXT: in the shell, after
+                       it, @BASIC2:/SRC/INSTALL puts them in the places of B2.CODE ...;
+                       DUMPALL.TEXT: in the shell, after B2 -K -MAP @BASIC2:/SRC/BUILD,
+                       @BASIC2:/SRC/DUMPALL dumps every NAME.Wn into BASIC2:/MAP/Dn
     LIB/               the run-time library BASLIB.OBJ (compiled by B2), its sources;
                        LIBS.TEXT: @BASIC2:/LIB/LIBS rebuilds it as BASIC2:/LIB/BASLIB2.OBJ
     DEMO/              the example programs; DEMOS.TEXT compiles them all
@@ -36,6 +37,10 @@ B2 = os.path.join(ROOT, 'build', 'b2', 'b2')
 # 21 a pass, 1040 to 1250 blocks (a sub-volume holds 77 files: MAP alone could not)
 MAPBLOCKS = 1400
 WBLOCKS = 1500
+# MAP/D0 ... D7 (no D3): B2DUMP's dumps of them (BASIC2:/SRC/DUMPALL), 1360 to 1810 blocks a
+# pass for B2's build -- the volume near the most a UCSD volume can be (32767 blocks)
+DBLOCKS = 1900
+WPASSES = (0, 1, 2, 4, 5, 6, 7)
 LIB = os.path.join(ROOT, 'build', 'BASLIB2.OBJ')
 
 
@@ -70,28 +75,34 @@ def volume_map(p):
 
 
 def main(out=os.path.join(ROOT, 'build', 'BASIC2.BLK')):
-    top = Dir('BASIC2', 21000)
+    top = Dir('BASIC2', 32000)
     for p, m in PROGS:
         top.binary(p + '.CODE', open(os.path.join(ROOT, 'build', p + '.CODE'), 'rb').read())
     # (each one's map in MAP/: a run-time error in B2 says its line; and what -MAP and -K make)
     maps = top.sub('MAP')
     for p, m in PROGS:
         maps.binary(p + '.MAP', volume_map(p))
-    for n in (0, 1, 2, 4, 5, 6, 7):
+    for n in WPASSES:
         maps.sub('W%d' % n).total = WBLOCKS
-    maps.total = MAPBLOCKS + 7 * WBLOCKS
+    for n in WPASSES:
+        maps.sub('D%d' % n).total = DBLOCKS
+    maps.total = MAPBLOCKS + 7 * WBLOCKS + 7 * DBLOCKS
     top.text('README.TEXT', text(os.path.join(ROOT, 'docs', 'README2.md')))
     top.text('LANGUAGE.TEXT', text(os.path.join(ROOT, 'docs', 'LANGUAGE.md')))
     top.text('B2DESIGN.TEXT', text(os.path.join(ROOT, 'docs', 'B2DESIGN.md')))
     top.text('DESIGN.TEXT', text(os.path.join(ROOT, 'docs', 'DESIGN.md')))
     top.text('ALL.TEXT', "' everything: the compiler, the library, the demos, the tests\n"
              '@BASIC2:/SRC/BUILD\n@BASIC2:/LIB/LIBS\n@BASIC2:/DEMO/DEMOS\n@BASIC2:/TEST/TESTS\n')
-    top.text('INSTALL.TEXT', "' the compiler @BASIC2:/SRC/BUILD rebuilt in the place of the old one: in\n"
-             "' the shell, @BASIC2:INSTALL.  Each MOVE deletes the old file and renames the\n"
+    src = top.sub('SRC')
+    src.text('INSTALL.TEXT', "' the compiler @BASIC2:/SRC/BUILD rebuilt in the place of the old one: in\n"
+             "' the shell, @BASIC2:/SRC/INSTALL.  Each MOVE deletes the old file and renames the\n"
              "' new one; when the new one is not there it says so and leaves the old one.\n" +
              ''.join('MOVE BASIC2:%s2.CODE BASIC2:%s.CODE\nMOVE BASIC2:/MAP/%s2.MAP BASIC2:/MAP/%s.MAP\n' % (p, p, p, p) for p, m in PROGS))
 
-    src = top.sub('SRC')
+    src.text('DUMPALL.TEXT', "' every pass's file of every module of B2, as text: in the shell, after\n"
+             "' B2 -K -MAP @BASIC2:/SRC/BUILD, @BASIC2:/SRC/DUMPALL.  B2DUMP makes each\n"
+             "' BASIC2:/MAP/Wn/NAME.Wn into BASIC2:/MAP/Dn/NAME.Dn (TYPE shows one).\n" +
+             ''.join('BASIC2:B2DUMP BASIC2:/MAP/W%d/%s.W%d\n' % (n, m[:10], n) for m in MODS for n in WPASSES))
     src.text('BUILD.TEXT', "' B2: its modules, linked into its %d programs BASIC2:B22.CODE,\n" % len(PROGS) +
              "' %s (the first module of each its main one), each with its\n" % ', '.join(p + '2' for p, m in PROGS[1:]) +
              "' map in BASIC2:/MAP (-MAP, this file's links: a run-time error in B2 says its line)\n-MAP\n" +

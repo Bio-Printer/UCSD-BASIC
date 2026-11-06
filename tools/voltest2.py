@@ -7,12 +7,12 @@ name) and the library in BASIC2:/LIB
 test in their sub-volumes, and then PI again with a listing (-S: DEMO/PI.LST,
 the host's listing but for the source's name); then the demos STATS and PI and
 the test PROCS run from there (X(ecute BASIC2:/DEMO/STATS).  Then, in the
-shell, @BASIC2:INSTALL puts the rebuilt compiler in the old one's place (B22.CODE
+shell, @BASIC2:/SRC/INSTALL puts the rebuilt compiler in the old one's place (B22.CODE
 becomes B2.CODE ..., MAP/B22.MAP MAP/B2.MAP: BUILD links with -MAP), and that one compiles and links DEMO/HELLO,
 which runs; then B2 -K -MAP compiles TEST/RTERR (its NAME.W0 ... W7 in BASIC2:/MAP/W0 ... W7, NAME.MAP in
 BASIC2:/MAP, each
 naming BASIC2:/TEST/RTERR.BAS), RTERR runs (B2DEBUG says its line from that map) and B2DUMP RTERR.W5
-finds the file in BASIC2:/MAP.  The volume's directories are checked on the host afterwards.
+finds the file in BASIC2:/MAP/W5 and writes RTERR.D5 into BASIC2:/MAP/D5.  The volume's directories are checked on the host afterwards.
 
   voltest.py [--pascal]     (--pascal: BIGGY boots SYSTEM.PASCAL, not SYSTEM.C)
 """
@@ -36,7 +36,7 @@ def main(a):
               'TYPE "X"\nWAIT "Execute what file?"\nTYPE "BASIC2:/DEMO/STATS\\r"\nWAIT "Command:"\n'
               'TYPE "X"\nWAIT "Execute what file?"\nTYPE "BASIC2:/DEMO/PI\\r"\nWAIT "Command:"\n'
               'TYPE "X"\nWAIT "Execute what file?"\nTYPE "BASIC2:/TEST/PROCS\\r"\nWAIT "Command:"\n'
-              'TYPE "S"\nWAIT "> "\nTYPE "@BASIC2:INSTALL\\r"\nWAIT "B2DEBUG.MAP"\nWAIT "> "\n'
+              'TYPE "S"\nWAIT "> "\nTYPE "@BASIC2:/SRC/INSTALL\\r"\nWAIT "B2DEBUG.MAP"\nWAIT "> "\n'
               'TYPE "b2 -q basic2:/demo/hello\\r"\nWAIT "exit status"\nWAIT "> "\n'
               'TYPE "basic2:/demo/hello\\r"\nWAIT "exit status"\nWAIT "> "\n'
               'TYPE "b2 -q -k -map basic2:/test/rterr\\r"\nWAIT "exit status"\nWAIT "> "\n'
@@ -49,7 +49,7 @@ def main(a):
     v = ucsdvol.Volume(os.path.join(ps.out, 'VERIFY_SOURCE.BLK'))
     lib = open(os.path.join(ROOT, 'build', 'BASLIB2.OBJ'), 'rb').read()
     bad = 0
-    # (after @BASIC2:INSTALL: PROG.CODE is the PROG2.CODE BUILD made, and that is gone)
+    # (after @BASIC2:/SRC/INSTALL: PROG.CODE is the PROG2.CODE BUILD made, and that is gone)
     for p, m in PROGS:
         bc = open(os.path.join(ROOT, 'build', p + '.CODE'), 'rb').read()
         try:
@@ -106,9 +106,9 @@ def main(a):
     same = got == host
     print('DEMO/PI.LST: %s' % ('the host\'s listing' if same else 'DIFFERENT'))
     bad += not same
-    i = tr.find('@BASIC2:INSTALL')
+    i = tr.find('@BASIC2:/SRC/INSTALL')
     same = i >= 0 and tr.count('(replaced)', i) == 2 * len(PROGS) and 'Hello' in tr[tr.find('basic2:/demo/hello', i + 30):]
-    print('@BASIC2:INSTALL: %s' % ('the %d and their maps moved; B2 then made HELLO, which ran' % len(PROGS) if same else 'FAILED'))
+    print('@BASIC2:/SRC/INSTALL: %s' % ('the %d and their maps moved; B2 then made HELLO, which ran' % len(PROGS) if same else 'FAILED'))
     bad += not same
     # -K and -MAP: RTERR's files in BASIC2:/MAP, none in TEST/; their source BASIC2:/TEST/RTERR.BAS
     src = b'BASIC2:/TEST/RTERR.BAS'
@@ -116,7 +116,7 @@ def main(a):
         w = [mp.sub('W%d' % i).read('RTERR.W%d' % i)[0] for i in (0, 1, 2, 4, 5, 6, 7)]
         hs = [x[34:34 + 2 * ((x[32] + 1) // 2)][:x[32]] for x in w]
         mtext = mp.read('RTERR.MAP')[0]
-        dump = mp.sub('W5').read('RTERR.D5')[0]
+        dump = mp.sub('D5').read('RTERR.D5')[0]
         same = all(h == src for h in hs) and b'  MODULE RTERR from ' + src + b' (object BASIC2:/TEST/RTERR.OBJ)' in mtext
         same = same and mtext.startswith(b'BASIC2:/TEST/RTERR.CODE: ') and b'; the source: ' + src in dump
         same = same and not any(n.startswith('RTERR.W') or n == 'RTERR.MAP' for n in [e[3] for e in v.sub('TEST').entries])

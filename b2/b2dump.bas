@@ -6,8 +6,9 @@
 '
 ' (B2 -K keeps the files: NAME.W0 B2LEX's tokens ... NAME.W7 B2STMT's, in
 ' BASIC2:/MAP/W0 ... W7 or BASIC2:/MAP when there are those: NAME.W5
-' without a volume is looked for there too.)  Its first lines: the file,
-' the pass, the source's path.
+' without a volume is looked for there too, and its dump NAME.D5 goes into
+' BASIC2:/MAP/D5 when there is one.)  Its first lines: the file, the pass,
+' the source's path.  BASIC2:/SRC/DUMPALL dumps a whole -K build's.
 ' Each statement on a line of its own, the expressions in { }, the targets
 ' in < >, the code bytes in hex, labels as Ln:, jumps as UJP Ln, FJP Ln ...
 #INCLUDE "B2COM"
@@ -240,9 +241,15 @@ IF NOT FileExists(f$) THEN
     PRINT "B2DUMP: no file "; f$
     SYSTEM 1
 END IF
-' NAME.Wn -> NAME.Dn
+' NAME.Wn -> NAME.Dn: beside it, or in BASIC2:/MAP/Dn for one in BASIC2:/MAP/Wn
+' (a whole build's dumps: 140 files, more than the Wn have room for)
 p = INSTR(f$, ".W")
 IF p > 0 THEN o$ = LEFT$(f$, p) + "D" + MID$(f$, p + 2) ELSE o$ = f$ + ".D"
+IF LEFT$(f$, 13) = "BASIC2:/MAP/W" AND MID$(f$, 15, 1) = "/" THEN
+    IF FileExists("BASIC2:/MAP/D" + MID$(f$, 14, 1)) THEN o$ = "BASIC2:/MAP/D" + MID$(f$, 14, 1) + MID$(o$, 15)
+END IF
+' (an old dump goes first: the new one has its room)
+IF FileExists(o$) THEN KILL o$
 InOpen f$
 OPEN o$ FOR OUTPUT AS #CHLST
 PRINT #CHLST, "; "; f$; " (pass "; IStr$(InHead(WHPASS)); ")"

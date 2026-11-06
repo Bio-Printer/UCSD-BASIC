@@ -161,7 +161,9 @@
 - -K's NAME.Wn and -MAP's NAME.MAP go into BASIC2:/MAP when it is there (the driver's
   MapDirLook sets JFMAPDIR; B2UTIL's AuxDir$), NAME.Wn into BASIC2:/MAP/Wn when those are
   there (JFWDIRS: a whole -K build is 140 files, 7900 blocks; a sub-volume holds 77), else
-  beside the file.  The library's _RTERR traps errors while it closes the files (the file
+  beside the file; B2DUMP writes NAME.Dn into BASIC2:/MAP/Dn (BASIC2:/SRC/DUMPALL: a whole
+  build's, 11500 blocks), so BASIC2.BLK is 32000 blocks, near a volume's most.  BASIC2:'s
+  INSTALL and DUMPALL are in SRC, beside BUILD.  The library's _RTERR traps errors while it closes the files (the file
   that filled its disk failed again and ended the program silently, status 0).  The header's words
   16..57 hold the source's path with its volume's name (FullName$; HeadPath$ reads it), the
   object's record F (70, after BCOB) too, B2LINK's map its MODULE lines; -J leaves the F

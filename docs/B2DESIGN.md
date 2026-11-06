@@ -180,7 +180,7 @@ with its source and object file ("  MODULE NAME from VOL:/A/NAME.BAS (object
 VOL:/A/NAME.OBJ)") and the library.  B2DEBUG reads BASIC2:/MAP/NAME.MAP when
 its first line names the program's code file, else NAME.MAP beside it, else
 BASIC2:/MAP/NAME.MAP all the same (a program renamed with its map, as
-INSTALL does B2's); it reads a line's source beside each source the map
+BASIC2:/SRC/INSTALL does B2's); it reads a line's source beside each source the map
 names first.  B2 compiles lib/ itself (BASLIB2.OBJ
 on the host, BASIC2:/LIB/BASLIB.OBJ); with B2 #DEFINEd, lib/rtwhere.bas
 chains to B2DEBUG.CODE and looks for it on BASIC2: (BC's lexer knows #IFDEF
