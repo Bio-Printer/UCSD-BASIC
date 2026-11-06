@@ -55,7 +55,7 @@ SUB WVar (s)
     WW SOff(s)
     IF SKind(s) = SKARRAY THEN WB SAux(s) ELSE WB 0
     IF SCls(s) = SCCOMMON THEN WS LinkName$(s) ELSE WS SName$(s)
-    WW SLen(s)
+    WW SymLen(s)
 END SUB
 
 SUB WCall (s)
@@ -69,7 +69,7 @@ SUB WCall (s)
     FOR i = 1 TO SAux2(s)
         WB PType(SAux(s) + i - 1)
         WB PFlg(SAux(s) + i - 1)
-        WW PLen(SAux(s) + i - 1)
+        WW ParLen(SAux(s) + i - 1)
     NEXT i
     WS SName$(s)
     SFlags(s) = SFlags(s) OR SFUSED
@@ -347,7 +347,7 @@ SUB NameStatic ()
         ty = DeclType(nm$, 0)
         s = AddSym(DeclName$, SKVAR, ty)
         SFlags(s) = DeclFlags
-        SLen(s) = DeclLen
+        SetSymLen s, DeclLen
         SScope(s) = InProc
         SCls(s) = SCSTATIC
         SOff(s) = StaticWords
@@ -389,7 +389,7 @@ SUB NameShared ()
             SCls(a) = SCls(s)
             SOff(a) = SOff(s)
             SAux(a) = SAux(s)
-            SLen(a) = SLen(s)
+            SetSymLen a, SymLen(s)
         END IF
         IF Tok <> TCOMMA THEN EXIT DO
         GetTok
@@ -444,7 +444,7 @@ SUB NameDim (isredim)
         IF s = 0 THEN
             IF nd >= 0 THEN k = SKARRAY ELSE k = SKVAR
             s = NewVar(DeclName$, k, ty, fl)
-            SLen(s) = DeclLen
+            SetSymLen s, DeclLen
             IF nd > 0 THEN SAux(s) = nd
         END IF
         IF nd = 0 THEN
@@ -756,7 +756,7 @@ SUB NameProc (isfunc)
             t = AddSym(ParName$(i), SKVAR, PType(p))
         END IF
         SFlags(t) = ParFlags(i)
-        SLen(t) = PLen(p)
+        SetSymLen t, ParLen(p)
         SScope(t) = 1
         IF PFlg(p) <> 0 THEN
             SCls(t) = SCREF
@@ -868,11 +868,10 @@ REDIM BnK(BnCap), BnS$(BnCap), BnV(BnCap)
 MemNote "symbols"
 NamePass
 IF OptMem THEN SayLn "  least free memory: " + IStr$(FRE(-1)) + " words (B2NAME)"
-' (the tables given back first: KILL, CompileFailed are RTSELDOM's)
-ERASE SName$, SKind, SType, SCls, SOff, SFlags, SScope, SNext, SAux, SAux2, SSeg, HashHead, PType, PFlg
+' (the tables given back first: CompileFailed is RTSELDOM's)
+ERASE SName$, SKind, SType, SCls, SOff, SFlags, SScope, SNext, SAux, SAux2, SSeg, HashHead, PType, PFlg, SLx, SLv, PLx, PLv
 ERASE BnK, BnS$, BnV
 IF ErrCount > 0 THEN CompileFailed
-KILL SymName$
-IF NData > 0 THEN KILL DatName$
-IF OptKeep = 0 THEN KILL InName$
+' (its files, the symbols, DATA and B2SYN's, are left to the driver to
+' remove: KILL is RTSELDOM's, which B2NAME has little room left for)
 ChainTo "B2EXPR", ""

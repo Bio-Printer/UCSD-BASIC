@@ -221,6 +221,16 @@ SUB FindBlocks (u)
     NEXT i
 END SUB
 
+' the compile's temporary files, those still there
+SUB TempGone ()
+    DIM i
+    FOR i = 0 TO 7
+        IF FileExists(PassFile$(i)) THEN KILL PassFile$(i)
+    NEXT i
+    IF FileExists(SymName$) THEN KILL SymName$
+    IF FileExists(DatName$) THEN KILL DatName$
+END SUB
+
 ' ---- the main program
 
 DIM cmd$, l$, failed
@@ -230,7 +240,9 @@ JobHome$ = "#" + IStr$(PEEK(OSVAR(1) + 102)) + ":"
 FindBlocks PEEK(OSVAR(1) + 102)
 cmd$ = COMMAND$
 IF LEFT$(cmd$, 3) = "-Z " THEN
-    ' a step is done: the next one, or (after a failure) none of the rest
+    ' a step is done: its temporary files gone (B2NAME leaves its to this
+    ' program), the next one, or (after a failure) none of the rest
+    TempGone
     ReadSteps
     IF VAL(MID$(cmd$, 4)) <> 0 THEN
         failed = 1

@@ -40,7 +40,7 @@ FUNCTION ProcHeader (isfunc, defining, priv)
         IF same THEN
             FOR i = 1 TO np
                 j = SAux(s) + i - 1
-                IF PType(j) <> PType(NPar + i) OR PFlg(j) <> PFlg(NPar + i) OR PLen(j) <> PLen(NPar + i) THEN same = 0
+                IF PType(j) <> PType(NPar + i) OR PFlg(j) <> PFlg(NPar + i) OR ParLen(j) <> ParLen(NPar + i) THEN same = 0
             NEXT i
         END IF
         IF NOT same THEN ErrRec 19, 0, 0, nm$   ' {s}: not as declared before
@@ -79,7 +79,7 @@ SUB DeclVar (nm$, nd, iscommon)
     END IF
     s = AddSym(nm$, kind, ty)
     SFlags(s) = DeclFlags OR SFSHARED
-    SLen(s) = DeclLen
+    SetSymLen s, DeclLen
     SAux(s) = nd
     IF iscommon THEN
         SCls(s) = SCCOMMON

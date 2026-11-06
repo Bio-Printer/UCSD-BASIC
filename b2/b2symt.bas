@@ -117,7 +117,7 @@ FUNCTION AddSym (n$, kind, ty)
         SymCap = Grown(SymCap, MAXSYM)
         REDIM PRESERVE SName$(SymCap), SKind(SymCap) AS BYTE, SType(SymCap) AS BYTE, SCls(SymCap) AS BYTE
         REDIM PRESERVE SOff(SymCap), SFlags(SymCap) AS BYTE, SScope(SymCap) AS BYTE, SNext(SymCap)
-        REDIM PRESERVE SAux(SymCap), SAux2(SymCap), SSeg(SymCap) AS BYTE, SLen(SymCap)
+        REDIM PRESERVE SAux(SymCap), SAux2(SymCap), SSeg(SymCap) AS BYTE
     END IF
     NSym = NSym + 1
     SName$(NSym) = n$
@@ -130,7 +130,6 @@ FUNCTION AddSym (n$, kind, ty)
     SAux(NSym) = 0
     SAux2(NSym) = 0
     SSeg(NSym) = 0
-    SLen(NSym) = 0
     h = HashName(n$)
     SNext(NSym) = HashHead(h)
     HashHead(h) = NSym
@@ -146,6 +145,10 @@ SUB PopSyms (keep)
         SName$(i) = ""
     NEXT i
     NSym = keep
+    DO WHILE NSL > 0
+        IF SLx(NSL) <= keep THEN EXIT DO
+        NSL = NSL - 1
+    LOOP
 END SUB
 
 ' the symbol tables made as large as the counts say (the module's and
@@ -155,8 +158,13 @@ SUB SymTables (nsym, npar)
     ParCap = Capped(npar, MAXPAR)
     REDIM SName$(SymCap), SKind(SymCap) AS BYTE, SType(SymCap) AS BYTE, SCls(SymCap) AS BYTE
     REDIM SOff(SymCap), SFlags(SymCap) AS BYTE, SScope(SymCap) AS BYTE, SNext(SymCap)
-    REDIM SAux(SymCap), SAux2(SymCap), SSeg(SymCap) AS BYTE, HashHead(HSIZE), SLen(SymCap)
-    REDIM PType(ParCap) AS BYTE, PFlg(ParCap) AS BYTE, PLen(ParCap)
+    REDIM SAux(SymCap), SAux2(SymCap), SSeg(SymCap) AS BYTE, HashHead(HSIZE)
+    REDIM PType(ParCap) AS BYTE, PFlg(ParCap) AS BYTE
+    SLCap = 16
+    PLCap = 16
+    REDIM SLx(SLCap), SLv(SLCap), PLx(PLCap), PLv(PLCap)
+    NSL = 0
+    NPL = 0
     REDIM SegName$(MAXSEG), DefType(25), ParName$(30), ParFlags(30)
 END SUB
 
@@ -294,11 +302,11 @@ FUNCTION ParseParams ()
         IF NPar + n > ParCap THEN
             IF ParCap >= MAXPAR THEN FatalRec 15, ""   ' too many parameters
             ParCap = Grown(ParCap, MAXPAR)
-            REDIM PRESERVE PType(ParCap) AS BYTE, PFlg(ParCap) AS BYTE, PLen(ParCap)
+            REDIM PRESERVE PType(ParCap) AS BYTE, PFlg(ParCap) AS BYTE
         END IF
         PType(NPar + n) = ty
         PFlg(NPar + n) = fl
-        PLen(NPar + n) = DeclLen
+        SetParLen NPar + n, DeclLen
         IF n <= 30 THEN
             ParName$(n) = DeclName$
             ParFlags(n) = DeclFlags
@@ -398,15 +406,24 @@ SUB SymSave ()
         PUT #CHSYM, , SOff(i)
         PUT #CHSYM, , SAux(i)
         PUT #CHSYM, , SAux2(i)
-        PUT #CHSYM, , SLen(i)
     NEXT i
     FOR i = 1 TO NPar
         SymPutB PType(i)
         SymPutB PFlg(i)
-        PUT #CHSYM, , PLen(i)
     NEXT i
     FOR i = 2 TO NSegName
         SymPutS SegName$(i)
+    NEXT i
+    ' (the LENGTHs: symbols', parameters')
+    PUT #CHSYM, , NSL
+    FOR i = 1 TO NSL
+        PUT #CHSYM, , SLx(i)
+        PUT #CHSYM, , SLv(i)
+    NEXT i
+    PUT #CHSYM, , NPL
+    FOR i = 1 TO NPL
+        PUT #CHSYM, , PLx(i)
+        PUT #CHSYM, , PLv(i)
     NEXT i
     CLOSE #CHSYM
 END SUB
@@ -435,18 +452,87 @@ SUB SymLoad (extra, xpar)
         GET #CHSYM, , SOff(h)
         GET #CHSYM, , SAux(h)
         GET #CHSYM, , SAux2(h)
-        GET #CHSYM, , SLen(h)
     NEXT i
     NPar = np
     FOR i = 1 TO np
         PType(i) = SymGetB
         PFlg(i) = SymGetB
-        GET #CHSYM, , PLen(i)
     NEXT i
     NSegName = ns
     FOR i = 2 TO ns
         SegName$(i) = SymGetS$
     NEXT i
+    GET #CHSYM, , n
+    FOR i = 1 TO n
+        GET #CHSYM, , h
+        GET #CHSYM, , np
+        SetSymLen h, np
+    NEXT i
+    GET #CHSYM, , n
+    FOR i = 1 TO n
+        GET #CHSYM, , h
+        GET #CHSYM, , np
+        SetParLen h, np
+    NEXT i
     CLOSE #CHSYM
     NModSym = NSym
+END SUB
+
+' ---- the LENGTHs (few symbols and parameters have one: a list)
+
+FUNCTION SymLen (s)
+    DIM i
+    FOR i = NSL TO 1 STEP -1
+        IF SLx(i) = s THEN
+            SymLen = SLv(i)
+            EXIT FUNCTION
+        END IF
+    NEXT i
+END FUNCTION
+
+' (the symbols are added in order: a new one's after all the others)
+SUB SetSymLen (s, n)
+    DIM i
+    FOR i = NSL TO 1 STEP -1
+        IF SLx(i) = s THEN
+            SLv(i) = n
+            EXIT SUB
+        END IF
+    NEXT i
+    IF n = 0 THEN EXIT SUB
+    IF NSL >= SLCap THEN
+        SLCap = SLCap + 16
+        REDIM PRESERVE SLx(SLCap), SLv(SLCap)
+    END IF
+    NSL = NSL + 1
+    SLx(NSL) = s
+    SLv(NSL) = n
+END SUB
+
+FUNCTION ParLen (p)
+    DIM i
+    FOR i = NPL TO 1 STEP -1
+        IF PLx(i) = p THEN
+            ParLen = PLv(i)
+            EXIT FUNCTION
+        END IF
+    NEXT i
+END FUNCTION
+
+SUB SetParLen (p, n)
+    DIM i
+    FOR i = NPL TO 1 STEP -1
+        IF PLx(i) = p THEN
+            PLv(i) = n
+            EXIT SUB
+        END IF
+    NEXT i
+    IF n = 0 THEN EXIT SUB
+    IF NPL >= PLCap THEN
+        PLCap = PLCap + 16
+        REDIM PRESERVE PLx(PLCap), PLv(PLCap)
+    END IF
+    NPL = NPL + 1
+    PLx(NPL) = p
+    PLv(NPL) = n
 END SUB
