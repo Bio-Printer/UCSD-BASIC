@@ -70,8 +70,9 @@ COMMON SHARED SymName$, InName$, OutName$, Defines$
 ' ---- the job file (B2UTIL): where the programs are (#unit:), their first
 ' blocks (" B2LEX=123 ..."), the options (JF...), the step being done
 COMMON SHARED JobHome$, JobFlags, JobCur$, JobName$, ErrName$, DatName$, JobBlk$
-' (JFMAPDIR: -K's and -MAP's files in BASIC2:/MAP, the driver found it there)
-CONST JFASK = 1, JFQUIET = 2, JFMEM = 4, JFKEEP = 8, JFMAPDIR = 16
+' (JFMAPDIR: -K's and -MAP's files in BASIC2:/MAP, the driver found it there;
+' JFWDIRS: -K's NAME.Wn in BASIC2:/MAP/Wn, one sub-volume a pass)
+CONST JFASK = 1, JFQUIET = 2, JFMEM = 4, JFKEEP = 8, JFMAPDIR = 16, JFWDIRS = 32
 
 ' ---- the token reader (B2SYN, B2DECL: the token file) and the record
 ' reader (B2IO: the passes after) -- where they are, for errors

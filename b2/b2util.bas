@@ -335,11 +335,15 @@ SUB CompileDone ()
 END SUB
 
 ' the file pass n writes (0 B2LEX's tokens, 1 B2CONST's): with -K NAME.Wn
-' (B2DUMP shows it) in BASIC2:/MAP or beside the source (AuxDir$), else a
-' temporary one on the prefix volume
+' (B2DUMP shows it) in BASIC2:/MAP/Wn, BASIC2:/MAP or beside the source
+' (AuxDir$), else a temporary one on the prefix volume
 FUNCTION PassFile$ (n)
     IF OptKeep THEN
-        PassFile$ = AuxDir$(SrcName$) + LEFT$(ModName$, 10) + ".W" + IStr$(n)
+        IF JobFlags AND JFWDIRS THEN
+            PassFile$ = "BASIC2:/MAP/W" + IStr$(n) + "/" + LEFT$(ModName$, 10) + ".W" + IStr$(n)
+        ELSE
+            PassFile$ = AuxDir$(SrcName$) + LEFT$(ModName$, 10) + ".W" + IStr$(n)
+        END IF
     ELSE
         PassFile$ = ":B2TEMP.W" + IStr$(n)
     END IF

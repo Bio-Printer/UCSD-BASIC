@@ -224,10 +224,14 @@ SUB _RTERR (code)
     DIM np
     ' (an error while the files are closed after one, or while RTWHERE
     ' looks for the place: out at once)
+    ' (the exit status 1, as BCDEBUG's -- also when it ends at once below)
+    POKE OSVAR(1) + 46, 1
     IF inerr THEN CSP 4, 1, 1
     inerr = 1
     ' (the message on the console, the redirected output's file closed;
-    ' every file closed)
+    ' every file closed -- an error closing one, as the file that filled its
+    ' disk, is not another: trapped)
+    _ERRTRAP = -1
     _REDCLOSE
     _CONFLUSH
     _CLOSE 0
@@ -255,8 +259,6 @@ SUB _RTERR (code)
         _RTWHERE VARPTR(code) - 12
         _CONFLUSH
     END IF
-    ' (the exit status 1, as BCDEBUG's)
-    POKE OSVAR(1) + 46, 1
     CSP 4, 1, 1
 END SUB
 

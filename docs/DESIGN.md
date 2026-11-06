@@ -425,7 +425,9 @@ and OSCALL (FINIT, FOPEN, FCLOSE, FBLOCKIO).
   and the run-time errors' texts (_ERRTEXT): _RTERR gives the heap back
   before it says the message, so that an error for want of memory still
   has room for RTSELDOM.
-- A run-time error (_RTERR): every file closed; the heap given back
+- A run-time error (_RTERR): the exit status 1 first; every file closed,
+  with errors trapped (the file that filled its disk fails again as it is
+  closed: that is no second error); the heap given back
   (RELEASE to its start: memory for what follows, after "Out of memory"
   too) and the string work area; its message (_ERRTEXT); then _RTWHERE
   (RTSELDOM)

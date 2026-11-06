@@ -76,9 +76,10 @@ to one token set a pass.
     B2DEBUG      where a program's run-time error was
 
 Each pass reads the file the one before wrote and writes the next: on the
-prefix volume as :B2TEMP.Wn, or with -K as NAME.Wn, kept: in BASIC2:/MAP
-when the volume BASIC2: has that sub-volume (the driver looks: JFMAPDIR in
-the job's options, B2UTIL's AuxDir$), else beside the source (B2DUMP on the
+prefix volume as :B2TEMP.Wn, or with -K as NAME.Wn, kept: in BASIC2:/MAP/Wn
+when the volume BASIC2: has those sub-volumes (one a pass: a build's 140
+files are more than one sub-volume's 77; JFWDIRS), else in BASIC2:/MAP
+(JFMAPDIR in the job's options, B2UTIL's AuxDir$), else beside the source (B2DUMP on the
 P-System and tools/b2dump.py on the host show any of them as text, each
 BASIC line as a comment above what it has become).  The order is chosen so that a pass knows what it
 needs from the ones before: after B2NAME every operand carries its type, so

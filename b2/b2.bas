@@ -16,7 +16,8 @@
 '   -K              keep each pass's file, NAME.W0 ... NAME.W7 (B2DUMP
 '                   shows them)
 ' -K's and -MAP's files go into BASIC2:/MAP when the volume BASIC2: has that
-' sub-volume, else beside the source or the code file.
+' sub-volume (-K's NAME.Wn into BASIC2:/MAP/Wn when it has those), else
+' beside the source or the code file.
 '   @FILE           the commands in FILE.TEXT, one or more a line
 '   -Q              fewer messages;  -M  each pass's memory
 ' The compiler is many programs, each in memory alone (CHAIN,
@@ -191,6 +192,11 @@ SUB MapDirLook ()
     NEXT i
     IF want THEN
         IF FileExists("BASIC2:MAP") THEN JobFlags = JobFlags OR JFMAPDIR
+    END IF
+    ' (-K's files of a whole build: more than one sub-volume's 77 files --
+    ' BASIC2:/MAP/W0 ... W7, one for each pass's)
+    IF (JobFlags AND JFMAPDIR) <> 0 AND (JobFlags AND JFKEEP) <> 0 THEN
+        IF FileExists("BASIC2:/MAP/W0") THEN JobFlags = JobFlags OR JFWDIRS
     END IF
 END SUB
 

@@ -5,8 +5,9 @@
 '                          comment, then what the passes so far made of it
 '
 ' (B2 -K keeps the files: NAME.W0 B2LEX's tokens ... NAME.W7 B2STMT's, in
-' BASIC2:/MAP when there is one: NAME.W5 without a volume is looked for
-' there too.)  Its first lines: the file, the pass, the source's path.
+' BASIC2:/MAP/W0 ... W7 or BASIC2:/MAP when there are those: NAME.W5
+' without a volume is looked for there too.)  Its first lines: the file,
+' the pass, the source's path.
 ' Each statement on a line of its own, the expressions in { }, the targets
 ' in < >, the code bytes in hex, labels as Ln:, jumps as UJP Ln, FJP Ln ...
 #INCLUDE "B2COM"
@@ -228,7 +229,12 @@ IF f$ = "" THEN
 END IF
 ' (-K's files are in BASIC2:/MAP when it is there)
 IF NOT FileExists(f$) AND INSTR(f$, ":") = 0 THEN
-    IF FileExists("BASIC2:/MAP/" + f$) THEN f$ = "BASIC2:/MAP/" + f$
+    o$ = "BASIC2:/MAP/W" + RIGHT$(f$, 1) + "/" + f$
+    IF FileExists(o$) THEN
+        f$ = o$
+    ELSEIF FileExists("BASIC2:/MAP/" + f$) THEN
+        f$ = "BASIC2:/MAP/" + f$
+    END IF
 END IF
 IF NOT FileExists(f$) THEN
     PRINT "B2DUMP: no file "; f$

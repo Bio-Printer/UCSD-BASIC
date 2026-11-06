@@ -4,8 +4,9 @@
     B2.CODE            the compiler: its driver; B2LEX.CODE, B2CONST.CODE, B2SYN.CODE ...
                        B2ASM.CODE its passes, B2LIST, B2LINK, B2ERR, B2DEBUG the programs it
                        chains to (each in memory alone)
-    MAP/               their maps (B2.MAP ...), and what B2 -MAP and -K make: NAME.MAP,
-                       NAME.W0 ... NAME.W7 (B2DEBUG and B2DUMP look for them there)
+    MAP/               their maps (B2.MAP ...), and what B2 -MAP makes: NAME.MAP (B2DEBUG
+                       looks for it there); MAP/W0 ... MAP/W7 what -K makes, NAME.W0 in
+                       W0 ... (B2DUMP looks for them there)
     README.TEXT LANGUAGE.TEXT B2DESIGN.TEXT DESIGN.TEXT   the documentation
     ALL.TEXT           @BASIC2:ALL runs the four batch files below
     INSTALL.TEXT       in the shell, after @BASIC2:/SRC/BUILD: @BASIC2:INSTALL puts
@@ -31,8 +32,10 @@ from b2progs import PROGS, MODS
 
 B2 = os.path.join(ROOT, 'build', 'b2', 'b2')
 # the sub-volume MAP: B2's maps (about 400 blocks), BUILD's while INSTALL has not moved them,
-# what -MAP and -K make (B2EXPR's NAME.W0 ... W7: 800 blocks)
-MAPBLOCKS = 1600
+# what -MAP makes; and in it W0 ... W7 (no W3), each pass's -K files: B2's whole build makes
+# 21 a pass, 1040 to 1250 blocks (a sub-volume holds 77 files: MAP alone could not)
+MAPBLOCKS = 1400
+WBLOCKS = 1500
 LIB = os.path.join(ROOT, 'build', 'BASLIB2.OBJ')
 
 
@@ -67,14 +70,16 @@ def volume_map(p):
 
 
 def main(out=os.path.join(ROOT, 'build', 'BASIC2.BLK')):
-    top = Dir('BASIC2', 10000)
+    top = Dir('BASIC2', 21000)
     for p, m in PROGS:
         top.binary(p + '.CODE', open(os.path.join(ROOT, 'build', p + '.CODE'), 'rb').read())
     # (each one's map in MAP/: a run-time error in B2 says its line; and what -MAP and -K make)
     maps = top.sub('MAP')
-    maps.total = MAPBLOCKS
     for p, m in PROGS:
         maps.binary(p + '.MAP', volume_map(p))
+    for n in (0, 1, 2, 4, 5, 6, 7):
+        maps.sub('W%d' % n).total = WBLOCKS
+    maps.total = MAPBLOCKS + 7 * WBLOCKS
     top.text('README.TEXT', text(os.path.join(ROOT, 'docs', 'README2.md')))
     top.text('LANGUAGE.TEXT', text(os.path.join(ROOT, 'docs', 'LANGUAGE.md')))
     top.text('B2DESIGN.TEXT', text(os.path.join(ROOT, 'docs', 'B2DESIGN.md')))
