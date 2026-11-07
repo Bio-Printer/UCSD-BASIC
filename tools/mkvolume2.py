@@ -8,17 +8,18 @@
                        looks for it there); MAP/W0 ... MAP/W7 what -K makes, NAME.W0 in
                        W0 ... (B2DUMP looks for them there)
     README.TEXT LANGUAGE.TEXT B2DESIGN.TEXT DESIGN.TEXT   the documentation
-    ALL.TEXT           @BASIC2:ALL runs the four batch files below
+    MAKEFILE.TEXT      MAKE -f BASIC2:MAKEFILE runs the four makefiles below (Tiny-C's MAKE,
+                       on TOOLS:); MAKE -f BASIC2:MAKEFILE INSTALL installs the new B2
     FILES.TEXT         every file, the sub-volumes' too
-    SRC/               B2's sources (B2*.BAS); BUILD.TEXT: @BASIC2:/SRC/BUILD rebuilds B2
-                       as BASIC2:B22.CODE, B2LEX2.CODE ...; INSTALL.TEXT: in the shell, after
-                       it, @BASIC2:/SRC/INSTALL puts them in the places of B2.CODE ...;
-                       DUMPALL.TEXT: in the shell, after B2 -K -MAP @BASIC2:/SRC/BUILD,
-                       @BASIC2:/SRC/DUMPALL dumps every NAME.Wn into BASIC2:/MAP/Dn
+    SRC/               B2's sources (B2*.BAS); MAKEFILE.TEXT: MAKE -f BASIC2:/SRC/MAKEFILE
+                       rebuilds B2 as BASIC2:B22.CODE, B2LEX2.CODE ... (what changed); its
+                       INSTALL puts them in the places of B2.CODE ...; after MAKE -B -f
+                       BASIC2:/SRC/MAKEFILE FLAGS=-K, its DUMPALL dumps every NAME.Wn into
+                       BASIC2:/MAP/Dn
     LIB/               the run-time library BASLIB.OBJ (compiled by B2), its sources;
-                       LIBS.TEXT: @BASIC2:/LIB/LIBS rebuilds it as BASIC2:/LIB/BASLIB2.OBJ
-    DEMO/              the example programs; DEMOS.TEXT compiles them all
-    TEST/              the tests; TESTS.TEXT compiles them all, EXPECT/ what each prints
+                       MAKEFILE.TEXT rebuilds it as BASIC2:/LIB/BASLIB2.OBJ
+    DEMO/              the example programs; MAKEFILE.TEXT compiles them
+    TEST/              the tests; MAKEFILE.TEXT compiles them, EXPECT/ what each prints
 
 The compiler and library are the host build's (tools/mkself2.sh, tools/mklib2.sh), which
 B2 on the P-System rebuilds byte for byte (tools/b2self.py).
@@ -42,6 +43,9 @@ WBLOCKS = 1500
 DBLOCKS = 1900
 WPASSES = (0, 1, 2, 4, 5, 6, 7)
 LIB = os.path.join(ROOT, 'build', 'BASLIB2.OBJ')
+
+
+import basmake
 
 
 def host_sizes(srcs, links):
@@ -91,24 +95,11 @@ def main(out=os.path.join(ROOT, 'build', 'BASIC2.BLK')):
     top.text('LANGUAGE.TEXT', text(os.path.join(ROOT, 'docs', 'LANGUAGE.md')))
     top.text('B2DESIGN.TEXT', text(os.path.join(ROOT, 'docs', 'B2DESIGN.md')))
     top.text('DESIGN.TEXT', text(os.path.join(ROOT, 'docs', 'DESIGN.md')))
-    top.text('ALL.TEXT', "' everything: the compiler, the library, the demos, the tests\n"
-             '@BASIC2:/SRC/BUILD\n@BASIC2:/LIB/LIBS\n@BASIC2:/DEMO/DEMOS\n@BASIC2:/TEST/TESTS\n')
+    top.text('MAKEFILE.TEXT', basmake.all_makefile('BASIC2', 'B2'))
     src = top.sub('SRC')
-    src.text('INSTALL.TEXT', "' the compiler @BASIC2:/SRC/BUILD rebuilt in the place of the old one: in\n"
-             "' the shell, @BASIC2:/SRC/INSTALL.  Each MOVE deletes the old file and renames the\n"
-             "' new one; when the new one is not there it says so and leaves the old one.\n" +
-             ''.join('MOVE BASIC2:%s2.CODE BASIC2:%s.CODE\nMOVE BASIC2:/MAP/%s2.MAP BASIC2:/MAP/%s.MAP\n' % (p, p, p, p) for p, m in PROGS))
-
-    src.text('DUMPALL.TEXT', "' every pass's file of every module of B2, as text: in the shell, after\n"
-             "' B2 -K -MAP @BASIC2:/SRC/BUILD, @BASIC2:/SRC/DUMPALL.  B2DUMP makes each\n"
-             "' BASIC2:/MAP/Wn/NAME.Wn into BASIC2:/MAP/Dn/NAME.Dn (-MAP: not beside the\n"
-             "' sources, which have no room for 140 more files; TYPE shows one).\n" +
-             ''.join('BASIC2:B2DUMP -MAP BASIC2:/MAP/W%d/%s.W%d\n' % (n, m[:10], n) for m in MODS for n in WPASSES))
-    src.text('BUILD.TEXT', "' B2: its modules, linked into its %d programs BASIC2:B22.CODE,\n" % len(PROGS) +
-             "' %s (the first module of each its main one), each with its\n" % ', '.join(p + '2' for p, m in PROGS[1:]) +
-             "' map in BASIC2:/MAP (-MAP, this file's links: a run-time error in B2 says its line)\n-MAP\n" +
-             ''.join('-C BASIC2:/SRC/%s\n' % m for m in MODS) +
-             ''.join('-L BASIC2:%s2=%s\n' % (p, ','.join('BASIC2:/SRC/' + x for x in m)) for p, m in PROGS))
+    src.text('MAKEFILE.TEXT', basmake.src_makefile('BASIC2', 'B2', PROGS, MODS, os.path.join(ROOT, 'b2'), 'BASIC2:/MAP/',
+                                                   ['BASIC2:B2DUMP -MAP BASIC2:/MAP/W%d/%s.W%d' % (n, m[:10], n)
+                                                    for m in MODS for n in WPASSES]))
     for f in sorted(glob.glob(os.path.join(ROOT, 'b2', '*.bas'))):
         src.text(os.path.basename(f)[:-4].upper() + '.BAS', text(f))
     src.extra = sum(blocks(os.path.getsize(os.path.join(ROOT, 'build', 'self2', m + '.OBJ'))) for m in MODS)
@@ -116,28 +107,20 @@ def main(out=os.path.join(ROOT, 'build', 'BASIC2.BLK')):
     lib = top.sub('LIB')
     baslib = open(LIB, 'rb').read()
     lib.binary('BASLIB.OBJ', baslib)
-    lib.text('LIBS.TEXT', "' the run-time library: its modules, joined into BASIC2:/LIB/BASLIB2.OBJ\n" +
-             ''.join('-C BASIC2:/LIB/%s\n' % m for m in LIBS) +
-             '-J BASIC2:/LIB/BASLIB2=' + ','.join('BASIC2:/LIB/' + m for m in LIBS) + '\n')
+    lib.text('MAKEFILE.TEXT', basmake.lib_makefile('BASIC2', 'B2', LIBS, os.path.join(ROOT, 'lib')))
     for f in sorted(glob.glob(os.path.join(ROOT, 'lib', '*.bas'))):
         lib.text(os.path.basename(f)[:-4].upper() + '.BAS', text(f))
     lib.extra = blocks(len(baslib)) + sum(blocks(os.path.getsize(os.path.join(ROOT, 'build', 'lib2', m + '.OBJ'))) for m in LIBS)
 
     demo = top.sub('DEMO')
-    cmds, srcs, links = [], {}, []
+    srcs, links = {}, []
     for d in DEMOS:
         name, more = (d, []) if isinstance(d, str) else d
-        for m in more:
-            cmds.append('-C BASIC2:/DEMO/%s' % m)
-        if more:
-            cmds.append('-C BASIC2:/DEMO/%s' % name)
-            cmds.append('-L BASIC2:/DEMO/%s=%s' % (name, ','.join('BASIC2:/DEMO/' + m for m in [name] + more)))
-        else:
-            cmds.append('BASIC2:/DEMO/%s' % name)
         links.append((name, [name] + more))
         for m in [name] + more:
             srcs[m] = os.path.join(ROOT, 'demos', m.lower() + '.bas')
-    demo.text('DEMOS.TEXT', "' the demos: each compiled and linked into DEMO/NAME.CODE\n" + '\n'.join(cmds) + '\n')
+    demo.text('MAKEFILE.TEXT', basmake.progs_makefile('BASIC2', 'B2', 'DEMO', 'the demos', [(n, m[1:]) for n, m in links],
+                                                      os.path.join(ROOT, 'demos')))
     for m in sorted(srcs):
         demo.text(m + '.BAS', text(srcs[m]))
     demo.extra = host_sizes(srcs, links)
@@ -145,8 +128,9 @@ def main(out=os.path.join(ROOT, 'build', 'BASIC2.BLK')):
     test = top.sub('TEST')
     names = sorted(os.path.basename(f)[:-7].upper() for f in glob.glob(os.path.join(ROOT, 'tests', '*.expect')))
     names = [n for n in names if n not in NOTEST]
-    test.text('TESTS.TEXT', "' the tests: each compiled and linked into TEST/NAME.CODE; what it\n"
-              "' prints is in TEST/EXPECT/NAME.TEXT\n" + ''.join('BASIC2:/TEST/%s\n' % n for n in names))
+    test.text('MAKEFILE.TEXT', basmake.progs_makefile('BASIC2', 'B2', 'TEST', 'the tests (what each prints is in\n'
+                                                      'BASIC2:/TEST/EXPECT/NAME.TEXT)', [(n, []) for n in names],
+                                                      os.path.join(ROOT, 'tests')))
     srcs = {n: os.path.join(ROOT, 'tests', n.lower() + '.bas') for n in names}
     for n in names:
         test.text(n + '.BAS', text(srcs[n]))

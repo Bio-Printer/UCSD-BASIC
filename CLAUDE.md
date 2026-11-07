@@ -116,8 +116,12 @@
   nothing else in the module (errors 24, 30, 119 from BCLEX):
   tests/constin, tests/errors/err10.  BCLEX's peak is opening an #INCLUDE
   file (RTSELDOM): KwTable$ is the segment KWTAB, LxUnused and LexErr LXEND.
-- BASIC:INSTALL.TEXT (mkvolume) is a batch file of Tiny-C's shell (BIGGY
-  1.32: @FILE; MOVE replaces): voltest runs it after BUILD.
+- The volumes are rebuilt with Tiny-C's MAKE (on its TOOLS: volume; the tests mount it on #11:
+  psys.tools_blk()): tools/basmake.py writes VOL:MAKEFILE.TEXT (the MAKE of SRC, LIB, DEMO,
+  TEST; INSTALL: the shell's MOVE of PROG2.CODE onto PROG.CODE), and each sub-volume's, a
+  module's #INCLUDEs among its prerequisites.  voltest runs make -f basic:makefile, then
+  again (up to date), then its INSTALL.  A link longer than the shell's 79 characters MAKE
+  runs as BC @#4:MAKEnRk (its commands in that file).
 - The tests boot build/psys/data/Big_Disk.BLK (setup.sh copies BOOT_DISK);
   BIGGY 1.29 is the first whose systems make a new NAME.BAS a text file;
   1.30's shell (and Tiny-C's library: __istext) reads NAME.BAS as text.
@@ -162,9 +166,9 @@
   MapDirLook sets JFMAPDIR; B2UTIL's AuxDir$), NAME.Wn into BASIC2:/MAP/Wn when those are
   there (JFWDIRS: a whole -K build is 140 files, 7900 blocks; a sub-volume holds 77), else
   beside the file; B2DUMP writes NAME.Dn beside the source (the header's path), with -MAP
-  into BASIC2:/MAP/Dn (BASIC2:/SRC/DUMPALL uses -MAP: a whole build's, 140 files, 11500
+  into BASIC2:/MAP/Dn (BASIC2:/SRC/MAKEFILE's DUMPALL uses -MAP: a whole build's, 140 files, 11500
   blocks), so BASIC2.BLK is 32000 blocks, near a volume's most.  BASIC2:'s
-  INSTALL and DUMPALL are in SRC, beside BUILD.  The library's _RTERR traps errors while it closes the files (the file
+  INSTALL and DUMPALL are targets of BASIC2:/SRC/MAKEFILE (and INSTALL of BASIC2:MAKEFILE).  The library's _RTERR traps errors while it closes the files (the file
   that filled its disk failed again and ended the program silently, status 0).  The header's words
   16..57 hold the source's path with its volume's name (FullName$; HeadPath$ reads it), the
   object's record F (70, after BCOB) too, B2LINK's map its MODULE lines; -J leaves the F

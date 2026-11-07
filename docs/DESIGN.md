@@ -647,13 +647,13 @@ statement as nothing and CSP%() as 0.)
   TEST with TEST/EXPECT, each made on the host as a volume written into
   the volume as a data file, with room for twice what its batch file
   writes, measured with the host build, and 40 blocks); tools/voltest.py
-  runs @BASIC:ALL and -S BASIC:/DEMO/PI on it (BC2.CODE, BC2.MAP (BUILD's
+  runs make -f basic:makefile and BC -S BASIC:/DEMO/PI on it (BC2.CODE, BC2.MAP (BUILD's
   -MAP: its own links only, not the demos' and the tests' -- a UCSD
   directory holds 77 files, and TEST's would be 78), LIB/BASLIB2.OBJ and
   the listing must be the host's,
   every demo and test gets its code file, the directories must hold
   together) and runs a demo and a test from their sub-volumes; then, in the
-  shell, @BASIC:INSTALL (BIGGY 1.32's batch files) puts BC2.CODE ... and
+  shell, make -f basic:makefile install puts BC2.CODE ... and
   BC2.MAP ... in the places of BC.CODE ... and BC.MAP ..., and that compiler makes DEMO/HELLO, which runs;
   --pascal boots BIGGY's SYSTEM.PASCAL instead of SYSTEM.C.
 - tools/brun.py runs a code file; tools/objdump.py shows an object file;

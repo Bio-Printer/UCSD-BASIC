@@ -33,13 +33,13 @@ BLK_format), laid out in sub-volumes (Tiny-C's: data files holding a volume,
 |---|---|
 | `BC.CODE` | the compiler (the driver: run it); `BCLEX.CODE`, `BCGEN.CODE`, `BCLIST.CODE`, `BCLINK.CODE`, `BCERR.CODE` the programs it chains to, each in memory alone; `BCDEBUG.CODE` says where a program's run-time error was (file, line, procedure, the line) |
 | `README.TEXT`, `LANGUAGE.TEXT`, `DESIGN.TEXT` | the manuals |
-| `ALL.TEXT` | `@BASIC:ALL`: the four batch files below |
-| `INSTALL.TEXT` | after `@BASIC:/SRC/BUILD`, in Tiny-C's shell (BIGGY 1.32: `@FILE` runs a batch file): `@BASIC:INSTALL` moves BC2.CODE ... BCDEBUG2.CODE onto BC.CODE ... BCDEBUG.CODE (each old file goes, the new one takes its name; nothing goes when the new one is missing) |
+| `MAKEFILE.TEXT` | `MAKE -f BASIC:MAKEFILE` (Tiny-C's MAKE, on its TOOLS: volume; from the shell): the MAKE of the four makefiles below, each compiling only what changed (`MAKE -B ...`: everything) |
+| (INSTALL) | after the compiler is rebuilt, `MAKE -f BASIC:MAKEFILE INSTALL` moves BC2.CODE ... BCDEBUG2.CODE onto BC.CODE ... BCDEBUG.CODE, and their maps (the shell's MOVE: each old file goes, the new one takes its name; nothing goes when the new one is missing) |
 | `FILES.TEXT` | every file, the sub-volumes' too |
-| `SRC/` | the compiler's sources; `BUILD.TEXT`: `@BASIC:/SRC/BUILD` rebuilds the compiler's eight programs as BASIC:BC2.CODE, BCLEX2.CODE ... BCDEBUG2.CODE |
-| `LIB/` | `BASLIB.OBJ`, the run-time library, and its sources; `LIBS.TEXT`: `@BASIC:/LIB/LIBS` rebuilds it as BASIC:/LIB/BASLIB2.OBJ |
-| `DEMO/` | HELLO, PRIMES, HANOI, MANDEL, PI (Archimedes' method, from Tiny-C's PI.C), GUESS, AMAZING (a maze and its path; its size from the command line, `AMAZING 13 10`, or asked for) and STATS (two modules: STATS + STATLIB); `DEMOS.TEXT` compiles them |
-| `TEST/` | the compiler's tests; `TESTS.TEXT` compiles them; `EXPECT/` what each prints |
+| `SRC/` | the compiler's sources; `MAKEFILE.TEXT`: `MAKE -f BASIC:/SRC/MAKEFILE` rebuilds the compiler's eight programs as BASIC:BC2.CODE, BCLEX2.CODE ... BCDEBUG2.CODE (a module when it or a file it #INCLUDEs changed; a program when one of its modules did) |
+| `LIB/` | `BASLIB.OBJ`, the run-time library, and its sources; `MAKEFILE.TEXT`: `MAKE -f BASIC:/LIB/MAKEFILE` rebuilds it as BASIC:/LIB/BASLIB2.OBJ |
+| `DEMO/` | HELLO, PRIMES, HANOI, MANDEL, PI (Archimedes' method, from Tiny-C's PI.C), GUESS, AMAZING (a maze and its path; its size from the command line, `AMAZING 13 10`, or asked for) and STATS (two modules: STATS + STATLIB); `MAKEFILE.TEXT` compiles them |
+| `TEST/` | the compiler's tests; `MAKEFILE.TEXT` compiles them; `EXPECT/` what each prints |
 
 `tools/voltest.py` checks it (`--pascal`: under SYSTEM.PASCAL).
 

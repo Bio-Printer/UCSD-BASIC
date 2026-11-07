@@ -39,6 +39,16 @@ def shell_transcript(tr):
     return PROMPT_RE.sub('shell> ', tr)
 
 
+def tools_blk():
+    """Tiny-C's TOOLS: (MAKE, for the volumes' makefiles): $TOOLS_BLK, else UCSD-TinyC's build, else
+    UCSD-Pascal-Volumes' BLK_format"""
+    for p in (os.environ.get('TOOLS_BLK'), os.path.join(ROOT, '..', 'bio-printer', 'ucsd-tinyc', 'build', 'TOOLS.BLK'),
+              os.path.join(ROOT, '..', 'bio-printer', 'ucsd-pascal-volumes', 'BLK_format', 'TOOLS.BLK')):
+        if p and os.path.exists(p):
+            return p
+    raise SystemExit('no TOOLS.BLK (Tiny-C\'s MAKE): set TOOLS_BLK')
+
+
 def ensure_setup():
     if not os.path.exists(os.path.join(BUILD, 'run_verify')):
         subprocess.check_call([os.path.join(HERE, 'setup.sh')], stdout=subprocess.DEVNULL)

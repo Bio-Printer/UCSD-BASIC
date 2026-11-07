@@ -1,19 +1,18 @@
 #!/usr/bin/env python3
-"""voltest.py -- build/BASIC.BLK on the P-System (unit #5): BC runs
-@BASIC:ALL, which rebuilds the compiler from BASIC:/SRC (BUILD -> BASIC:BC2.CODE,
-BCLEX2 ... BCDEBUG2, each the same as BC.CODE ... BCDEBUG.CODE but for segment 1's
-name) and the library in BASIC:/LIB
-(LIBS -> BASLIB2.OBJ, the same as BASLIB.OBJ), and compiles every demo and
-test in their sub-volumes, and then PI again with a listing (-S: DEMO/PI.LST,
-the host's listing but for the source's name); then the demos STATS and PI and
-the test PROCS run from there (X(ecute BASIC:/DEMO/STATS).  Then, in the
-shell, @BASIC:INSTALL puts the rebuilt compiler in the old one's place (BC2.CODE
-becomes BC.CODE ..., BC2.MAP BC.MAP: BUILD links with -MAP), and that one compiles and links DEMO/HELLO, which runs.
+"""voltest.py -- build/BASIC.BLK on the P-System (unit #5), from the Tiny-C shell with Tiny-C's
+TOOLS: (MAKE) on #11: make -f basic:makefile runs the makefiles of BASIC:/SRC (the compiler
+rebuilt: BASIC:BC2.CODE, BCLEX2 ... BCDEBUG2, each the same as BC.CODE ... BCDEBUG.CODE but
+for segment 1's name, with its map), BASIC:/LIB (BASLIB2.OBJ, the same as BASLIB.OBJ),
+BASIC:/DEMO and BASIC:/TEST (every demo and test compiled); then again: everything up to
+date.  BC -S compiles PI again with a listing (DEMO/PI.LST, the host's listing but for the
+source's name); the demos STATS and PI and the test PROCS run from there.  Then make -f
+basic:makefile install puts the rebuilt compiler in the old one's place (BC2.CODE becomes
+BC.CODE ..., BC2.MAP BC.MAP), and that one compiles and links DEMO/HELLO, which runs.
 The volume's directories are checked on the host afterwards.
 
   voltest.py [--pascal]     (--pascal: BIGGY boots SYSTEM.PASCAL, not SYSTEM.C)
 """
-import os, shutil, subprocess, sys, tempfile
+import os, re, shutil, subprocess, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
@@ -27,18 +26,20 @@ def main(a):
     shutil.copy(os.path.join(ROOT, 'build', 'BASIC.BLK'), ps.src)
     # (a key at the boot's question: SYSTEM.PASCAL)
     script = 'WAIT "instead of SYSTEM.C"\nTYPE " "\n' if '--pascal' in a else ''
-    script += ('WAIT "Command:"\nTYPE "X"\nWAIT "Execute what file?"\nTYPE "BASIC:BC\\r"\n'
-              'WAIT "Compile what file?"\nTYPE "-Q @BASIC:ALL -S BASIC:/DEMO/PI\\r"\n'
-              'WAIT "Compile what file?"\nTYPE "\\r"\nWAIT "Command:"\n'
-              'TYPE "X"\nWAIT "Execute what file?"\nTYPE "BASIC:/DEMO/STATS\\r"\nWAIT "Command:"\n'
-              'TYPE "X"\nWAIT "Execute what file?"\nTYPE "BASIC:/DEMO/PI\\r"\nWAIT "Command:"\n'
-              'TYPE "X"\nWAIT "Execute what file?"\nTYPE "BASIC:/TEST/PROCS\\r"\nWAIT "Command:"\n'
-              'TYPE "S"\nWAIT "> "\nTYPE "@BASIC:INSTALL\\r"\nWAIT "BCDEBUG.MAP"\nWAIT "> "\n'
-              'TYPE "bc -q basic:/demo/hello\\r"\nWAIT "exit status"\nWAIT "> "\n'
-              'TYPE "basic:/demo/hello\\r"\nWAIT "exit status"\nWAIT "> "\nTYPE "bye\\r"\nWAIT "Command:"\n')
+    script += ('WAIT "Command:"\nTYPE "S"\nWAIT "> "\n'
+               'TYPE "make -f basic:makefile\\r"\nWAIT "> MAKE -f BASIC:/TEST/MAKEFILE"\nWAIT "TEST/SUFFIX"\nWAIT "> "\n'
+               'TYPE "make -f basic:makefile\\r"\nWAIT "> MAKE -f BASIC:/TEST/MAKEFILE"\nWAIT "> "\n'
+               'TYPE "bc -q -s basic:/demo/pi\\r"\nWAIT "exit status"\nWAIT "> "\n'
+               'TYPE "basic:/demo/stats\\r"\nWAIT "exit status"\nWAIT "> "\n'
+               'TYPE "basic:/demo/pi\\r"\nWAIT "exit status"\nWAIT "> "\n'
+               'TYPE "basic:/test/procs\\r"\nWAIT "exit status"\nWAIT "> "\n'
+               'TYPE "make -f basic:makefile install\\r"\nWAIT "BCDEBUG.MAP"\nWAIT "> "\n'
+               'TYPE "bc -q basic:/demo/hello\\r"\nWAIT "exit status"\nWAIT "> "\n'
+               'TYPE "basic:/demo/hello\\r"\nWAIT "exit status"\nWAIT "> "\nTYPE "bye\\r"\nWAIT "Command:"\n')
+    os.environ['VERIFY_UNIT11'] = psys.tools_blk()
     ok, tr, info = ps.run_script(script, 3000)
     tr = tr.replace('\n\n', '\n')
-    print(tr[tr.find('BASIC:BC'):])
+    print(tr[tr.find('make -f basic:makefile'):][-6000:])
     print(info.strip().split('\n')[-1])
     v = ucsdvol.Volume(os.path.join(ps.out, 'VERIFY_SOURCE.BLK'))
     lib = open(os.path.join(ROOT, 'build', 'BASLIB.OBJ'), 'rb').read()
@@ -75,8 +76,7 @@ def main(a):
     bad += not same
     # every demo and test has its code file; the directories hold together
     want = {'DEMO': [d if isinstance(d, str) else d[0] for d in mkvolume.DEMOS],
-            'TEST': [l.split('/')[-1] for l in ucsdvol.ucsd_to_text(v.sub('TEST').read('TESTS.TEXT')[0]).split('\n')
-                     if l.startswith('BASIC:')]}
+            'TEST': sorted(set(re.findall(r'\$\(D\)(\w+)\.CODE', ucsdvol.ucsd_to_text(v.sub('TEST').read('MAKEFILE.TEXT')[0]))))}
     for d, names in want.items():
         sv = v.sub(d)
         missing = [n for n in names if not sv.find(n + '.CODE')]
@@ -99,9 +99,16 @@ def main(a):
     same = got == host
     print('DEMO/PI.LST: %s' % ('the host\'s listing' if same else 'DIFFERENT'))
     bad += not same
-    i = tr.find('@BASIC:INSTALL')
+    # the second MAKE: everything up to date
+    j = tr.find('make -f basic:makefile', tr.find('make -f basic:makefile') + 10)
+    second = tr[j:tr.find('bc -q -s', j)]
+    same = j >= 0 and "'BASIC:/LIB/BASLIB2.OBJ' is up to date" in second and second.count("Nothing to be done for 'all'") == 3 \
+        and '> BC' not in second
+    print('make again: %s' % ('every makefile up to date' if same else 'NOT UP TO DATE'))
+    bad += not same
+    i = tr.find('make -f basic:makefile install')
     same = i >= 0 and tr.count('(replaced)', i) == 2 * len(PROGS) and 'Hello' in tr[tr.find('basic:/demo/hello', i + 30):]
-    print('@BASIC:INSTALL: %s' % ('the %d and their maps moved; BC then made HELLO, which ran' % len(PROGS) if same else 'FAILED'))
+    print('make install: %s' % ('the %d and their maps moved; BC then made HELLO, which ran' % len(PROGS) if same else 'FAILED'))
     bad += not same
     for name, exp in [('STATS', 'std. dev. 4.73840690527945'),
                       ('PI', '  24   100663296  3.141592653589792  3.141592653589794  15 15'),

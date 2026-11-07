@@ -569,24 +569,24 @@ The volume BASIC: holds:
                                 to)
     BCDEBUG.CODE                where a program's run-time error was
     README.TEXT LANGUAGE.TEXT DESIGN.TEXT
-    ALL.TEXT                    @BASIC:ALL: the four batch files below
-    INSTALL.TEXT                @BASIC:INSTALL in Tiny-C's shell (BIGGY 1.32),
-                                after @BASIC:/SRC/BUILD: BC2.CODE ...
-                                BCDEBUG2.CODE become BC.CODE ...
+    MAKEFILE.TEXT               MAKE -f BASIC:MAKEFILE (Tiny-C's MAKE, on
+                                TOOLS:, from its shell): the four makefiles
+                                below; MAKE -f BASIC:MAKEFILE INSTALL then:
+                                BC2.CODE ... BCDEBUG2.CODE become BC.CODE ...
                                 BCDEBUG.CODE
     FILES.TEXT                  every file, the sub-volumes' too
     SRC/   BC*.BAS              the compiler's sources;
-           BUILD.TEXT           @BASIC:/SRC/BUILD: BASIC:BC2.CODE ...
-                                BCDEBUG2.CODE
+           MAKEFILE.TEXT        MAKE -f BASIC:/SRC/MAKEFILE: BASIC:BC2.CODE
+                                ... BCDEBUG2.CODE (what changed)
     LIB/   BASLIB.OBJ           the run-time library, RT*.BAS its sources;
-           LIBS.TEXT            @BASIC:/LIB/LIBS: BASIC:/LIB/BASLIB2.OBJ
+           MAKEFILE.TEXT        BASIC:/LIB/BASLIB2.OBJ
     DEMO/  HELLO PRIMES HANOI MANDEL PI GUESS AMAZING (from the shell: AMAZING
            13 10, its size), STATS + STATLIB (two modules);
-           DEMOS.TEXT           @BASIC:/DEMO/DEMOS compiles them
-    TEST/  the compiler's tests; TESTS.TEXT compiles them,
+           MAKEFILE.TEXT        compiles them
+    TEST/  the compiler's tests; MAKEFILE.TEXT compiles them,
            EXPECT/NAME.TEXT     what each prints
 
-The sub-volumes have room for what their batch files make; Tiny-C's GROW
+The sub-volumes have room for what their makefiles make; Tiny-C's GROW
 (TOOLS:) makes one bigger.
 
 The listing (-S) shows, for every procedure, each BASIC statement

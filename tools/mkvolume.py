@@ -5,21 +5,21 @@
                        BCLINK.CODE, BCERR.CODE and BCDEBUG.CODE the programs it chains to (each in
                        memory alone)
     README.TEXT LANGUAGE.TEXT DESIGN.TEXT   the documentation
-    ALL.TEXT           @BASIC:ALL runs the four batch files below
-    INSTALL.TEXT       in the shell, after @BASIC:/SRC/BUILD: @BASIC:INSTALL puts
-                       BC2.CODE ... BCDEBUG2.CODE in the places of BC.CODE ... BCDEBUG.CODE
+    MAKEFILE.TEXT      MAKE -f BASIC:MAKEFILE runs the four makefiles below (Tiny-C's MAKE, on
+                       TOOLS:); MAKE -f BASIC:MAKEFILE INSTALL then puts BC2.CODE ...
+                       BCDEBUG2.CODE in the places of BC.CODE ... BCDEBUG.CODE
     FILES.TEXT         every file, the sub-volumes' too
-    SRC/               the compiler's sources (BC*.BAS); BUILD.TEXT:
-                       @BASIC:/SRC/BUILD rebuilds the compiler as BASIC:BC2.CODE,
-                       BCLEX2.CODE ... BCDEBUG2.CODE
+    SRC/               the compiler's sources (BC*.BAS); MAKEFILE.TEXT:
+                       MAKE -f BASIC:/SRC/MAKEFILE rebuilds the compiler as BASIC:BC2.CODE,
+                       BCLEX2.CODE ... BCDEBUG2.CODE (what changed)
     LIB/               the run-time library BASLIB.OBJ, its sources (RT*.BAS);
-                       LIBS.TEXT: @BASIC:/LIB/LIBS rebuilds it as BASIC:/LIB/BASLIB2.OBJ
-    DEMO/              example programs; DEMOS.TEXT compiles them all
-    TEST/              the compiler's tests; TESTS.TEXT compiles them all,
+                       MAKEFILE.TEXT rebuilds it as BASIC:/LIB/BASLIB2.OBJ
+    DEMO/              example programs; MAKEFILE.TEXT compiles them
+    TEST/              the compiler's tests; MAKEFILE.TEXT compiles them,
                        EXPECT/ what each prints
 
 The sub-volumes are data files holding a volume of their own (Tiny-C's
-MKDIR), made here with room for what their batch files write (the objects
+MKDIR), made here with room for what their makefiles write (the objects
 and code files, measured with the host build: twice that and 40 blocks).
 The compiler and library are the host build's (tools/mkself.sh,
 tools/mklib.sh), which BC on the P-System rebuilds byte for byte.  The BASIC
@@ -32,6 +32,7 @@ sys.path.insert(0, HERE)
 import ucsdvol
 
 from bcprogs import PROGS, MODS
+import basmake
 LIBS = ['RTCORE', 'RTFILE', 'RTSTR', 'RTNUM', 'RTARR', 'RTINPUT', 'RTDATA', 'RTSUBV', 'RTCHAIN', 'RTWHERE', 'RTUSING']
 # the demos: NAME, or (NAME, [the modules linked with it])
 DEMOS = ['HELLO', 'PRIMES', 'HANOI', 'MANDEL', 'PI', 'GUESS', 'AMAZING', ('STATS', ['STATLIB'])]
@@ -116,20 +117,10 @@ def main(out=os.path.join(ROOT, 'build', 'BASIC.BLK')):
     top.text('README.TEXT', text(os.path.join(ROOT, 'README.md')))
     top.text('LANGUAGE.TEXT', text(os.path.join(ROOT, 'docs', 'LANGUAGE.md')))
     top.text('DESIGN.TEXT', text(os.path.join(ROOT, 'docs', 'DESIGN.md')))
-    top.text('ALL.TEXT', "' everything: the compiler, the library, the demos, the tests\n"
-             '@BASIC:/SRC/BUILD\n@BASIC:/LIB/LIBS\n@BASIC:/DEMO/DEMOS\n@BASIC:/TEST/TESTS\n')
-
-    top.text('INSTALL.TEXT', "' the compiler @BASIC:/SRC/BUILD rebuilt in the place of the old one: in the\n"
-             "' shell, @BASIC:INSTALL.  Each MOVE deletes the old file and renames the new\n"
-             "' one; when the new one is not there it says so and leaves the old one.\n" +
-             ''.join('MOVE BASIC:%s2.CODE BASIC:%s.CODE\nMOVE BASIC:%s2.MAP BASIC:%s.MAP\n' % (p, p, p, p) for p, m in PROGS))
+    top.text('MAKEFILE.TEXT', basmake.all_makefile('BASIC', 'BC'))
 
     src = top.sub('SRC')
-    src.text('BUILD.TEXT', "' the compiler: its modules, linked into its %d programs BASIC:BC2.CODE,\n" % len(PROGS) +
-             "' %s (the first module of each its main one), each with its\n" % ', '.join(p + '2' for p, m in PROGS[1:]) +
-             "' map (-MAP, this file's links: a run-time error in BC says its line)\n-MAP\n" +
-             ''.join('-C BASIC:/SRC/%s\n' % m for m in MODS) +
-             ''.join('-L BASIC:%s2=%s\n' % (p, ','.join('BASIC:/SRC/' + x for x in m)) for p, m in PROGS))
+    src.text('MAKEFILE.TEXT', basmake.src_makefile('BASIC', 'BC', PROGS, MODS, os.path.join(ROOT, 'bc'), 'BASIC:'))
     for f in sorted(glob.glob(os.path.join(ROOT, 'bc', '*.bas'))):
         src.text(os.path.basename(f)[:-4].upper() + '.BAS', text(f))
     src.extra = sum(blocks(os.path.getsize(os.path.join(ROOT, 'build', 'self', m + '.OBJ'))) for m in MODS)
@@ -137,28 +128,20 @@ def main(out=os.path.join(ROOT, 'build', 'BASIC.BLK')):
     lib = top.sub('LIB')
     baslib = open(os.path.join(ROOT, 'build', 'BASLIB.OBJ'), 'rb').read()
     lib.binary('BASLIB.OBJ', baslib)
-    lib.text('LIBS.TEXT', "' the run-time library: its modules, joined into BASIC:/LIB/BASLIB2.OBJ\n" +
-             ''.join('-C BASIC:/LIB/%s\n' % m for m in LIBS) +
-             '-J BASIC:/LIB/BASLIB2=' + ','.join('BASIC:/LIB/' + m for m in LIBS) + '\n')
+    lib.text('MAKEFILE.TEXT', basmake.lib_makefile('BASIC', 'BC', LIBS, os.path.join(ROOT, 'lib')))
     for f in sorted(glob.glob(os.path.join(ROOT, 'lib', '*.bas'))):
         lib.text(os.path.basename(f)[:-4].upper() + '.BAS', text(f))
     lib.extra = blocks(len(baslib)) + sum(blocks(os.path.getsize(os.path.join(ROOT, 'build', 'lib', m + '.OBJ'))) for m in LIBS)
 
     demo = top.sub('DEMO')
-    cmds, srcs, links = [], {}, []
+    srcs, links = {}, []
     for d in DEMOS:
         name, more = (d, []) if isinstance(d, str) else d
-        for m in more:
-            cmds.append('-C BASIC:/DEMO/%s' % m)
-        if more:
-            cmds.append('-C BASIC:/DEMO/%s' % name)
-            cmds.append('-L BASIC:/DEMO/%s=%s' % (name, ','.join('BASIC:/DEMO/' + m for m in [name] + more)))
-        else:
-            cmds.append('BASIC:/DEMO/%s' % name)
         links.append((name, [name] + more))
         for m in [name] + more:
             srcs[m] = os.path.join(ROOT, 'demos', m.lower() + '.bas')
-    demo.text('DEMOS.TEXT', "' the demos: each compiled and linked into DEMO/NAME.CODE\n" + '\n'.join(cmds) + '\n')
+    demo.text('MAKEFILE.TEXT', basmake.progs_makefile('BASIC', 'BC', 'DEMO', 'the demos', [(n, m[1:]) for n, m in links],
+                                                      os.path.join(ROOT, 'demos')))
     for m in sorted(srcs):
         demo.text(m + '.BAS', text(srcs[m]))
     demo.extra = host_sizes(srcs, links)
@@ -166,8 +149,9 @@ def main(out=os.path.join(ROOT, 'build', 'BASIC.BLK')):
     test = top.sub('TEST')
     names = sorted(os.path.basename(f)[:-7].upper() for f in glob.glob(os.path.join(ROOT, 'tests', '*.expect')))
     names = [n for n in names if n not in NOTEST and 'B2ONLY' not in open(os.path.join(ROOT, 'tests', n.lower() + '.bas')).readline()]
-    test.text('TESTS.TEXT', "' the tests: each compiled and linked into TEST/NAME.CODE; what it\n"
-              "' prints is in TEST/EXPECT/NAME.TEXT\n" + ''.join('BASIC:/TEST/%s\n' % n for n in names))
+    test.text('MAKEFILE.TEXT', basmake.progs_makefile('BASIC', 'BC', 'TEST', 'the tests (what each prints is in\n'
+                                                      'BASIC:/TEST/EXPECT/NAME.TEXT)', [(n, []) for n in names],
+                                                      os.path.join(ROOT, 'tests')))
     srcs = {n: os.path.join(ROOT, 'tests', n.lower() + '.bas') for n in names}
     for n in names:
         test.text(n + '.BAS', text(srcs[n]))

@@ -234,4 +234,4 @@ RTCHAIN).  tools/b2mem.py shows each pass's for chosen modules.
   on the P-System, each byte for byte what the host BC makes.
 - tools/errtest.py --b2: the compile errors (NAME.expect2 where B2 says other
   ones than BC).
-- tools/mkvolume2.py, tools/voltest2.py: BASIC2.BLK, @BASIC2:ALL on it.
+- tools/mkvolume2.py, tools/voltest2.py: BASIC2.BLK, `make -f basic2:makefile` on it (tools/basmake.py writes the makefiles).

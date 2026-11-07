@@ -38,7 +38,7 @@ The lines skipped are not read as BASIC; #IFDEFs nest 8 deep, through
 and -K's into the sub-volumes in it, one for each pass: NAME.W0 into
 BASIC2:/MAP/W0, NAME.W1 into BASIC2:/MAP/W1 ... (when BASIC2: is not on
 line, or has no MAP, beside the source and the code file as before).  A
-whole `B2 -K -MAP @BASIC2:/SRC/BUILD` fits: each Wn holds 1500 blocks, B2's
+whole `MAKE -B -f BASIC2:/SRC/MAKEFILE FLAGS=-K` fits: each Wn holds 1500 blocks, B2's
 21 modules take 1040 to 1250 of them.  Each names the source it was made from, with its
 volume's name (`WORK:/A/PROG.BAS`, not `#5:` or the prefix).  Two programs
 of one name on two volumes share MAP's NAME.MAP: its first lines say whose
@@ -66,11 +66,11 @@ beside the W file.  An old dump is replaced.
 A whole build, every pass of every module, as text: in the shell,
 
 ```
-B2 -K -MAP @BASIC2:/SRC/BUILD
-@BASIC2:/SRC/DUMPALL
+MAKE -B -f BASIC2:/SRC/MAKEFILE FLAGS=-K
+MAKE -f BASIC2:/SRC/MAKEFILE DUMPALL
 ```
 
-DUMPALL runs `B2DUMP -MAP` on each of the 140 W files (beside the sources
+DUMPALL (a target of that makefile) runs `B2DUMP -MAP` on each of the 140 W files (beside the sources
 they would be more than SRC's 77 files); the dumps fill MAP/D0 ... D7
 (1900 blocks each, 1360 to 1810 of them for B2's build).  Options > Export
 File > Export All in the emulator (2.12) copies MAP, or the whole volume,
@@ -82,10 +82,10 @@ to a Windows folder, the dumps as Windows text.  On the host, `tools/b2dump.py N
 |---|---|
 | `B2.CODE` | the compiler's driver; `B2LEX`, `B2CONST`, `B2SYN`, `B2DECL`, `B2NAME`, `B2EXPR`, `B2CTL`, `B2STMT`, `B2ASM` its passes, `B2LIST` (the listing), `B2LINK` (the linker), `B2ERR` (a compile's errors), `B2DEBUG` (where a run-time error was), `B2DUMP` (shows a -K file) |
 | `MAP/` | their maps (B2.MAP ...) and what -MAP makes; `MAP/W0` ... `MAP/W7` what -K makes, `MAP/D0` ... `MAP/D7` B2DUMP's dumps of them |
-| `ALL.TEXT` | `@BASIC2:ALL`: the four batch files below |
-| `SRC/` | B2's sources; `@BASIC2:/SRC/BUILD` rebuilds it as BASIC2:B22.CODE, B2LEX2.CODE ...; then, in the shell, `@BASIC2:/SRC/INSTALL` puts the rebuilt compiler in the old one's place; `@BASIC2:/SRC/DUMPALL` dumps a `-K` build's files (above) |
-| `LIB/` | BASLIB.OBJ (compiled by B2) and its sources; `@BASIC2:/LIB/LIBS` rebuilds it |
-| `DEMO/`, `TEST/` | the demos and the tests, `DEMOS.TEXT` and `TESTS.TEXT` compile them |
+| `MAKEFILE.TEXT` | `MAKE -f BASIC2:MAKEFILE` (Tiny-C's MAKE, on TOOLS:, from the shell): the MAKE of the four makefiles below, each compiling only what changed (`MAKE -B ...`: everything); `MAKE -f BASIC2:MAKEFILE INSTALL` |
+| `SRC/` | B2's sources; `MAKE -f BASIC2:/SRC/MAKEFILE` rebuilds it as BASIC2:B22.CODE, B2LEX2.CODE ...; its target INSTALL puts the rebuilt compiler in the old one's place; DUMPALL dumps a `-K` build's files (above) |
+| `LIB/` | BASLIB.OBJ (compiled by B2) and its sources; its MAKEFILE.TEXT rebuilds it |
+| `DEMO/`, `TEST/` | the demos and the tests; their MAKEFILE.TEXT compiles them |
 
 B2's programs are named B2*, so they and BASIC:'s BC can be on one disk.
 A program B2 compiled looks for B2DEBUG.CODE (beside it, on the prefix,
