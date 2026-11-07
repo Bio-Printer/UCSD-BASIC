@@ -6,6 +6,8 @@
 ' command line:
 '   NAME            compile NAME.BAS (or NAME.TEXT) and link NAME.CODE
 '   -C NAME         compile only: NAME.OBJ
+'   -O DIR          the compiles after it put their objects into DIR (a volume,
+'                   VOL:, or a sub-volume, VOL:/A/), not beside their sources
 '   -S NAME         compile with a listing (the BASIC statements and the
 '                   P-code made for them) in NAME.LST; -S -C NAME too
 '   -L OUT=A,B,...  link A.OBJ, B.OBJ ... (and BASLIB.OBJ) into OUT.CODE
@@ -31,6 +33,7 @@ DIM SHARED CmdLine$, CmdPos, Steps$(MAXSTEP), NSteps
 ' -MAP: the links after it, in its command line, its batch file and the batch files that
 ' one names, write NAME.MAP (their steps M, not L); a batch file's -MAP ends with it
 DIM SHARED MapOn
+DIM SHARED ObjDir$
 
 ' the next word of the command line ("" at its end)
 FUNCTION NextWord$ ()
@@ -114,6 +117,9 @@ FUNCTION AddCmds (l$)
             JobFlags = JobFlags OR JFMEM
         ELSEIF w$ = "-MAP" THEN
             MapOn = 1
+        ELSEIF w$ = "-O" THEN
+            ObjDir$ = UCASE$(NextWord$)
+            IF ObjDir$ <> "" AND RIGHT$(ObjDir$, 1) <> "/" AND RIGHT$(ObjDir$, 1) <> ":" THEN ObjDir$ = ObjDir$ + "/"
         ELSEIF w$ = "-L" THEN
             ok = AddStep(MID$("LM", MapOn + 1, 1) + " " + UCASE$(NextWord$))
         ELSEIF w$ = "-J" THEN
@@ -124,8 +130,14 @@ FUNCTION AddCmds (l$)
             SayLn "BC: unknown option " + w$
             ok = 0
         ELSE
-            ok = AddStep("C " + IStr$(lst) + " " + w$)
-            IF ok AND conly = 0 THEN ok = AddStep(MID$("LM", MapOn + 1, 1) + " " + DirOf$(w$) + ModOf$(w$))
+            ' (with -O: the object's place after " >", for StepNames)
+            IF ObjDir$ <> "" THEN
+                ok = AddStep("C " + IStr$(lst) + " " + w$ + " >" + ObjDir$)
+                IF ok AND conly = 0 THEN ok = AddStep(MID$("LM", MapOn + 1, 1) + " " + DirOf$(w$) + ModOf$(w$) + "=" + ObjDir$ + ModOf$(w$))
+            ELSE
+                ok = AddStep("C " + IStr$(lst) + " " + w$)
+                IF ok AND conly = 0 THEN ok = AddStep(MID$("LM", MapOn + 1, 1) + " " + DirOf$(w$) + ModOf$(w$))
+            END IF
             lst = 0
             conly = 0
         END IF

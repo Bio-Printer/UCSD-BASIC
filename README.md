@@ -53,6 +53,8 @@ compiler's use) and [docs/DESIGN.md](docs/DESIGN.md) (how BC works).
 * `NAME` -- compile NAME.BAS (or NAME.TEXT) and link NAME.CODE (NAME may be a path: `BASIC:/DEMO/HELLO`;
   the object and code file go beside the source)
 * `-C NAME` -- compile only (NAME.OBJ); `-S NAME` -- also a listing NAME.LST (lines ending in CR; vi edits it)
+* `-O DIR` -- the compiles after it put their objects into DIR (`VOL:` or a sub-volume `VOL:/A/`), not
+  beside their sources (compile-and-link takes the object from there): `BC -O TOOLS:/OBJ/ -C X`
 * `-L OUT=A,B,C` -- link several modules (and BASLIB.OBJ) into OUT.CODE
 * `-J LIB=A,B` -- join object files into a library
 * `@FILE` -- the commands in FILE.TEXT; `-M` -- memory report

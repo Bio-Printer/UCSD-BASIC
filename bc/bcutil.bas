@@ -271,15 +271,21 @@ END SUB
 
 SEGMENT RTSELDOM
 
-' a compile step's files: "C lst NAME"
+' a compile step's files: "C lst NAME", or "C lst NAME >DIR" (BC -O DIR: the object there)
 SUB StepNames ()
-    DIM n$, p
+    DIM n$, p, o$
     p = INSTR(3, JobCur$, " ")
     OptList = VAL(MID$(JobCur$, 3, p - 3))
     n$ = MID$(JobCur$, p + 1)
+    o$ = ""
+    p = INSTR(n$, " >")
+    IF p > 0 THEN
+        o$ = MID$(n$, p + 2)
+        n$ = LEFT$(n$, p - 1)
+    END IF
     SrcName$ = SourceOf$(n$)
     ModName$ = ModOf$(n$)
-    ObjName$ = DirOf$(n$) + ModName$ + ".OBJ"
+    IF o$ <> "" THEN ObjName$ = o$ + ModName$ + ".OBJ" ELSE ObjName$ = DirOf$(n$) + ModName$ + ".OBJ"
     IF OptList THEN LstName$ = ListOf$(n$) ELSE LstName$ = ""
     TokFile$ = SrcName$
 END SUB
