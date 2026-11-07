@@ -184,14 +184,13 @@ SUB RunStep ()
     IF LEFT$(JobCur$, 1) = "C" THEN ChainTo "BCLEX", "" ELSE ChainTo "BCLINK", ""
 END SUB
 
-' the first block of each of the compiler's programs (BCxxx.CODE, at the
-' top of the unit BC's code file is on: JobHome$), " BCLEX=123 ...", for
-' ChainTo (the host: none -- PEEK and CSP are nothing there)
-SUB FindBlocks (u)
+' the BCxxx.CODE files of the directory of the volume that starts at block base of unit u
+' (0: the unit's own; a sub-volume's entries count their blocks from its start) into
+' JobBlk$; returns the first block of the sub-volume BIN there (a data file), 0 for none
+FUNCTION FindIn (u, base)
     DIM d(1023), n, i, e, k, l, nm$, c
-    JobBlk$ = ""
-    CSP 5, u, VARPTR(d(0)), 0, 2048, 2, 0
-    IF CSP%(34) <> 0 THEN EXIT SUB
+    CSP 5, u, VARPTR(d(0)), 0, 2048, base + 2, 0
+    IF CSP%(34) <> 0 THEN EXIT FUNCTION
     n = d(8)
     IF n > 77 THEN n = 77
     FOR i = 1 TO n
@@ -202,6 +201,7 @@ SUB FindBlocks (u)
             IF (k AND 1) = 1 THEN c = (d(e + 3 + k \ 2) AND &HFF00) \ 256 ELSE c = d(e + 3 + k \ 2) AND 255
             nm$ = nm$ + CHR$(c)
         NEXT k
+        IF nm$ = "BIN" AND (d(e + 2) AND 15) = 5 THEN FindIn = base + d(e)
         ' (BC.CODE ... BCDEBUG.CODE: letters only -- not BUILD's BC2.CODE)
         IF LEFT$(nm$, 2) = "BC" AND RIGHT$(nm$, 5) = ".CODE" THEN
             nm$ = LEFT$(nm$, LEN(nm$) - 5)
@@ -209,9 +209,20 @@ SUB FindBlocks (u)
             FOR k = 1 TO LEN(nm$)
                 IF ASC(nm$, k) < 65 OR ASC(nm$, k) > 90 THEN c = 0
             NEXT k
-            IF c AND LEN(JobBlk$) < 200 THEN JobBlk$ = JobBlk$ + " " + nm$ + "=" + IStr$(d(e))
+            IF c AND LEN(JobBlk$) < 200 THEN JobBlk$ = JobBlk$ + " " + nm$ + "=" + IStr$(base + d(e))
         END IF
     NEXT i
+END FUNCTION
+
+' the first block of each of the compiler's programs (BCxxx.CODE), " BCLEX=123 ...", for
+' ChainTo (the host: none -- PEEK and CSP are nothing there): at the top of the unit BC's
+' code file is on (JobHome$), and in its sub-volume BIN -- the RP2040 port keeps BC on
+' TOOLS: and its other programs in TOOLS:/BIN (a program found in both: the top's first)
+SUB FindBlocks (u)
+    DIM b
+    JobBlk$ = ""
+    b = FindIn(u, 0)
+    IF b > 0 THEN b = FindIn(u, b)
 END SUB
 
 ' ---- the main program

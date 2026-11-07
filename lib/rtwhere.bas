@@ -80,9 +80,9 @@ SUB _RTWHERE (f)
         f = PEEK(f + 2)
     LOOP
     ' BCDEBUG (B2DEBUG): beside the program, on the prefix, the boot disk,
-    ' BASIC: (BASIC2:)
+    ' BASIC: (BASIC2:), TOOLS:/BIN (the RP2040 port: every compiler on TOOLS:)
     _WCAT a, b
-    FOR k = 1 TO 4
+    FOR k = 1 TO 5
         POKEB c, 0
         SELECT CASE k
         CASE 1
@@ -93,6 +93,8 @@ SUB _RTWHERE (f)
             _WCAT c, SADD("*")
         CASE 4
             _WCAT c, SADD(DEBUGVOL)
+        CASE 5
+            _WCAT c, SADD("TOOLS:/BIN/")
         END SELECT
         _WCAT c, SADD(DEBUGCODE)
         _WRUN c, a
