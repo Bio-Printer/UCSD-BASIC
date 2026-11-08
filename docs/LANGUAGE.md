@@ -382,7 +382,9 @@ Numbers
 Other
 - EOF(n), LOF(n) (always 0), FREEFILE (a free file number), POS(0) (the
   console's column)
-- INKEY$ (a key that was typed, or "")
+- INKEY$ (a key that was typed, or ""; on the emulator and the RP2040 the first INKEY$
+  asks the system to count the keys typed and is "": call it in a loop.  Home, End, PgUp
+  ... then come as one character each, CHR$(132) ...)
 - COMMAND$: the command line, when the program was started by Tiny-C's
   shell (e.g. `BC @BUILD`), without the program's name; "" otherwise.
   The shell's redirections are taken off it and done, as for Tiny-C's
@@ -484,6 +486,30 @@ For system programming (the run-time library is written with them):
   global word n.
 - DVI%(a, b), MDI%(a, b): the P-machine's own DIV and MOD.
 
+GPIO pins (the RP2040's, as MMBasic has them; the ucsd-pico firmware of
+UCSD-Pascal-on-RP2040 does them, elsewhere they are error 71):
+
+- `SETPIN pin, cfg [, option]`: cfg OFF (not used), AIN (an analog input:
+  GP26..GP29), DIN (a digital input), DOUT (a digital output); option, for
+  DIN, PULLUP or PULLDOWN.  These six words mean that only in SETPIN (they
+  are not reserved: a variable may have such a name); numbers work too
+  (OFF 0, AIN 1, DIN 2, DOUT 3; PULLUP 1, PULLDOWN 2).
+- PIN(pin): a DIN pin's level, 0 or 1; a DOUT pin's, the level it drives;
+  an AIN pin's voltage in millivolts, 0..3300.
+- `PIN(pin) = value`: a DOUT pin's level (0, or 1 for any other value: a
+  comparison's -1 lights an LED too).
+- GP0 and GP1 (the console's UART) and a pin outside 0..29 are error 5, a
+  configuration that is not there too (AIN on GP2..GP25); PIN of an OFF pin
+  or PIN( ) = of a pin that is not DOUT is error 70.  Every pin is OFF when
+  the P-System starts; a program's pins stay as it left them.  A program of
+  your own named SETPIN, or an array named PIN, is used instead.
+
+    SETPIN 25, DOUT                ' the LED of a Pico or a YD-RP2040
+    SETPIN 24, DIN, PULLUP         ' a YD-RP2040's USR button
+    DO WHILE INKEY$ = ""
+        PIN(25) = PIN(24) = 0      ' lit while the button is held
+    LOOP
+
 ## 12. Run-time errors
 
 A run-time error prints "Run-time error N: text" and stops the program,
@@ -521,6 +547,7 @@ arrays are given back first.
     54 Bad file mode             55 File already open
     61 Disk full                 62 Input past end of file
     64 Bad file name             67 Too many files
+    70 Pin not set for that      71 No GPIO pins here
 
 Errors the P-machine finds itself (a stack overflow, for example) are
 reported by the operating system as usual.  After a run-time error the

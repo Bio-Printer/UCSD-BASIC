@@ -169,14 +169,69 @@ END FUNCTION
 
 ' INKEY$: a key that is waiting, or ""
 FUNCTION _INKEY ()
-    DIM t
+    DIM t, e, k
     _CONFLUSH
-    IF CSP%(35, 2) <> 0 THEN
+    k = CSP%(35, 2)
+    IF k = 0 THEN
+        ' the native P-Code engine (the emulator, the ucsd-pico firmware) answers UNITBUSY "not
+        ' busy" always, and counts the keys waiting in SYSCOM^.EXPANSION[2] once EXPANSION[1]
+        ' asks for it (PX_KEYS_AHEAD, 25609; it answers 25610): the first INKEY$ asks (and is
+        ' ""), later ones read the count.  (Home, End, PgUp ... then come as one code each;
+        ' _HALT puts the keys back.)  A key mode the program set (25605..25608) is left alone.
+        e = PEEK(OSVAR(1) + 38)
+        IF e < 25605 OR e > 25610 THEN
+            POKE OSVAR(1) + 38, 25609
+        ELSEIF e = 25610 THEN
+            k = PEEK(OSVAR(1) + 40)
+        END IF
+    END IF
+    IF k <> 0 THEN
         t = _TALLOC(1)
         POKEB t + 1, _CONRAW
         _INKEY = t
     END IF
 END FUNCTION
+
+' ---- SETPIN, PIN(), PIN() =: the RP2040's GPIO pins (MMBasic's), through the ucsd-pico
+' firmware (UCSD-Pascal-on-RP2040 port/Gpio.h): TIME (CSP 9) with 25614 and the request
+' op * 16384 + option * 4096 + arg * 256 + pin answers the status and the value.  The firmware
+' is asked once whether it is there (its machine information: 25613, &H7C00 -> &H5250).
+FUNCTION _PINREQ (op, opt, arg, p)
+    STATIC fw
+    DIM hi, lo
+    IF fw = 0 THEN
+        hi = 25613
+        lo = &H7C00
+        CSP 9, VARPTR(hi), VARPTR(lo)
+        IF hi = &H5250 THEN fw = 1 ELSE fw = -1
+    END IF
+    IF fw < 0 THEN _RTERR 71
+    IF p < 0 OR p > 255 OR arg < 0 OR arg > 15 OR opt < 0 OR opt > 3 THEN _RTERR 5
+    hi = 25614
+    lo = op * 16384 + opt * 4096 + arg * 256 + p
+    CSP 9, VARPTR(hi), VARPTR(lo)
+    IF hi = 4 THEN _RTERR 70
+    IF hi <> 0 THEN _RTERR 5
+    _PINREQ = lo
+END FUNCTION
+
+' SETPIN pin, cfg [, option]: cfg OFF 0, AIN 1, DIN 2, DOUT 3; option PULLUP 1, PULLDOWN 2
+SUB _SETPIN (p, cfg, opt)
+    DIM x
+    x = _PINREQ(0, opt, cfg, p)
+END SUB
+
+' PIN(pin): a DIN pin's level, a DOUT pin's, an AIN pin's millivolts
+FUNCTION _PIN (p)
+    _PIN = _PINREQ(2, 0, 0, p)
+END FUNCTION
+
+' PIN(pin) = value: a DOUT pin's level (0, or 1 for any other)
+SUB _PINSET (p, v)
+    DIM x
+    IF v <> 0 THEN v = 1
+    x = _PINREQ(1, 0, v, p)
+END SUB
 
 SUB _CLS ()
     _CONFLUSH

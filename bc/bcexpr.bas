@@ -536,7 +536,7 @@ FUNCTION BuiltTable$ (part)
         tb$ = "RND     TIMER   EOF     INKEY$  COMMAND$ERR     MKI$    CVI     MKS$    "
         tb$ = tb$ + "CVS     MKD$    CVD     LBOUND  UBOUND  FRE     VARPTR  PEEK    PEEKB   "
         tb$ = tb$ + "CSP%    CSP#    CSP!    OSCALL% OSVAR   POS     FREEFILELOF     DVI%    "
-        tb$ = tb$ + "MDI%    SADD    OSADDR  "
+        tb$ = tb$ + "MDI%    SADD    OSADDR  PIN     "
     END SELECT
     BuiltTable$ = tb$
 END FUNCTION
@@ -660,7 +660,7 @@ FUNCTION Builtin (id, nm$)
         END IF
     CASE BFRE
         IF nargs <> 1 THEN ErrNo 92   ' FRE: one argument expected
-    CASE BCHR, BSPACE, BHEX, BMKI, BEOF, BPEEK, BPEEKB, BOSVAR, BPOS, BLOF
+    CASE BCHR, BSPACE, BHEX, BMKI, BEOF, BPEEK, BPEEKB, BOSVAR, BPOS, BLOF, BPIN
         IF nargs <> 1 THEN ErrRec 93, 0, 0, nm$ ELSE a = ConvKeep(a, TYINT)   ' {s}: one argument expected
         IF id = BOSVAR AND NOp(a) <> NICON THEN ErrNo 94   ' OSVAR: a constant expected
         IF id = BCHR OR id = BSPACE OR id = BHEX OR id = BMKI THEN ty = TYSTR

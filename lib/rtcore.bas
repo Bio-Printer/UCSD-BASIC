@@ -76,6 +76,8 @@ SUB _ERRTEXT (code)
     CASE 62: m = SADD("Input past end of file")
     CASE 64: m = SADD("Bad file name")
     CASE 67: m = SADD("Too many files")
+    CASE 70: m = SADD("Pin not set for that (SETPIN)")
+    CASE 71: m = SADD("No GPIO pins here (not the ucsd-pico firmware)")
     CASE ELSE: m = SADD("Error")
     END SELECT
     _PSTR 0, m
@@ -209,9 +211,13 @@ SEGMENT
 
 ' ---- the end
 SUB _HALT (code)
+    DIM e
     _REDCLOSE
     _CLOSE 0
     _CONFLUSH
+    ' the keys as other programs want them, if INKEY$ asked for their count (RTINPUT)
+    e = PEEK(OSVAR(1) + 38)
+    IF e = 25609 OR e = 25610 THEN POKE OSVAR(1) + 38, 0
     ' the exit status (Tiny-C's pexec_status, SYSCOM^.EXPANSION[5])
     POKE OSVAR(1) + 46, code
     CSP 4, 1, 1

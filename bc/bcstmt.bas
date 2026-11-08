@@ -1107,8 +1107,30 @@ SUB GenCallStmt (s)
     GenCall n, 0
 END SUB
 
+' SETPIN's configuration or option: OFF 0, AIN 1, DIN 2, DOUT 3, PULLUP 1, PULLDOWN 2 (names
+' only there), else an INTEGER expression
+SUB PinWord ()
+    DIM k
+    k = -1
+    IF Tok = TIDENT THEN
+        SELECT CASE TokS$
+        CASE "OFF": k = 0
+        CASE "AIN", "PULLUP": k = 1
+        CASE "DIN", "PULLDOWN": k = 2
+        CASE "DOUT": k = 3
+        END SELECT
+    END IF
+    IF k >= 0 THEN
+        GetTok
+        Ldc k
+    ELSE
+        GenValueAs Expr, TYINT
+    END IF
+END SUB
+
 ' a statement that starts with a name: an assignment, a SUB call, MID$( ) =,
-' or one of the low-level statements (POKE, POKEB, CSP, OSCALL)
+' or one of the low-level statements (POKE, POKEB, CSP, OSCALL), or SETPIN and
+' PIN(pin) = value (the RP2040's GPIO pins, MMBasic's)
 SUB GenIdentStmt ()
     DIM nm$, s, lv, e, a, n, k
     nm$ = TokS$
@@ -1142,6 +1164,32 @@ SUB GenIdentStmt ()
         Expect TCOMMA
         GenValueAs Expr, TYINT
         IF nm$ = "POKEB" THEN OB OSTB ELSE OB OSTO
+        EXIT SUB
+    END IF
+    IF nm$ = "SETPIN" THEN
+        ' SETPIN pin, cfg [, option]: OFF AIN DIN DOUT, PULLUP PULLDOWN (or numbers)
+        GetTok
+        GenValueAs Expr, TYINT
+        Expect TCOMMA
+        PinWord
+        IF Tok = TCOMMA THEN
+            GetTok
+            PinWord
+        ELSE
+            Ldc 0
+        END IF
+        CallRt "_SETPIN"
+        EXIT SUB
+    END IF
+    IF nm$ = "PIN" AND FindVar(nm$) = 0 THEN
+        ' PIN(pin) = value
+        GetTok
+        Expect TLPAR
+        GenValueAs Expr, TYINT
+        Expect TRPAR
+        Expect TEQ
+        GenValueAs Expr, TYINT
+        CallRt "_PINSET"
         EXIT SUB
     END IF
     IF nm$ = "CSP" OR nm$ = "OSCALL" THEN
