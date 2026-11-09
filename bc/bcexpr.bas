@@ -532,11 +532,14 @@ FUNCTION BuiltTable$ (part)
         tb$ = tb$ + "LTRIM$  RTRIM$  TRIM$   SPACE$  STRING$ STR$    VAL     HEX$    CINT    "
         tb$ = tb$ + "FIX     INT     CSNG    CDBL    ABS     SGN     SQR     SIN     COS     "
         tb$ = tb$ + "TAN     ATN     EXP     LOG     "
-    CASE ELSE
+    CASE 1
         tb$ = "RND     TIMER   EOF     INKEY$  COMMAND$ERR     MKI$    CVI     MKS$    "
         tb$ = tb$ + "CVS     MKD$    CVD     LBOUND  UBOUND  FRE     VARPTR  PEEK    PEEKB   "
         tb$ = tb$ + "CSP%    CSP#    CSP!    OSCALL% OSVAR   POS     FREEFILELOF     DVI%    "
         tb$ = tb$ + "MDI%    SADD    OSADDR  PIN     "
+    CASE ELSE
+        ' (a part holds 31 names: 248 characters of a string's 255)
+        tb$ = "DISTANCE"
     END SELECT
     BuiltTable$ = tb$
 END FUNCTION
@@ -545,7 +548,7 @@ FUNCTION BuiltinId (n$)
     DIM part, p, t$, pad$
     IF LEN(n$) > 8 THEN EXIT FUNCTION
     pad$ = LEFT$(n$ + "        ", 8)
-    FOR part = 0 TO 1
+    FOR part = 0 TO 2
         t$ = BuiltTable$(part)
         p = INSTR(t$, pad$)
         DO WHILE p > 0
@@ -731,6 +734,14 @@ FUNCTION Builtin (id, nm$)
     CASE BINKEY, BCOMMAND
         ty = TYSTR
     CASE BERR, BFREEFILE
+    CASE BDIST
+        ty = TYSNG
+        IF nargs <> 2 THEN
+            ErrRec 96, 0, 0, nm$   ' {s}: two arguments expected
+        ELSE
+            a = ConvKeep(a, TYINT)
+            NN(a) = ConvKeep(NN(a), TYINT)
+        END IF
     CASE BDVI, BMDI
         IF nargs <> 2 THEN
             ErrRec 96, 0, 0, nm$   ' {s}: two arguments expected

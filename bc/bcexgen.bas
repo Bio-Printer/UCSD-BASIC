@@ -545,6 +545,7 @@ SUB GenBuiltin (n)
         OB OLDB
     CASE BPOS: CallRt "_POS"
     CASE BPIN: CallRt "_PIN"
+    CASE BDIST: CallRt "_DIST"
     CASE BFREEFILE: CallRt "_FREEF"
     CASE BDVI: OB &H86
     CASE BMDI: OB &H8E

@@ -226,6 +226,28 @@ FUNCTION _PIN (p)
     _PIN = _PINREQ(2, 0, 0, p)
 END FUNCTION
 
+' DISTANCE(trig, echo): an HC-SR04's distance in centimetres (MMBasic's), -1 when no echo came:
+' the firmware sends the trigger and times the echo (TIME with 25616 and trig + echo * 256: the
+' echo's microseconds, 58 a centimetre; status 5: no echo)
+FUNCTION _DIST# (t, e)
+    DIM hi, lo, d#
+    hi = 25613
+    lo = &H7C00
+    CSP 9, VARPTR(hi), VARPTR(lo)
+    IF hi <> &H5250 THEN _RTERR 71
+    IF t < 0 OR t > 255 OR e < 0 OR e > 255 THEN _RTERR 5
+    hi = 25616
+    lo = e * 256 + t
+    CSP 9, VARPTR(hi), VARPTR(lo)
+    IF hi = 5 THEN
+        _DIST# = -1
+        EXIT FUNCTION
+    END IF
+    IF hi <> 0 THEN _RTERR 5
+    d# = lo
+    _DIST# = d# / 58
+END FUNCTION
+
 ' PIN(pin) = value: a DOUT pin's level (0, or 1 for any other)
 SUB _PINSET (p, v)
     DIM x
