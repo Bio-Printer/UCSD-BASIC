@@ -510,6 +510,17 @@ UCSD-Pascal-on-RP2040 does them, elsewhere they are error 71):
         PIN(25) = PIN(24) = 0      ' lit while the button is held
     LOOP
 
+- DISTANCE(trig, echo): what an HC-SR04 ultrasonic sensor measures, in
+  centimetres (a SINGLE, 2 to 400), or -1 when no echo comes back (nothing
+  in range, or no sensor on those pins).  The firmware sends a 10 us pulse
+  on trig (it sets the pin DOUT) and times the echo on echo (DIN); the
+  pins stay so.  Error 5 for a pin as SETPIN's.  The sensor's ECHO is 5 V:
+  a divider before the pin.  A function of your own named DISTANCE is used
+  instead.
+
+    cm = DISTANCE(29, 28)          ' TRIG on GP29, ECHO on GP28
+    IF cm < 0 THEN PRINT "nothing in range" ELSE PRINT cm; "cm"
+
 ## 12. Run-time errors
 
 A run-time error prints "Run-time error N: text" and stops the program,
