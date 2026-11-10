@@ -1,15 +1,15 @@
 #!/bin/bash
 # setup.sh -- build/psys: the P-System emulator's Linux runner (run_verify) and
 # the boot disk, from a checkout of UCSD-Pascal_Windows_Emulator and the boot
-# disk images of UCSD-TinyC (or UCSD-Pascal-Volumes):
+# disk images of UCSD-C (or UCSD-Pascal-Volumes):
 #   ENGINE_DIR=/path/to/UCSD-Pascal_Windows_Emulator  (default ../ucsd-pascal_windows_emulator)
-#   IMAGES_ZIP=/path/to/Usefull_System_Disk_Images.zip (default ../ucsd-tinyc/Usefull_System_Disk_Images.zip)
+#   IMAGES_ZIP=/path/to/Usefull_System_Disk_Images.zip (default ../ucsd-c/Usefull_System_Disk_Images.zip)
 set -e
 cd "$(dirname "$0")/.."
 ROOT=$(pwd)
 ENGINE_DIR=${ENGINE_DIR:-$ROOT/../bio-printer/ucsd-pascal_windows_emulator}
-IMAGES_ZIP=${IMAGES_ZIP:-$ROOT/../bio-printer/ucsd-tinyc/Usefull_System_Disk_Images.zip}
-# the boot disk: BIGGY of UCSD-Pascal-Volumes (SYSTEM.C, the Tiny-C shell), else the images zip's
+IMAGES_ZIP=${IMAGES_ZIP:-$ROOT/../bio-printer/ucsd-c/Usefull_System_Disk_Images.zip}
+# the boot disk: BIGGY of UCSD-Pascal-Volumes (SYSTEM.C, the UCSD-C shell), else the images zip's
 BOOT_DISK=${BOOT_DISK:-$ROOT/../bio-printer/ucsd-pascal-volumes/BLK_format/Big_Disk.BLK}
 B=build/psys
 mkdir -p $B/data $B/img
@@ -17,8 +17,8 @@ if [ ! -f $B/img/Big_Disk.BLK ]; then (cd $B/img && unzip -q -o "$IMAGES_ZIP"); 
 if [ ! -f $B/data/Big_Disk.BLK ]; then
     if [ -f "$BOOT_DISK" ]; then cp "$BOOT_DISK" $B/data/Big_Disk.BLK; else cp $B/img/Big_Disk.BLK $B/data/Big_Disk.BLK; fi
 fi
-# the Z80 interpreter (PSYS_MODE=z80 runs it): UCSD-TinyC's pascal.bin
-Z80_BIN=${Z80_BIN:-$ROOT/../bio-printer/ucsd-tinyc/pascal.bin}
+# the Z80 interpreter (PSYS_MODE=z80 runs it): UCSD-C's pascal.bin
+Z80_BIN=${Z80_BIN:-$ROOT/../bio-printer/ucsd-c/pascal.bin}
 if [ -f "$Z80_BIN" ] && ! cmp -s "$Z80_BIN" $B/data/pascal.bin; then cp "$Z80_BIN" $B/data/pascal.bin; fi
 [ -f $B/data/pascal.bin ] || head -c 4096 /dev/zero > $B/data/pascal.bin
 # (built again when the emulator's sources are newer: a new version)

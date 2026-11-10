@@ -8,7 +8,7 @@
                        looks for it there); MAP/W0 ... MAP/W7 what -K makes, NAME.W0 in
                        W0 ... (B2DUMP looks for them there)
     README.TEXT LANGUAGE.TEXT B2DESIGN.TEXT DESIGN.TEXT   the documentation
-    MAKEFILE.TEXT      MAKE -f BASIC2:MAKEFILE runs the four makefiles below (Tiny-C's MAKE,
+    MAKEFILE.TEXT      MAKE -f BASIC2:MAKEFILE runs the four makefiles below (UCSD-C's MAKE,
                        on TOOLS:); MAKE -f BASIC2:MAKEFILE INSTALL installs the new B2
     FILES.TEXT         every file, the sub-volumes' too
     SRC/               B2's sources (B2*.BAS); MAKEFILE.TEXT: MAKE -f BASIC2:/SRC/MAKEFILE

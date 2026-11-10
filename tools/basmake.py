@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """basmake.py -- the makefiles of the volumes BASIC: (BC, tools/mkvolume.py) and BASIC2: (B2,
-tools/mkvolume2.py), for Tiny-C's MAKE (on its TOOLS: volume; MAN MAKE):
+tools/mkvolume2.py), for UCSD-C's MAKE (on its TOOLS: volume; MAN MAKE):
 
   VOL:MAKEFILE.TEXT        everything: the MAKE of the four below in turn (MAKE -f VOL:MAKEFILE),
                            and INSTALL (MAKE -f VOL:MAKEFILE INSTALL)
@@ -64,7 +64,7 @@ def objs_rules(var, mods, hostdir, comp):
 def src_makefile(vol, comp, progs, mods, hostdir, mapdir, dump=None):
     """VOL:/SRC/MAKEFILE.TEXT: progs [(PROG, [MOD ...])]; mapdir: where PROG.MAP is (VOL: or
     VOL:/MAP/); dump: B2's DUMPALL lines"""
-    out = comment("""MAKEFILE -- %(c)s, rebuilt: from the shell, MAKE -f %(v)s:/SRC/MAKEFILE (Tiny-C's
+    out = comment("""MAKEFILE -- %(c)s, rebuilt: from the shell, MAKE -f %(v)s:/SRC/MAKEFILE (UCSD-C's
 MAKE, on TOOLS:).  Compiles each module whose source, or a file it #INCLUDEs, is newer than
 its object (NAME.OBJ beside it), and links each program whose modules changed, as
 %(v)s:%(p)s2.CODE ... (its map %(m)s%(p)s2.MAP: -MAP).  MAKE -B ... all of them again.
@@ -121,7 +121,7 @@ NAME.OBJ too).  MAKE -B ... all of them again.""" % {'w': what, 'v': vol, 's': s
 
 def all_makefile(vol, comp):
     return comment("""MAKEFILE -- everything: the compiler, the library, the demos, the tests, each the MAKE
-of its own makefile.  From the shell: MAKE -f %(v)s:MAKEFILE (Tiny-C's MAKE, on TOOLS:),
+of its own makefile.  From the shell: MAKE -f %(v)s:MAKEFILE (UCSD-C's MAKE, on TOOLS:),
 or MAKE -f %(v)s:MAKEFILE SRC (LIB, DEMO, TEST) for one.  Then MAKE -f %(v)s:MAKEFILE
 INSTALL puts the rebuilt compiler (%(v)s:%(c)s2.CODE ...) in the old one's place.""" % {'v': vol, 'c': comp}) + """
 all : SRC LIB DEMO TEST

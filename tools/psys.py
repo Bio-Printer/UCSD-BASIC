@@ -40,13 +40,13 @@ def shell_transcript(tr):
 
 
 def tools_blk():
-    """Tiny-C's TOOLS: (MAKE, for the volumes' makefiles): $TOOLS_BLK, else UCSD-TinyC's build, else
+    """UCSD-C's TOOLS: (MAKE, for the volumes' makefiles): $TOOLS_BLK, else UCSD-C's build, else
     UCSD-Pascal-Volumes' BLK_format"""
-    for p in (os.environ.get('TOOLS_BLK'), os.path.join(ROOT, '..', 'bio-printer', 'ucsd-tinyc', 'build', 'TOOLS.BLK'),
+    for p in (os.environ.get('TOOLS_BLK'), os.path.join(ROOT, '..', 'bio-printer', 'ucsd-c', 'build', 'TOOLS.BLK'),
               os.path.join(ROOT, '..', 'bio-printer', 'ucsd-pascal-volumes', 'BLK_format', 'TOOLS.BLK')):
         if p and os.path.exists(p):
             return p
-    raise SystemExit('no TOOLS.BLK (Tiny-C\'s MAKE): set TOOLS_BLK')
+    raise SystemExit('no TOOLS.BLK (UCSD-C\'s MAKE): set TOOLS_BLK')
 
 
 def ensure_setup():

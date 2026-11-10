@@ -4,7 +4,7 @@
 ' the code file's unit and first block, and the procedures' frames from
 ' the innermost out: each one's segment, procedure and offset (I#, after
 ' the call).  BCDEBUG finds the code file's name in the unit's directory
-' (and in the sub-volumes' on the way: Tiny-C's, data files holding a
+' (and in the sub-volumes' on the way: UCSD-C's, data files holding a
 ' volume), reads its map (B2LINK -MAP: BASIC2:/MAP/NAME.MAP when that one
 ' names this code file, else NAME.MAP beside it, else BASIC2:/MAP/NAME.MAP:
 ' a program renamed, its map moved) for the first frame that has lines

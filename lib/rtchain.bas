@@ -2,7 +2,7 @@
 '
 ' The program ends and the other one runs in its place, with the rest of
 ' the line as its COMMAND$.  Nothing of this one stays in memory: the other
-' program has all of it.  It is Tiny-C's pexec protocol (BIGGY's operating
+' program has all of it.  It is UCSD-C's pexec protocol (BIGGY's operating
 ' systems: SYSTEM.PASCAL 1.10 and later, SYSTEM.C): SYSCOM's EXPANSION[0] =
 ' PX_RUN, [1] and [2] the unit and first block of the code file to run; the
 ' command line in the prompt line PL (with the shell's path after a byte 30,

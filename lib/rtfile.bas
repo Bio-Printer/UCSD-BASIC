@@ -149,7 +149,7 @@ FUNCTION _SAMEAS (name, w)
 END FUNCTION
 
 ' the name a file is opened by, in _PATHBUF: a name without a volume on
-' the shell's path (CD, Tiny-C's shell) has that path and a / before it;
+' the shell's path (CD, UCSD-C's shell) has that path and a / before it;
 ' a size at its end, [n] or [*] (the operating system's: n blocks, half the
 ' largest free area), goes to _SIZESPEC
 FUNCTION _FNAME (name)

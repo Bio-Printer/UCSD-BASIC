@@ -84,7 +84,7 @@ SUB _ERRTEXT (code)
 END SUB
 
 
-' The command line Tiny-C's shell gave (pexec), kept for COMMAND$ without
+' The command line UCSD-C's shell gave (pexec), kept for COMMAND$ without
 ' the program's name, and the shell's path (CD) after it: in the operating
 ' system's prompt line PL while SYSCOM's expansion words say so (EXPANSION[0]
 ' = PX_CHILD, [6] = PX_ARGS, [7] its checksum), taken once, at the start
@@ -130,7 +130,7 @@ SUB _ARGS ()
     IF i > n THEN EXIT SUB
     t = _NEWBLK(41)
     ' the arguments, i .. n, as they are -- unless a word starts with > or
-    ' <: Tiny-C's redirections are taken off them (a word >NAME, >>NAME or
+    ' <: UCSD-C's redirections are taken off them (a word >NAME, >>NAME or
     ' <NAME, or the name in the next word: _REDNAME), the other words kept
     ' with a blank between them
     c = 0
@@ -218,7 +218,7 @@ SUB _HALT (code)
     ' the keys as other programs want them, if INKEY$ asked for their count (RTINPUT)
     e = PEEK(OSVAR(1) + 38)
     IF e = 25609 OR e = 25610 THEN POKE OSVAR(1) + 38, 0
-    ' the exit status (Tiny-C's pexec_status, SYSCOM^.EXPANSION[5])
+    ' the exit status (UCSD-C's pexec_status, SYSCOM^.EXPANSION[5])
     POKE OSVAR(1) + 46, code
     CSP 4, 1, 1
 END SUB

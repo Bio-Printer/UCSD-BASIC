@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""voltest.py -- build/BASIC.BLK on the P-System (unit #5), from the Tiny-C shell with Tiny-C's
+"""voltest.py -- build/BASIC.BLK on the P-System (unit #5), from the UCSD-C shell with UCSD-C's
 TOOLS: (MAKE) on #11: make -f basic:makefile runs the makefiles of BASIC:/SRC (the compiler
 rebuilt: BASIC:BC2.CODE, BCLEX2 ... BCDEBUG2, each the same as BC.CODE ... BCDEBUG.CODE but
 for segment 1's name, with its map), BASIC:/LIB (BASLIB2.OBJ, the same as BASLIB.OBJ),

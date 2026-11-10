@@ -5,7 +5,7 @@
                        BCLINK.CODE, BCERR.CODE and BCDEBUG.CODE the programs it chains to (each in
                        memory alone)
     README.TEXT LANGUAGE.TEXT DESIGN.TEXT   the documentation
-    MAKEFILE.TEXT      MAKE -f BASIC:MAKEFILE runs the four makefiles below (Tiny-C's MAKE, on
+    MAKEFILE.TEXT      MAKE -f BASIC:MAKEFILE runs the four makefiles below (UCSD-C's MAKE, on
                        TOOLS:); MAKE -f BASIC:MAKEFILE INSTALL then puts BC2.CODE ...
                        BCDEBUG2.CODE in the places of BC.CODE ... BCDEBUG.CODE
     FILES.TEXT         every file, the sub-volumes' too
@@ -18,7 +18,7 @@
     TEST/              the compiler's tests; MAKEFILE.TEXT compiles them,
                        EXPECT/ what each prints
 
-The sub-volumes are data files holding a volume of their own (Tiny-C's
+The sub-volumes are data files holding a volume of their own (UCSD-C's
 MKDIR), made here with room for what their makefiles write (the objects
 and code files, measured with the host build: twice that and 40 blocks).
 The compiler and library are the host build's (tools/mkself.sh,

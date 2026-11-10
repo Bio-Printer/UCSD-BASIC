@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """voltest2.py -- build/BASIC2.BLK on the P-System (unit #5), as voltest.py BASIC.BLK: from the
-Tiny-C shell, with Tiny-C's TOOLS: (MAKE) on #11, make -f basic2:makefile runs the makefiles of
+UCSD-C shell, with UCSD-C's TOOLS: (MAKE) on #11, make -f basic2:makefile runs the makefiles of
 BASIC2:/SRC (B2 rebuilt: BASIC2:B22.CODE, B2LEX2 ... B2DEBUG2, each the same as B2.CODE ...
 B2DEBUG.CODE but for segment 1's name, its map in BASIC2:/MAP), BASIC2:/LIB (BASLIB2.OBJ, the
 same as BASLIB.OBJ), BASIC2:/DEMO and BASIC2:/TEST (every demo and test compiled); then again:

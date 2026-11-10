@@ -11,7 +11,7 @@ the emulator's Z80 mode (B2DESIGN.TEXT).
 ## Using B2
 
 `X(ecute BASIC2:B2`, then at "Compile what file?" (or as the command line
-from Tiny-C's shell: `BASIC2:B2 -C PROG`):
+from UCSD-C's shell: `BASIC2:B2 -C PROG`):
 
 * `NAME` -- compile NAME.BAS (or NAME.TEXT) and link NAME.CODE (NAME may be a path)
 * `-C NAME` -- compile only (NAME.OBJ); `-S NAME` -- also a listing NAME.LST
@@ -82,7 +82,7 @@ to a Windows folder, the dumps as Windows text.  On the host, `tools/b2dump.py N
 |---|---|
 | `B2.CODE` | the compiler's driver; `B2LEX`, `B2CONST`, `B2SYN`, `B2DECL`, `B2NAME`, `B2EXPR`, `B2CTL`, `B2STMT`, `B2ASM` its passes, `B2LIST` (the listing), `B2LINK` (the linker), `B2ERR` (a compile's errors), `B2DEBUG` (where a run-time error was), `B2DUMP` (shows a -K file) |
 | `MAP/` | their maps (B2.MAP ...) and what -MAP makes; `MAP/W0` ... `MAP/W7` what -K makes, `MAP/D0` ... `MAP/D7` B2DUMP's dumps of them |
-| `MAKEFILE.TEXT` | `MAKE -f BASIC2:MAKEFILE` (Tiny-C's MAKE, on TOOLS:, from the shell): the MAKE of the four makefiles below, each compiling only what changed (`MAKE -B ...`: everything); `MAKE -f BASIC2:MAKEFILE INSTALL` |
+| `MAKEFILE.TEXT` | `MAKE -f BASIC2:MAKEFILE` (UCSD-C's MAKE, on TOOLS:, from the shell): the MAKE of the four makefiles below, each compiling only what changed (`MAKE -B ...`: everything); `MAKE -f BASIC2:MAKEFILE INSTALL` |
 | `SRC/` | B2's sources; `MAKE -f BASIC2:/SRC/MAKEFILE` rebuilds it as BASIC2:B22.CODE, B2LEX2.CODE ...; its target INSTALL puts the rebuilt compiler in the old one's place; DUMPALL dumps a `-K` build's files (above) |
 | `LIB/` | BASLIB.OBJ (compiled by B2) and its sources; its MAKEFILE.TEXT rebuilds it |
 | `DEMO/`, `TEST/` | the demos and the tests; their MAKEFILE.TEXT compiles them |
