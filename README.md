@@ -20,7 +20,7 @@ as the host build** (`tools/selfcompile.py`).
 ## The volume BASIC:
 
 `tools/mkvolume.py` makes `build/BASIC.BLK` (also in UCSD-Pascal-Volumes'
-BLK_format), laid out in sub-volumes (Tiny-C's: data files holding a volume,
+BLK_format), laid out in sub-volumes (UCSD-C's: data files holding a volume,
 `BASIC:/SRC/BC.BAS`; the BASIC sources are NAME.BAS, text files):
 
 | File | What |
@@ -28,11 +28,11 @@ BLK_format), laid out in sub-volumes (Tiny-C's: data files holding a volume,
 | `BC.CODE` | the compiler (the driver: run it); `BCLEX.CODE`, `BCGEN.CODE`, `BCLIST.CODE`, `BCLINK.CODE`, `BCERR.CODE` the programs it chains to, each in memory alone; `BCDEBUG.CODE` says where a program's run-time error was (file, line, procedure, the line) |
 | `README.TEXT`, `LANGUAGE.TEXT`, `DESIGN.TEXT` | the manuals |
 | `ALL.TEXT` | `@BASIC:ALL`: the four batch files below |
-| `INSTALL.TEXT` | after `@BASIC:/SRC/BUILD`, in Tiny-C's shell (BIGGY 1.32: `@FILE` runs a batch file): `@BASIC:INSTALL` moves BC2.CODE ... BCDEBUG2.CODE onto BC.CODE ... BCDEBUG.CODE (each old file goes, the new one takes its name; nothing goes when the new one is missing) |
+| `INSTALL.TEXT` | after `@BASIC:/SRC/BUILD`, in UCSD-C's shell (BIGGY 1.32: `@FILE` runs a batch file): `@BASIC:INSTALL` moves BC2.CODE ... BCDEBUG2.CODE onto BC.CODE ... BCDEBUG.CODE (each old file goes, the new one takes its name; nothing goes when the new one is missing) |
 | `FILES.TEXT` | every file, the sub-volumes' too |
 | `SRC/` | the compiler's sources; `BUILD.TEXT`: `@BASIC:/SRC/BUILD` rebuilds the compiler's eight programs as BASIC:BC2.CODE, BCLEX2.CODE ... BCDEBUG2.CODE |
 | `LIB/` | `BASLIB.OBJ`, the run-time library, and its sources; `LIBS.TEXT`: `@BASIC:/LIB/LIBS` rebuilds it as BASIC:/LIB/BASLIB2.OBJ |
-| `DEMO/` | HELLO, PRIMES, HANOI, MANDEL, PI (Archimedes' method, from Tiny-C's PI.C), GUESS, AMAZING (a maze and its path; its size from the command line, `AMAZING 13 10`, or asked for) and STATS (two modules: STATS + STATLIB); `DEMOS.TEXT` compiles them |
+| `DEMO/` | HELLO, PRIMES, HANOI, MANDEL, PI (Archimedes' method, from UCSD-C's PI.C), GUESS, AMAZING (a maze and its path; its size from the command line, `AMAZING 13 10`, or asked for) and STATS (two modules: STATS + STATLIB); `DEMOS.TEXT` compiles them |
 | `TEST/` | the compiler's tests; `TESTS.TEXT` compiles them; `EXPECT/` what each prints |
 
 `tools/voltest.py` checks it (`--pascal`: under SYSTEM.PASCAL).
@@ -42,7 +42,7 @@ compiler's use) and [docs/DESIGN.md](docs/DESIGN.md) (how BC works).
 
 ## Using BC on the P-System
 
-`X(ecute BC`, then at "Compile what file?" (or as the command line from Tiny-C's shell):
+`X(ecute BC`, then at "Compile what file?" (or as the command line from UCSD-C's shell):
 
 * `NAME` -- compile NAME.BAS (or NAME.TEXT) and link NAME.CODE (NAME may be a path: `BASIC:/DEMO/HELLO`;
   the object and code file go beside the source)
@@ -52,7 +52,7 @@ compiler's use) and [docs/DESIGN.md](docs/DESIGN.md) (how BC works).
 * `@FILE` -- the commands in FILE.TEXT; `-M` -- memory report
 
 `CHAIN "[VOL:]PROGRAM [options]"` (or `CHAIN a$`) ends the program and runs another in its
-place, with the options as its `COMMAND$` (Tiny-C's pexec protocol: BIGGY's systems).
+place, with the options as its `COMMAND$` (UCSD-C's pexec protocol: BIGGY's systems).
 
 Modules share variables with `COMMON SHARED`, call each other's procedures
 after `DECLARE`; `SEGMENT name` puts the following procedures in a code
@@ -61,7 +61,7 @@ default: Options > Harvard Mode, in P-Code mode with Reclaim Z80 Interpreter
 Memory on), where it compiles itself; in the other layouts, the Z80 mode
 too, it compiles programs the size of the demos (tools/smalltest.py: PI).
 It works under SYSTEM.PASCAL and SYSTEM.C,
-and from Tiny-C's shell (`BASIC:BC -C PROG`: COMMAND$, exit status 0 or 1;
+and from UCSD-C's shell (`BASIC:BC -C PROG`: COMMAND$, exit status 0 or 1;
 after `CD BASIC:/DEMO`, `BC PI` compiles BASIC:/DEMO/PI.BAS).  Programs open
 files in sub-volumes by their paths (`OPEN "BASIC:/DEMO/X.TXT" ...`), and a
 code file in one runs with `X(ecute BASIC:/DEMO/HELLO`.
@@ -74,7 +74,7 @@ shell and the TOOLS: of that day (vi, cat, grep, ...) read NAME.BAS as text.
 ## Building and testing (Linux)
 
 ```
-tools/setup.sh          # the emulator runner (needs the sibling emulator / Tiny-C checkouts)
+tools/setup.sh          # the emulator runner (needs the sibling emulator / UCSD-C checkouts)
 tools/buildhost.sh      # build/bc: the host build (bas2c.py + gcc)
 tools/mklib.sh          # build/BASLIB.OBJ
 tools/mkself.sh         # build/BC.CODE, BCLEX, BCGEN, BCLIST, BCLINK, BCERR.CODE

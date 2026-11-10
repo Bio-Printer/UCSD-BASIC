@@ -20,8 +20,8 @@ unless it ends with a dot: E(dit PI.BAS. (and the same name with the dot to
 save it).  BIGGY 1.29's systems, SYSTEM.PASCAL and SYSTEM.C, make every new
 NAME.BAS a text file, as NAME.TEXT; with an older system a .BAS file the
 Editor writes is a data file in the directory, which BC reads all the same.
-Tiny-C's library takes NAME.BAS for a text file too (since BIGGY 1.30 and
-the TINY-C: and TOOLS: volumes of the same day): the shell's TYPE, vi, cat,
+UCSD-C's library takes NAME.BAS for a text file too (since BIGGY 1.30 and
+the UCSD-C: and TOOLS: volumes of the same day): the shell's TYPE, vi, cat,
 grep, wc, less and the other tools read and write it as text.  An older
 one shows its header and blank-compression codes, and vi refuses it.
 The emulator's Options > Import File makes a PC file NAME.BAS a text file
@@ -311,7 +311,7 @@ Data
 
 Program
 - `END [n]`, `STOP`, `SYSTEM [n]` -- the program ends (files are closed);
-  n is the exit status a program started by Tiny-C's shell returns.
+  n is the exit status a program started by UCSD-C's shell returns.
 - `CHAIN "[VOL:]PROGRAM [options]"` or `CHAIN a$` -- this program ends
   (its files are closed) and PROGRAM runs in its place, with the options
   as its COMMAND$; nothing of the first one stays in memory.  PROGRAM is
@@ -323,7 +323,7 @@ Program
   code file (or it is not linked), 64 when the name is empty or the line,
   with the shell's path, is over 80 characters; ON ERROR RESUME NEXT
   catches them.  It needs BIGGY's operating system (SYSTEM.PASCAL 1.10 or
-  later, or SYSTEM.C): it uses Tiny-C's pexec.
+  later, or SYSTEM.C): it uses UCSD-C's pexec.
 - `RANDOMIZE n` -- start RND's sequence from n, any number (RANDOMIZE
   TIMER: a different sequence each run).
 - `CLS` clears the screen; `LOCATE row, column` moves the cursor (from 1).
@@ -363,9 +363,9 @@ Other
 - EOF(n), LOF(n) (always 0), FREEFILE (a free file number), POS(0) (the
   console's column)
 - INKEY$ (a key that was typed, or "")
-- COMMAND$: the command line, when the program was started by Tiny-C's
+- COMMAND$: the command line, when the program was started by UCSD-C's
   shell (e.g. `BC @BUILD`), without the program's name; "" otherwise.
-  The shell's redirections are taken off it and done, as for Tiny-C's
+  The shell's redirections are taken off it and done, as for UCSD-C's
   programs: `AMAZING 10 10 >MAZE.TEXT` puts what the program PRINTs to
   the console into MAZE.TEXT (`>>` appends), `PROG <IN.TEXT` makes INPUT
   and LINE INPUT read IN.TEXT's lines (past its end: error 62), and
@@ -395,7 +395,7 @@ work area (1.5K) and given back after each statement.
 - File numbers are 1..15.  A name is a P-System file name, with a volume
   if wanted: "#5:DATA.TEXT", "WORK:NOTES.TEXT".
 - A path names a file in a sub-volume (a data file that holds a volume of
-  its own, as Tiny-C's shell's MKDIR makes them): "BASIC:/DEMO/HELLO.TEXT"
+  its own, as UCSD-C's shell's MKDIR makes them): "BASIC:/DEMO/HELLO.TEXT"
   or "BASIC:DEMO/HELLO.TEXT" (HELLO.TEXT in the sub-volume DEMO of the
   volume BASIC:), "#5:/A/B/X.TEXT" (B inside A), "/A/X.TEXT" or
   "A/X.TEXT" (on the prefix volume); \ may be written for /.  Every OPEN
@@ -405,7 +405,7 @@ work area (1.5K) and given back after each statement.
   anything else data) when it is closed -- a sub-volume that is too full
   gives run-time error 61 when a file no longer fits (a new file that did
   not fit is not kept).
-- A name without a volume, in a program started by Tiny-C's shell after
+- A name without a volume, in a program started by UCSD-C's shell after
   a CD into a sub-volume (CD BASIC:/DEMO), is on that path: "PI.BAS" is
   BASIC:/DEMO/PI.BAS, as for the shell's own commands.  Otherwise it is
   on the prefix volume.
@@ -507,7 +507,7 @@ NAME may be a path into sub-volumes: BASIC:/DEMO/HELLO):
     (an empty line)   ends BC
 
 Several commands may be given on one line; the first that fails stops
-the rest.  From Tiny-C's shell the same commands are BC's command line:
+the rest.  From UCSD-C's shell the same commands are BC's command line:
 `BC -C MYPROG`.
 
 Files: the source is NAME.BAS (or NAME.TEXT); the object NAME.OBJ is put
@@ -519,7 +519,7 @@ BCTEMP.LCD and BCTEMP.DAT on the prefix volume (:), also when it was started aft
 would be typed (BASIC:'s batch files name every file with its path).
 
 A code file in a sub-volume runs with X(ecute BASIC:/DEMO/HELLO (BIGGY's
-SYSTEM.PASCAL and SYSTEM.C), or from Tiny-C's shell.
+SYSTEM.PASCAL and SYSTEM.C), or from UCSD-C's shell.
 
 The volume BASIC: holds:
 
@@ -529,7 +529,7 @@ The volume BASIC: holds:
     BCDEBUG.CODE                where a program's run-time error was
     README.TEXT LANGUAGE.TEXT DESIGN.TEXT
     ALL.TEXT                    @BASIC:ALL: the four batch files below
-    INSTALL.TEXT                @BASIC:INSTALL in Tiny-C's shell (BIGGY 1.32),
+    INSTALL.TEXT                @BASIC:INSTALL in UCSD-C's shell (BIGGY 1.32),
                                 after @BASIC:/SRC/BUILD: BC2.CODE ...
                                 BCDEBUG2.CODE become BC.CODE ...
                                 BCDEBUG.CODE
@@ -545,7 +545,7 @@ The volume BASIC: holds:
     TEST/  the compiler's tests; TESTS.TEXT compiles them,
            EXPECT/NAME.TEXT     what each prints
 
-The sub-volumes have room for what their batch files make; Tiny-C's GROW
+The sub-volumes have room for what their batch files make; UCSD-C's GROW
 (TOOLS:) makes one bigger.
 
 The listing (-S) shows, for every procedure, each BASIC statement

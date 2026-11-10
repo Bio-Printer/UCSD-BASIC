@@ -186,7 +186,7 @@ SUB _LOCATE (r, c)
     _CONCOL = c - 1
 END SUB
 
-' COMMAND$: the command line Tiny-C's shell gave, without the program's
+' COMMAND$: the command line UCSD-C's shell gave, without the program's
 ' name (RTCORE's _ARGS took it at the start); else ""
 FUNCTION _CMD ()
     _CMD = _STMP(_CMDLINE)

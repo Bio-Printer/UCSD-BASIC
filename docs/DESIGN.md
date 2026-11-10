@@ -9,7 +9,7 @@ sources are byte for byte the ones the host build makes (tools/selfcompile
 ## 1. The pieces
 
 BC is eight programs, each in memory alone: one CHAINs to the next (the
-library's CHAIN, Tiny-C's pexec protocol: section 9), so each has all of
+library's CHAIN, UCSD-C's pexec protocol: section 9), so each has all of
 memory for its own code and tables.
 
     BC.CODE      the driver: bc.bas
@@ -414,7 +414,7 @@ and OSCALL (FINIT, FOPEN, FCLOSE, FBLOCKIO).
   string flag), each dimension's count, the elements; _AX1, _AX2, _AXN
   check the indexes and give an element's address.
 - Files: 15 channels; the text file format (header, pages, DLE) and the
-  buffering are the library's, ported from Tiny-C's stdio.  Every block
+  buffering are the library's, ported from UCSD-C's stdio.  Every block
   goes through _BLOCKIO: FBLOCKIO for a file the operating system opened,
   RTSUBV's _SVIO for one in a sub-volume.
 - The segment RTSELDOM holds what a program does seldom, so that it is in
@@ -441,7 +441,7 @@ and OSCALL (FINIT, FOPEN, FCLOSE, FBLOCKIO).
   first, as many as the operating system's 80-character prompt line
   holds.  BCDEBUG.CODE is looked for beside the program (#unit:), on the
   prefix, on the boot disk (*) and on BASIC:, with FOPEN, and run by
-  Tiny-C's pexec protocol as _CHAIN does it (_WRUN: not _CHAIN itself,
+  UCSD-C's pexec protocol as _CHAIN does it (_WRUN: not _CHAIN itself,
   whose paths and sub-volumes would be in every program); not found,
   _RTWHERE says each frame's numbers, s=S#,p=P#,i=I#.  BCDEBUG finds the
   code file's name in the unit's directory (UNITREAD of blocks 2..5), and
@@ -452,7 +452,7 @@ and OSCALL (FINIT, FOPEN, FCLOSE, FBLOCKIO).
   the code file first: "#unit:/A/NAME"); without the map, each frame's
   numbers.  It ends with status 1.
 - Sub-volumes (RTSUBV): a path VOL:/A/B/NAME is
-  followed as Tiny-C's library does it, but the first step is the OS's:
+  followed as UCSD-C's library does it, but the first step is the OS's:
   FOPEN of VOL:A gives its unit (FIB word 7) and first block (FHEADER's
   DFIRSTBLK, word 16), so #5:, * and the prefix work as for any file; the
   file is closed at once.  Then each directory (blocks 2..5 of the
@@ -474,7 +474,7 @@ and OSCALL (FINIT, FOPEN, FCLOSE, FBLOCKIO).
   back to the line's start, and _PNL ends a line with CR and LF (on the
   console, or a file opened as CONSOLE:).  Input is read a key at a time
   with UNITREAD and echoed (the echo of RETURN with its LF).
-- CHAIN (RTCHAIN): Tiny-C's
+- CHAIN (RTCHAIN): UCSD-C's
   pexec without the way back.  _CHAIN finds the code file as pexec does
   (a path or the shell's path: RTSUBV's _SVPATH; else FOPEN of NAME.CODE:
   the FIB's unit and first block), checks that it is a linked code file
@@ -494,11 +494,11 @@ and OSCALL (FINIT, FOPEN, FCLOSE, FBLOCKIO).
   module of BC's own, and the finding needs some 6,000.  bas2c translates
   CHAIN for the host build: the host program of that name beside the
   running one.
-- COMMAND$ follows Tiny-C's pexec protocol (SYSCOM^.EXPANSION, the OS's
+- COMMAND$ follows UCSD-C's pexec protocol (SYSCOM^.EXPANSION, the OS's
   prompt line PL); the exit status goes to EXPANSION[5].  _RTINIT takes
   the line once, at the start (_ARGS): the arguments for COMMAND$, and
   the shell's path (CD) after them (a byte 30 before it), and the
-  shell's redirections, as Tiny-C's __redirect takes them (a word >NAME,
+  shell's redirections, as UCSD-C's __redirect takes them (a word >NAME,
   >>NAME or <NAME, or the name in the next word: taken off COMMAND$,
   whose other words are then joined by one blank).  _RTINIT opens them
   once the heap is there (_REDOPEN, RTSELDOM) on channels 16 and 17
@@ -508,7 +508,7 @@ and OSCALL (FINIT, FOPEN, FCLOSE, FBLOCKIO).
   echoed.  _HALT and _RTERR end them first (_REDCLOSE), so an error's
   message is on the screen.  A file that cannot be opened: "NAME: cannot
   open it", exit status 1.  _OPEN and
-  _KILL put that path before a name without a volume (_FNAME, as Tiny-C's
+  _KILL put that path before a name without a volume (_FNAME, as UCSD-C's
   library does), so a program run after CD BASIC:/DEMO finds PI.BAS there.
   _FNAME also takes a size off the end of a name, [n] or [*], which only
   the operating system's FOPEN is given (a file in a sub-volume has none).

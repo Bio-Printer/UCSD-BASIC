@@ -1,4 +1,4 @@
-' PI -- Archimedes' method with DOUBLEs: Tiny-C's PI.C (and PASCAL-C's
+' PI -- Archimedes' method with DOUBLEs: UCSD-C's PI.C (and PASCAL-C's
 ' PI.TEXT) in BASIC.
 ' Polygons with 6, 12, 24, ... sides inside and around a circle of
 ' diameter 1: their perimeters are a lower and an upper bound for pi.

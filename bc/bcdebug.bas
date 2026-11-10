@@ -4,7 +4,7 @@
 ' the code file's unit and first block, and the procedures' frames from
 ' the innermost out: each one's segment, procedure and offset (I#, after
 ' the call).  BCDEBUG finds the code file's name in the unit's directory
-' (and in the sub-volumes' on the way: Tiny-C's, data files holding a
+' (and in the sub-volumes' on the way: UCSD-C's, data files holding a
 ' volume), reads NAME.MAP beside it (BCLINK -MAP) for the first frame
 ' that has lines there (the library's have none), and says
 '   FILE line N, in NAME (S# s, P# p, I# i):

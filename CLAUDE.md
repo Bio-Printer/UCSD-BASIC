@@ -4,7 +4,7 @@
   (host BC: build/bc, bclex, bcgen, bclist, bclink), `tools/mklib.sh`,
   `tools/mkself.sh`, `tools/mkvolume.py`.
   The sibling checkouts are expected in `../bio-printer/` (the emulator,
-  UCSD-TinyC, UCSD-Pascal-Volumes); see setup.sh's variables.
+  UCSD-C, UCSD-Pascal-Volumes); see setup.sh's variables.
 - BC is eight programs: seven CHAIN to each other through the job file
   :BCTEMP.JOB (docs/DESIGN.md section 1), and BCDEBUG is chained to by a
   program's run-time error; tools/bcprogs.py lists each one's
@@ -91,7 +91,7 @@
   statement's place.  bas2c turns the CSP statement into nothing and
   CSP%() into 0.  BC does not check for the Harvard layout (docs/DESIGN.md
   section 10: what the other layouts leave).  PSYS_MODE=z80 needs the Z80
-  interpreter pascal.bin (setup.sh copies UCSD-TinyC's).
+  interpreter pascal.bin (setup.sh copies UCSD-C's).
 - The linker links procedures, not modules.  BCLEX counts what BCGEN's
   tables need into the token file's 16-word header (THxxx in bccom.bas,
   written at the end with SEEK: bas2c's b_seek; DESIGN.md sections 3 and
@@ -116,11 +116,11 @@
   nothing else in the module (errors 24, 30, 119 from BCLEX):
   tests/constin, tests/errors/err10.  BCLEX's peak is opening an #INCLUDE
   file (RTSELDOM): KwTable$ is the segment KWTAB, LxUnused and LexErr LXEND.
-- BASIC:INSTALL.TEXT (mkvolume) is a batch file of Tiny-C's shell (BIGGY
+- BASIC:INSTALL.TEXT (mkvolume) is a batch file of UCSD-C's shell (BIGGY
   1.32: @FILE; MOVE replaces): voltest runs it after BUILD.
 - The tests boot build/psys/data/Big_Disk.BLK (setup.sh copies BOOT_DISK);
   BIGGY 1.29 is the first whose systems make a new NAME.BAS a text file;
-  1.30's shell (and Tiny-C's library: __istext) reads NAME.BAS as text.
+  1.30's shell (and UCSD-C's library: __istext) reads NAME.BAS as text.
 - Code space (Harvard): BCGEN is the largest program; LIST is a program of
   its own (BCLIST, after BCGEN).
   voltest compares the P-System's listing (-S) with the host's.

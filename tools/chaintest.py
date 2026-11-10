@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""chaintest.py -- CHAIN from programs Tiny-C's shell started (BIGGY's S): tests/chain.bas and the two
+"""chaintest.py -- CHAIN from programs UCSD-C's shell started (BIGGY's S): tests/chain.bas and the two
 programs it chains to (CHAIN2 with options, CHAIN3 by a string variable) run one after the other, and
 the shell comes back after the last one with its exit status (END 3); after a CD into a sub-volume, a
 program there chains to another one there by its name alone (the shell's path goes along: COMMAND$

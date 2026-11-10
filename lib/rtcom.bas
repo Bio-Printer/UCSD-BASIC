@@ -23,7 +23,7 @@ COMMON SHARED _FTAB
 ' ---- the shell's redirections (>NAME, >>NAME, <NAME): _REDIR 1 output, 2
 ' input, 4 appending; their names (_REDNAME: output, +82 input)
 COMMON SHARED _REDIR, _REDNAME
-' ---- the command line and the shell's path (CD) Tiny-C's shell gave (Pascal
+' ---- the command line and the shell's path (CD) UCSD-C's shell gave (Pascal
 ' strings; 0: none); a file name as opened (on that path) and its size, [n]
 ' or [*], which only the operating system sees
 COMMON SHARED _CMDLINE, _SVPWD, _PATHBUF, _SIZESPEC

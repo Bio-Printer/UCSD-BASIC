@@ -18,7 +18,7 @@
     TEST/              the compiler's tests; TESTS.TEXT compiles them all,
                        EXPECT/ what each prints
 
-The sub-volumes are data files holding a volume of their own (Tiny-C's
+The sub-volumes are data files holding a volume of their own (UCSD-C's
 MKDIR), made here with room for what their batch files write (the objects
 and code files, measured with the host build: twice that and 40 blocks).
 The compiler and library are the host build's (tools/mkself.sh,

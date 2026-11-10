@@ -1,6 +1,6 @@
 ' RTSUBV -- the run-time library: files in sub-volumes
 '
-' A sub-volume is a data file that holds a volume of its own (Tiny-C's
+' A sub-volume is a data file that holds a volume of its own (UCSD-C's
 ' shell makes one with MKDIR): its blocks 2..5 are a directory, its block
 ' numbers counted from the file's first block.  A path names a file in
 ' one: VOL:/A/NAME or VOL:A/NAME (A a sub-volume on VOL:), VOL:/A/B/NAME

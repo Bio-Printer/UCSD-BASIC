@@ -99,7 +99,7 @@ SUB _RTWHERE (f)
 END SUB
 
 ' the code file c (a Pascal string: a title for FOPEN) run with the command
-' line BCDEBUG and a: this program ends (Tiny-C's pexec protocol, as
+' line BCDEBUG and a: this program ends (UCSD-C's pexec protocol, as
 ' RTCHAIN's _CHAIN, without its search of the paths, the shell's path and
 ' its check of the code file); back if there is no such code file
 SUB _WRUN (c, a)
